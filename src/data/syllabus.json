@@ -1,0 +1,1034 @@
+[
+  {
+    "id": "digital-logic/what-is-information",
+    "title": "What Is Information?",
+    "summary": "How bits, symbols, and encoding turn physical signals into meaningful data.",
+    "moduleNumber": 1,
+    "moduleName": "Digital Logic — The Physics of Code",
+    "slug": "digital-logic/what-is-information",
+    "prerequisites": [],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "digital-logic/boolean-algebra",
+    "title": "Boolean Algebra",
+    "summary": "AND, OR, NOT — the three operations behind every digital decision.",
+    "moduleNumber": 1,
+    "moduleName": "Digital Logic — The Physics of Code",
+    "slug": "digital-logic/boolean-algebra",
+    "prerequisites": [
+      "digital-logic/what-is-information"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "digital-logic/logic-gates",
+    "title": "Logic Gates & Truth Tables",
+    "summary": "Physical circuits that implement Boolean operations using electrical signals.",
+    "moduleNumber": 1,
+    "moduleName": "Digital Logic — The Physics of Code",
+    "slug": "digital-logic/logic-gates",
+    "prerequisites": [
+      "digital-logic/boolean-algebra"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "digital-logic/combinational-circuits",
+    "title": "Combinational Circuits",
+    "summary": "Adders, multiplexers, and other circuits that combine gates to do useful work.",
+    "moduleNumber": 1,
+    "moduleName": "Digital Logic — The Physics of Code",
+    "slug": "digital-logic/combinational-circuits",
+    "prerequisites": [
+      "digital-logic/logic-gates"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "digital-logic/sequential-circuits",
+    "title": "Sequential Circuits & Memory Elements",
+    "summary": "Flip-flops and registers — circuits that remember their past.",
+    "moduleNumber": 1,
+    "moduleName": "Digital Logic — The Physics of Code",
+    "slug": "digital-logic/sequential-circuits",
+    "prerequisites": [
+      "digital-logic/combinational-circuits"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "digital-logic/minimization",
+    "title": "Minimization (Karnaugh Maps)",
+    "summary": "Simplifying Boolean expressions to build cheaper, faster circuits.",
+    "moduleNumber": 1,
+    "moduleName": "Digital Logic — The Physics of Code",
+    "slug": "digital-logic/minimization",
+    "prerequisites": [
+      "digital-logic/boolean-algebra",
+      "digital-logic/logic-gates"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "digital-logic/number-systems",
+    "title": "Number Systems",
+    "summary": "Binary, hexadecimal, and two's complement — how computers count.",
+    "moduleNumber": 1,
+    "moduleName": "Digital Logic — The Physics of Code",
+    "slug": "digital-logic/number-systems",
+    "prerequisites": [
+      "digital-logic/what-is-information"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "digital-logic/floating-point",
+    "title": "Fixed & Floating Point Representation",
+    "summary": "IEEE 754 — how computers handle fractions and very large numbers.",
+    "moduleNumber": 1,
+    "moduleName": "Digital Logic — The Physics of Code",
+    "slug": "digital-logic/floating-point",
+    "prerequisites": [
+      "digital-logic/number-systems"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "architecture/gates-to-cpu",
+    "title": "From Gates to a CPU",
+    "summary": "How simple logic gates combine to form a working processor.",
+    "moduleNumber": 2,
+    "moduleName": "Computer Organization & Architecture",
+    "slug": "architecture/gates-to-cpu",
+    "prerequisites": [
+      "digital-logic/combinational-circuits",
+      "digital-logic/sequential-circuits"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "architecture/isa",
+    "title": "Instruction Set Architecture & Machine Instructions",
+    "summary": "The vocabulary a CPU understands — its instruction set.",
+    "moduleNumber": 2,
+    "moduleName": "Computer Organization & Architecture",
+    "slug": "architecture/isa",
+    "prerequisites": [
+      "architecture/gates-to-cpu"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "architecture/addressing-modes",
+    "title": "Addressing Modes",
+    "summary": "Different ways a CPU can locate the data it needs to work with.",
+    "moduleNumber": 2,
+    "moduleName": "Computer Organization & Architecture",
+    "slug": "architecture/addressing-modes",
+    "prerequisites": [
+      "architecture/isa"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "architecture/alu-datapath",
+    "title": "The ALU, Datapath & Control Unit",
+    "summary": "The arithmetic engine, data highways, and traffic controller inside a CPU.",
+    "moduleNumber": 2,
+    "moduleName": "Computer Organization & Architecture",
+    "slug": "architecture/alu-datapath",
+    "prerequisites": [
+      "architecture/isa",
+      "digital-logic/logic-gates",
+      "digital-logic/combinational-circuits"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "architecture/pipelining",
+    "title": "Instruction Pipelining",
+    "summary": "Overlapping instruction execution like an assembly line in a factory.",
+    "moduleNumber": 2,
+    "moduleName": "Computer Organization & Architecture",
+    "slug": "architecture/pipelining",
+    "prerequisites": [
+      "architecture/alu-datapath"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "architecture/pipeline-hazards",
+    "title": "Pipeline Hazards & Solutions",
+    "summary": "When the assembly line stalls — and how CPUs recover.",
+    "moduleNumber": 2,
+    "moduleName": "Computer Organization & Architecture",
+    "slug": "architecture/pipeline-hazards",
+    "prerequisites": [
+      "architecture/pipelining"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "architecture/memory-hierarchy",
+    "title": "Memory Hierarchy",
+    "summary": "Registers, cache, RAM, disk — a pyramid of speed vs. capacity trade-offs.",
+    "moduleNumber": 2,
+    "moduleName": "Computer Organization & Architecture",
+    "slug": "architecture/memory-hierarchy",
+    "prerequisites": [
+      "architecture/gates-to-cpu"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "architecture/io-interrupts",
+    "title": "I/O: Interrupts & DMA",
+    "summary": "How a CPU communicates with keyboards, disks, and the outside world.",
+    "moduleNumber": 2,
+    "moduleName": "Computer Organization & Architecture",
+    "slug": "architecture/io-interrupts",
+    "prerequisites": [
+      "architecture/alu-datapath"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "prog-ds/first-program",
+    "title": "Your First Program: C from Zero",
+    "summary": "Writing, compiling, and running your very first C program.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/first-program",
+    "prerequisites": [
+      "architecture/memory-hierarchy"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "prog-ds/variables-types",
+    "title": "Variables, Types & Memory",
+    "summary": "Named containers that hold data — and the memory behind them.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/variables-types",
+    "prerequisites": [
+      "prog-ds/first-program",
+      "architecture/memory-hierarchy"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "prog-ds/pointers",
+    "title": "Pointers & the Heap",
+    "summary": "Variables that store memory addresses — the 'GPS coordinates' of data.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/pointers",
+    "prerequisites": [
+      "prog-ds/variables-types"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "prog-ds/arrays",
+    "title": "Arrays",
+    "summary": "Contiguous blocks of memory — like numbered shelves in a warehouse.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/arrays",
+    "prerequisites": [
+      "prog-ds/pointers"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "prog-ds/recursion",
+    "title": "Recursion",
+    "summary": "Functions that call themselves — like Russian nesting dolls.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/recursion",
+    "prerequisites": [
+      "prog-ds/arrays"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "prog-ds/stacks",
+    "title": "Stacks",
+    "summary": "A last-in, first-out structure — like a stack of plates.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/stacks",
+    "prerequisites": [
+      "prog-ds/arrays"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "prog-ds/queues",
+    "title": "Queues",
+    "summary": "A first-in, first-out structure — like a grocery store checkout line.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/queues",
+    "prerequisites": [
+      "prog-ds/stacks"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "prog-ds/linked-lists",
+    "title": "Linked Lists",
+    "summary": "Nodes connected by pointers — like a treasure hunt with clues.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/linked-lists",
+    "prerequisites": [
+      "prog-ds/pointers"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "prog-ds/trees",
+    "title": "Trees & Binary Trees",
+    "summary": "Hierarchical structures branching from a single root — like a family tree.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/trees",
+    "prerequisites": [
+      "prog-ds/linked-lists",
+      "prog-ds/recursion"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "prog-ds/binary-search-trees",
+    "title": "Binary Search Trees",
+    "summary": "Trees that keep data sorted for lightning-fast lookups.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/binary-search-trees",
+    "prerequisites": [
+      "prog-ds/trees"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "prog-ds/heaps",
+    "title": "Binary Heaps",
+    "summary": "A tournament bracket structure that always knows the winner.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/heaps",
+    "prerequisites": [
+      "prog-ds/trees"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "prog-ds/hash-tables",
+    "title": "Hash Tables",
+    "summary": "Instant lookups using a clever numbering trick — like a coat-check.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/hash-tables",
+    "prerequisites": [
+      "prog-ds/arrays"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "prog-ds/graphs",
+    "title": "Graphs",
+    "summary": "Nodes and edges representing connections — like a metro map.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/graphs",
+    "prerequisites": [
+      "prog-ds/linked-lists"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "prog-ds/b-trees",
+    "title": "B-Trees & B+ Trees",
+    "summary": "Wide, balanced trees optimized for disk storage — like an encyclopedia index.",
+    "moduleNumber": 3,
+    "moduleName": "Programming & Data Structures",
+    "slug": "prog-ds/b-trees",
+    "prerequisites": [
+      "prog-ds/binary-search-trees"
+    ],
+    "estimatedMinutes": 7
+  },
+  {
+    "id": "algorithms/what-is-algorithm",
+    "title": "What Is an Algorithm?",
+    "summary": "A step-by-step recipe for solving a problem.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/what-is-algorithm",
+    "prerequisites": [
+      "prog-ds/arrays"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "algorithms/big-o",
+    "title": "Big-O Notation",
+    "summary": "A way to measure how much slower an algorithm gets as input grows.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/big-o",
+    "prerequisites": [
+      "algorithms/what-is-algorithm"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "algorithms/searching",
+    "title": "Searching Algorithms",
+    "summary": "Finding a needle in a haystack — linear search vs. binary search.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/searching",
+    "prerequisites": [
+      "algorithms/big-o",
+      "prog-ds/arrays",
+      "prog-ds/binary-search-trees"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "algorithms/sorting",
+    "title": "Sorting Algorithms",
+    "summary": "Putting things in order — from bubble sort to merge sort.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/sorting",
+    "prerequisites": [
+      "algorithms/big-o",
+      "prog-ds/arrays"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "algorithms/hashing",
+    "title": "Hashing",
+    "summary": "Turning data into fixed-size fingerprints for instant retrieval.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/hashing",
+    "prerequisites": [
+      "algorithms/big-o",
+      "prog-ds/hash-tables"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "algorithms/divide-conquer",
+    "title": "Divide & Conquer",
+    "summary": "Breaking big problems into smaller identical sub-problems.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/divide-conquer",
+    "prerequisites": [
+      "algorithms/big-o",
+      "prog-ds/recursion"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "algorithms/greedy",
+    "title": "Greedy Algorithms",
+    "summary": "Making the locally optimal choice at every step.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/greedy",
+    "prerequisites": [
+      "algorithms/big-o"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "algorithms/dynamic-programming",
+    "title": "Dynamic Programming",
+    "summary": "Solving problems by remembering the answers to sub-problems.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/dynamic-programming",
+    "prerequisites": [
+      "algorithms/divide-conquer"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "algorithms/graph-traversals",
+    "title": "Graph Traversals: BFS & DFS",
+    "summary": "Systematically visiting every node in a graph.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/graph-traversals",
+    "prerequisites": [
+      "algorithms/big-o",
+      "prog-ds/graphs"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "algorithms/mst",
+    "title": "Minimum Spanning Trees",
+    "summary": "Connecting all nodes with the least total cost.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/mst",
+    "prerequisites": [
+      "algorithms/graph-traversals",
+      "prog-ds/graphs"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "algorithms/shortest-paths",
+    "title": "Shortest Paths: Dijkstra & Bellman-Ford",
+    "summary": "Finding the cheapest route between two nodes in a graph.",
+    "moduleNumber": 4,
+    "moduleName": "Algorithms",
+    "slug": "algorithms/shortest-paths",
+    "prerequisites": [
+      "algorithms/graph-traversals",
+      "prog-ds/graphs"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "theory/what-can-machines-compute",
+    "title": "What Can Machines Compute?",
+    "summary": "The fundamental limits of what any computer can ever solve.",
+    "moduleNumber": 5,
+    "moduleName": "Theory of Computation",
+    "slug": "theory/what-can-machines-compute",
+    "prerequisites": [
+      "digital-logic/boolean-algebra",
+      "prog-ds/arrays"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "theory/regex-finite-automata",
+    "title": "Regular Expressions & Finite Automata",
+    "summary": "Pattern-matching machines with no memory beyond their current state.",
+    "moduleNumber": 5,
+    "moduleName": "Theory of Computation",
+    "slug": "theory/regex-finite-automata",
+    "prerequisites": [
+      "theory/what-can-machines-compute"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "theory/cfg-pda",
+    "title": "Context-Free Grammars & Push-Down Automata",
+    "summary": "Machines that understand nested structure — like matching parentheses.",
+    "moduleNumber": 5,
+    "moduleName": "Theory of Computation",
+    "slug": "theory/cfg-pda",
+    "prerequisites": [
+      "theory/regex-finite-automata",
+      "prog-ds/stacks"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "theory/pumping-lemma",
+    "title": "The Pumping Lemma",
+    "summary": "A proof technique for showing what finite automata cannot recognize.",
+    "moduleNumber": 5,
+    "moduleName": "Theory of Computation",
+    "slug": "theory/pumping-lemma",
+    "prerequisites": [
+      "theory/regex-finite-automata"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "theory/turing-machines",
+    "title": "Turing Machines",
+    "summary": "The most powerful theoretical computer — an infinite tape with a read/write head.",
+    "moduleNumber": 5,
+    "moduleName": "Theory of Computation",
+    "slug": "theory/turing-machines",
+    "prerequisites": [
+      "theory/cfg-pda"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "theory/decidability",
+    "title": "Decidability & Undecidability",
+    "summary": "Problems that no algorithm can ever solve — provably impossible tasks.",
+    "moduleNumber": 5,
+    "moduleName": "Theory of Computation",
+    "slug": "theory/decidability",
+    "prerequisites": [
+      "theory/turing-machines"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "theory/complexity-classes",
+    "title": "Complexity Classes (P vs NP)",
+    "summary": "Classifying problems by how hard they are to solve vs. verify.",
+    "moduleNumber": 5,
+    "moduleName": "Theory of Computation",
+    "slug": "theory/complexity-classes",
+    "prerequisites": [
+      "theory/turing-machines",
+      "algorithms/big-o"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "compilers/big-picture",
+    "title": "The Big Picture: From English to Electricity",
+    "summary": "How human-readable code becomes machine instructions a CPU executes.",
+    "moduleNumber": 6,
+    "moduleName": "Compiler Design",
+    "slug": "compilers/big-picture",
+    "prerequisites": [
+      "architecture/isa",
+      "digital-logic/logic-gates"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "compilers/lexical-analysis",
+    "title": "Lexical Analysis (Tokenization)",
+    "summary": "Breaking source code into tokens — the words of a programming language.",
+    "moduleNumber": 6,
+    "moduleName": "Compiler Design",
+    "slug": "compilers/lexical-analysis",
+    "prerequisites": [
+      "compilers/big-picture",
+      "theory/regex-finite-automata"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "compilers/parsing",
+    "title": "Parsing & Syntax Trees",
+    "summary": "Building a tree structure that represents the grammar of your code.",
+    "moduleNumber": 6,
+    "moduleName": "Compiler Design",
+    "slug": "compilers/parsing",
+    "prerequisites": [
+      "compilers/lexical-analysis",
+      "theory/cfg-pda",
+      "prog-ds/trees"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "compilers/syntax-directed",
+    "title": "Syntax-Directed Translation",
+    "summary": "Attaching meaning to grammar rules to generate intermediate code.",
+    "moduleNumber": 6,
+    "moduleName": "Compiler Design",
+    "slug": "compilers/syntax-directed",
+    "prerequisites": [
+      "compilers/parsing"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "compilers/runtime-environments",
+    "title": "Runtime Environments",
+    "summary": "How the compiled program manages memory, stack frames, and function calls.",
+    "moduleNumber": 6,
+    "moduleName": "Compiler Design",
+    "slug": "compilers/runtime-environments",
+    "prerequisites": [
+      "compilers/syntax-directed",
+      "architecture/memory-hierarchy",
+      "prog-ds/variables-types"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "compilers/intermediate-code",
+    "title": "Intermediate Code Generation",
+    "summary": "Translating the syntax tree into a platform-independent instruction set.",
+    "moduleNumber": 6,
+    "moduleName": "Compiler Design",
+    "slug": "compilers/intermediate-code",
+    "prerequisites": [
+      "compilers/syntax-directed"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "compilers/optimization",
+    "title": "Optimization & Data Flow Analysis",
+    "summary": "Making generated code faster and smaller without changing its behavior.",
+    "moduleNumber": 6,
+    "moduleName": "Compiler Design",
+    "slug": "compilers/optimization",
+    "prerequisites": [
+      "compilers/intermediate-code"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "os/what-is-os",
+    "title": "What Is an OS?",
+    "summary": "The kitchen manager that coordinates all hardware and software resources.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/what-is-os",
+    "prerequisites": [
+      "architecture/isa",
+      "prog-ds/first-program"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "os/processes-threads",
+    "title": "Processes & Threads",
+    "summary": "Independent programs and their lightweight sub-tasks running concurrently.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/processes-threads",
+    "prerequisites": [
+      "os/system-calls",
+      "architecture/pipelining"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "os/cpu-scheduling",
+    "title": "CPU Scheduling",
+    "summary": "Deciding which process gets the CPU next — and for how long.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/cpu-scheduling",
+    "prerequisites": [
+      "os/processes-threads"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "os/concurrency",
+    "title": "Concurrency & Synchronization",
+    "summary": "The shared knife problem — coordinating access to shared resources.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/concurrency",
+    "prerequisites": [
+      "os/processes-threads"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "os/deadlock",
+    "title": "Deadlock",
+    "summary": "When processes wait forever for each other — a circular standoff.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/deadlock",
+    "prerequisites": [
+      "os/concurrency"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "os/ipc",
+    "title": "Inter-Process Communication",
+    "summary": "How separate processes share data — pipes, shared memory, and message passing.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/ipc",
+    "prerequisites": [
+      "os/processes-threads"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "os/memory-management",
+    "title": "Memory Management & Virtual Memory",
+    "summary": "Giving every process the illusion of having all memory to itself.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/memory-management",
+    "prerequisites": [
+      "os/processes-threads",
+      "architecture/memory-hierarchy",
+      "prog-ds/pointers"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "os/file-systems",
+    "title": "File Systems",
+    "summary": "Organizing data on disk into files and directories you can find again.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/file-systems",
+    "prerequisites": [
+      "os/io-scheduling",
+      "prog-ds/b-trees"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "os/io-scheduling",
+    "title": "I/O Scheduling",
+    "summary": "Optimizing the order of disk and device requests.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/io-scheduling",
+    "prerequisites": [
+      "os/cpu-scheduling",
+      "architecture/io-interrupts"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "os/system-calls",
+    "title": "System Calls & User/Kernel Space",
+    "summary": "The controlled doorway between your program and the operating system.",
+    "moduleNumber": 7,
+    "moduleName": "Operating Systems",
+    "slug": "os/system-calls",
+    "prerequisites": [
+      "os/what-is-os"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "dbms/why-databases",
+    "title": "Why Databases?",
+    "summary": "A filing cabinet of sorted folders — structured, searchable, reliable storage.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/why-databases",
+    "prerequisites": [
+      "prog-ds/arrays",
+      "os/file-systems"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "dbms/er-model",
+    "title": "The Entity-Relationship Model",
+    "summary": "Drawing the blueprint of your data before building the database.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/er-model",
+    "prerequisites": [
+      "dbms/why-databases"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "dbms/relational-model",
+    "title": "The Relational Model & Algebra",
+    "summary": "Tables, rows, columns, and the mathematical operations on them.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/relational-model",
+    "prerequisites": [
+      "dbms/er-model"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "dbms/sql",
+    "title": "SQL: Querying a Database",
+    "summary": "The language you use to ask questions of a relational database.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/sql",
+    "prerequisites": [
+      "dbms/relational-model"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "dbms/normalization",
+    "title": "Integrity Constraints & Normal Forms",
+    "summary": "Rules that keep your data consistent and free from redundancy.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/normalization",
+    "prerequisites": [
+      "dbms/sql"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "dbms/b-plus-indexes",
+    "title": "B+ Tree Indexes",
+    "summary": "The tree structure that makes database lookups blazingly fast.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/b-plus-indexes",
+    "prerequisites": [
+      "dbms/file-organization",
+      "prog-ds/b-trees"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "dbms/file-organization",
+    "title": "File Organization & Indexing",
+    "summary": "How database files are physically stored and indexed on disk.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/file-organization",
+    "prerequisites": [
+      "dbms/sql",
+      "prog-ds/b-trees"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "dbms/transactions",
+    "title": "Transactions & ACID Properties",
+    "summary": "All-or-nothing operations that keep your database trustworthy.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/transactions",
+    "prerequisites": [
+      "dbms/sql"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "dbms/concurrency-control",
+    "title": "Concurrency Control",
+    "summary": "Letting multiple users query the database without stepping on each other.",
+    "moduleNumber": 8,
+    "moduleName": "Database Management Systems",
+    "slug": "dbms/concurrency-control",
+    "prerequisites": [
+      "dbms/transactions",
+      "os/concurrency"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "networks/global-postal-system",
+    "title": "The Global Postal System (OSI/TCP-IP)",
+    "summary": "How data travels across the world in layers — like mail through a postal system.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/global-postal-system",
+    "prerequisites": [
+      "prog-ds/arrays",
+      "os/what-is-os"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "networks/physical-data-link",
+    "title": "Physical & Data Link Layers",
+    "summary": "Getting bits on and off the wire — framing, error detection, and correction.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/physical-data-link",
+    "prerequisites": [
+      "networks/global-postal-system"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "networks/mac-ethernet",
+    "title": "MAC & Ethernet",
+    "summary": "Local network addressing and the protocol that connects devices on a LAN.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/mac-ethernet",
+    "prerequisites": [
+      "networks/physical-data-link"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "networks/ip-addressing",
+    "title": "IP Addressing: IPv4, CIDR, NAT, ARP, DHCP, ICMP",
+    "summary": "The numbering system that gives every device on the internet an address.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/ip-addressing",
+    "prerequisites": [
+      "networks/routing"
+    ],
+    "estimatedMinutes": 4
+  },
+  {
+    "id": "networks/routing",
+    "title": "Routing: How Data Finds Its Way",
+    "summary": "Algorithms that guide packets through the network to their destination.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/routing",
+    "prerequisites": [
+      "networks/mac-ethernet",
+      "prog-ds/graphs",
+      "algorithms/mst",
+      "algorithms/shortest-paths"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "networks/transport-layer",
+    "title": "Transport Layer: UDP & TCP",
+    "summary": "Reliable vs. fast delivery — choosing how data gets there.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/transport-layer",
+    "prerequisites": [
+      "networks/ip-addressing"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "networks/flow-congestion",
+    "title": "Flow & Congestion Control",
+    "summary": "Preventing network traffic jams and ensuring fair bandwidth sharing.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/flow-congestion",
+    "prerequisites": [
+      "networks/transport-layer"
+    ],
+    "estimatedMinutes": 5
+  },
+  {
+    "id": "networks/application-layer",
+    "title": "Application Layer: DNS, HTTP, SMTP, FTP",
+    "summary": "The protocols that power the web, email, and file transfers.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/application-layer",
+    "prerequisites": [
+      "networks/sockets"
+    ],
+    "estimatedMinutes": 6
+  },
+  {
+    "id": "networks/sockets",
+    "title": "Sockets Programming",
+    "summary": "Writing code that sends and receives data over the network.",
+    "moduleNumber": 9,
+    "moduleName": "Computer Networks",
+    "slug": "networks/sockets",
+    "prerequisites": [
+      "networks/transport-layer",
+      "prog-ds/first-program"
+    ],
+    "estimatedMinutes": 5
+  }
+]

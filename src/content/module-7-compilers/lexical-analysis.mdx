@@ -1,0 +1,123 @@
+{/* Lesson 6.2 — Lexical Analysis */}
+
+<PrerequisiteBadge prerequisites={["compilers/big-picture"]} />
+
+## Hook — Breaking Code into Words
+
+Before a compiler can understand your program's structure, it must break the raw character stream into meaningful chunks called **tokens**. The **lexer** (or scanner) does this — it's the compiler's "eyes," converting characters into words. And it's built on the theory you already know: regular expressions and finite automata.
+
+## What Is Lexical Analysis?
+
+```
+Input:  "if (x >= 42) return x;"
+         ↓
+Lexer:  [IF] [LPAREN] [ID:"x"] [GEQ] [NUM:42] [RPAREN]
+        [RETURN] [ID:"x"] [SEMICOLON]
+
+Each token: (type, value, line, column)
+```
+
+### Token Categories
+
+```
+Category      Examples                    Pattern (regex)
+────────      ────────                    ───────────────
+Keywords      if, while, return           if|while|return
+Identifiers   x, count, myVar            [a-zA-Z_][a-zA-Z0-9_]*
+Numbers       42, 3.14, 0xFF             [0-9]+(\.[0-9]+)?
+Operators     +, >=, ==                   \+|>=|==
+Delimiters    (, ), {, ;                  \(|\)|\{|;
+Strings       "hello"                     "[^"]*"
+Whitespace    spaces, tabs, newlines      [ \t\n]+  (usually skipped)
+Comments      // ..., /* ... */           //[^\n]*  (skipped)
+```
+
+## See It Work — Building a Lexer
+
+### Approach 1: Hand-Written (used in production compilers)
+
+```c
+Token next_token(char **input) {
+    skip_whitespace(input);
+    
+    if (isalpha(**input) || **input == '_') {
+        // Read identifier or keyword
+        char *start = *input;
+        while (isalnum(**input) || **input == '_') (*input)++;
+        int len = *input - start;
+        
+        if (strncmp(start, "if", len) == 0) return (Token){IF};
+        if (strncmp(start, "return", len) == 0) return (Token){RETURN};
+        return (Token){ID, start, len};
+    }
+    
+    if (isdigit(**input)) {
+        int val = 0;
+        while (isdigit(**input)) val = val*10 + (*(*input)++ - '0');
+        return (Token){NUM, .intval = val};
+    }
+    
+    switch (**input) {
+        case '+': (*input)++; return (Token){PLUS};
+        case '(': (*input)++; return (Token){LPAREN};
+        case '>':
+            (*input)++;
+            if (**input == '=') { (*input)++; return (Token){GEQ}; }
+            return (Token){GT};
+    }
+}
+```
+
+### Approach 2: Generated from Regex (Lex/Flex)
+
+```
+%% 
+"if"        { return IF; }
+"return"    { return RETURN; }
+[a-zA-Z_][a-zA-Z0-9_]*  { return ID; }
+[0-9]+      { return NUM; }
+">="        { return GEQ; }
+"+"         { return PLUS; }
+[ \t\n]     { /* skip whitespace */ }
+%%
+```
+
+Lex/Flex converts these regex patterns into a DFA that processes the entire input in a single pass.
+
+## How It Actually Works — Maximal Munch
+
+```
+Input: "iffy >= 3"
+
+Is "i" a token? Could be ID, but...
+Is "if" a token? Could be keyword IF, but...
+Is "iff" a token? Still matches ID pattern...
+Is "iffy" a token? Matches ID pattern, next char is space.
+
+MAXIMAL MUNCH: Always take the longest possible match.
+Result: [ID:"iffy"] not [IF][ID:"fy"]
+
+Priority rule: If same length matches multiple patterns,
+               keywords take priority over identifiers.
+```
+
+## Why It Matters
+
+- The lexer is the foundation of every compiler, interpreter, and language tool.
+- Understanding tokenization helps you write better parsers, syntax highlighters, and DSLs.
+- Lexer theory (regex → NFA → DFA) directly connects to formal language theory.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="compilers/lexical-analysis"
+  questions={[
+    {q: "Why are lexers based on finite automata rather than more powerful machines?", options: ["Tradition", "Regular expressions and DFAs are sufficient for tokenization (tokens don't nest), and DFAs process input in O(n) time with O(1) memory per character — maximally efficient for this task", "Finite automata are newer", "Lexers need stacks"], answer: 1, explanation: "Tokens are flat patterns: identifiers, numbers, keywords. They don't nest or require counting (unlike parentheses). Regular expressions perfectly describe all token patterns. A DFA compiled from these regexes processes each character exactly once with a single table lookup — O(n) time, constant memory. No more powerful machine is needed, and no simpler machine suffices."},
+    {q: "What is the 'maximal munch' rule?", options: ["Eat all whitespace", "When multiple token matches are possible at a position, always choose the longest match — ensuring 'iffy' is tokenized as one identifier, not the keyword 'if' followed by 'fy'", "Skip comments", "Match the shortest token"], answer: 1, explanation: "Without maximal munch, the lexer seeing 'iffy' might return keyword IF then identifier 'fy' — clearly wrong. Maximal munch says: keep reading as long as a valid token pattern matches. Only stop when no pattern can extend the current match. This gives the intuitive result. Combined with priority (keywords over identifiers at equal length), it handles all cases correctly."},
+    {q: "Why do production compilers often hand-write lexers instead of using generators like Lex?", options: ["Generators are broken", "Hand-written lexers offer better error messages, faster performance, simpler build process, and easier debugging — important for compilers processing millions of lines daily", "Hand-written is easier", "Generators can't handle all languages"], answer: 1, explanation: "GCC, Clang, Go, and Rust all use hand-written lexers. Reasons: (1) Better error recovery and messages (generated lexers just report 'unexpected character'). (2) Slightly faster (no generator overhead). (3) No external tool dependency. (4) Easier to debug and modify. The lexer is simple enough that hand-writing is manageable, unlike the parser where generators save significant effort."}
+  ]}
+/>
+
+## What's Next
+
+Tokens are the words; now we need grammar. The **parser** assembles tokens into a tree structure representing the program's syntax. Next: <ConceptLink to="compilers/parsing" label="Parsing" />.

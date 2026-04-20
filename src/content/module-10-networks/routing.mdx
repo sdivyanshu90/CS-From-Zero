@@ -1,0 +1,120 @@
+{/* Lesson 9.5 — Routing */}
+
+<PrerequisiteBadge prerequisites={["networks/ip-addressing"]} />
+
+## Hook — Finding the Path
+
+Your packet needs to reach a server 10,000 km away, crossing dozens of networks. No single router knows the full path. Each router makes a local decision: "which neighbor should I forward this to?" **Routing protocols** are how routers learn these paths and adapt when links fail.
+
+## How Routing Works
+
+```
+Routing Table (simplified):
+Destination     Next Hop        Interface   Metric
+10.0.0.0/8      192.168.1.1     eth0        1
+172.16.0.0/16   192.168.1.254   eth0        3
+0.0.0.0/0       192.168.1.1     eth0        1  ← default route
+
+Longest Prefix Match:
+  Packet to 10.1.2.3 → matches 10.0.0.0/8 → next hop 192.168.1.1
+  Packet to 172.16.5.1 → matches 172.16.0.0/16 → next hop 192.168.1.254
+  Packet to 8.8.8.8 → no specific match → default route
+```
+
+## See It Work — Routing Algorithms
+
+### Distance Vector (RIP)
+
+```
+Each router tells neighbors its distances to all destinations.
+"I can reach network X in 3 hops."
+
+Bellman-Ford algorithm:
+  Dx(y) = min over neighbors v [ cost(x,v) + Dv(y) ]
+
+Problem: Count-to-infinity
+  Link fails → routers slowly increment distance.
+  A thinks B can reach X in 3 hops.
+  B thinks A can reach X in 3 hops.
+  Both increment forever!
+  
+  Fix: Split horizon (don't advertise route back to sender).
+  Fix: Poison reverse (advertise ∞ back to sender).
+
+RIP: Max 15 hops. Updates every 30 seconds. Rarely used today.
+```
+
+### Link State (OSPF)
+
+```
+Each router floods information about its DIRECTLY connected links.
+Every router builds a complete map of the network.
+Then runs Dijkstra's algorithm to find shortest paths.
+
+Advantages over Distance Vector:
+  - Faster convergence (no count-to-infinity)
+  - Each router has complete topology
+  - Scales better (hierarchical areas)
+
+OSPF: Open Shortest Path First.
+  Used inside organizations (Intra-domain / IGP).
+  Supports areas for hierarchy.
+```
+
+### Path Vector (BGP)
+
+```
+BGP: Border Gateway Protocol — the internet's routing protocol.
+Routes between Autonomous Systems (ISPs, organizations).
+
+Instead of distance, BGP advertises the FULL PATH:
+  "To reach 8.8.8.0/24, go through AS15169 → AS3356 → AS7018"
+
+This prevents loops (if your AS is in the path, reject it).
+
+BGP is policy-based:
+  ISPs choose routes based on business relationships,
+  not just shortest path.
+  
+  Customer → Provider: customer pays for transit
+  Peer → Peer: free exchange (settlement-free peering)
+  
+~900K routes in the global BGP table (2024).
+```
+
+## How It Actually Works — traceroute
+
+```bash
+$ traceroute google.com
+ 1  192.168.1.1      1ms     ← home router
+ 2  10.0.0.1         5ms     ← ISP router
+ 3  72.14.194.1      15ms    ← backbone router
+ 4  142.250.190.14   20ms    ← Google's network
+
+How it works: Send packets with increasing TTL.
+  TTL=1 → first router decrements to 0, sends ICMP "Time Exceeded"
+  TTL=2 → second router responds
+  TTL=3 → third router responds
+  ... until destination reached
+```
+
+## Why It Matters
+
+- Routing is what makes the internet work — without it, packets can't cross network boundaries.
+- BGP misconfiguration or hijacking can take down major portions of the internet (has happened!).
+- Understanding routing helps debug connectivity issues and design network architectures.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/routing"
+  questions={[
+    {q: "Why does the internet use BGP instead of OSPF for inter-domain routing?", options: ["BGP is faster", "OSPF requires every router to know the complete topology — impossible across the entire internet (millions of routers, proprietary ISP networks). BGP only shares reachability and path information between autonomous systems, respecting organizational boundaries and enabling policy-based routing decisions", "OSPF is older", "BGP uses less bandwidth"], answer: 1, explanation: "The internet is ~70,000+ autonomous systems (ASes), each run independently. No AS wants to share its internal topology (security, complexity). OSPF within an AS: every router has full map → Dijkstra → optimal paths. Between ASes (BGP): only share 'I can reach X via path [AS1, AS2, AS3].' ISPs make routing decisions based on business (prefer customers over peers, avoid competitors). OSPF can't express these policies — it's purely shortest-path. BGP's path vector approach enables this policy flexibility."},
+    {q: "What is the count-to-infinity problem?", options: ["Routers counting too high", "In distance vector routing, when a link fails, routers exchange increasingly wrong distance information — each thinks the other has a valid path, incrementing the distance by 1 each exchange, slowly counting to infinity before realizing the destination is unreachable", "A BGP bug", "Too many routes"], answer: 1, explanation: "A──B──C. Link B-C fails. B sets distance to C = ∞. But A still says 'I can reach C in 2 hops (via B).' B thinks: 'A has a path to C in 2 hops, so I can reach C in 3 hops via A.' A then: 'B says 3, so my distance is 4.' They keep incrementing until reaching infinity (16 in RIP). This takes many rounds (~minutes). Split horizon: B doesn't advertise C to A (since B learned C from A's direction). Poison reverse: B tells A 'C is ∞' to prevent A from using B. Link-state protocols (OSPF) avoid this entirely by sharing full topology."},
+    {q: "What is longest prefix match and why is it important?", options: ["Matching long strings", "When a packet's destination IP matches multiple routing table entries, the router uses the entry with the longest prefix (most specific match) — this enables hierarchical addressing where more specific routes override less specific ones", "It's a security feature", "It speeds up routing"], answer: 1, explanation: "Routing table: 10.0.0.0/8 → gateway A, 10.1.0.0/16 → gateway B. Packet to 10.1.2.3 matches BOTH entries. Longest prefix match: /16 is more specific than /8, so use gateway B. This enables: default routes (0.0.0.0/0 matches everything as last resort), route aggregation (one /16 instead of 256 /24s), and traffic engineering (specific /24 routes override aggregate routes). Every IP router performs longest prefix match for every packet — implemented efficiently with tries or hardware TCAM."}
+  ]}
+/>
+
+## What's Next
+
+IP gets packets across networks, but who ensures they arrive reliably? Next: <ConceptLink to="networks/transport-layer" label="Transport Layer (TCP & UDP)" />.

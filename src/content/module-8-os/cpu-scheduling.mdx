@@ -1,0 +1,123 @@
+{/* Lesson 7.3 — CPU Scheduling */}
+
+<PrerequisiteBadge prerequisites={["os/processes-threads"]} />
+
+## Hook — Who Runs Next?
+
+Your computer runs hundreds of processes but has only a few CPU cores. The **scheduler** decides which process runs, for how long, and when to switch. A good scheduler keeps the CPU busy, responds quickly to user input, and treats all processes fairly. It's one of the most critical OS components.
+
+## Scheduling Criteria
+
+```
+Metric               Goal              Matters for
+──────               ────              ───────────
+CPU utilization      Maximize          Server efficiency
+Throughput           Maximize          Batch processing
+Turnaround time      Minimize          Total completion time
+Waiting time         Minimize          Fairness
+Response time        Minimize          Interactive use
+```
+
+## See It Work — Scheduling Algorithms
+
+### First Come, First Served (FCFS)
+
+```
+Process    Burst time
+P1         24
+P2         3
+P3         3
+
+Order: P1 → P2 → P3
+Timeline: |---P1(24)---|--P2(3)--|--P3(3)--|
+
+Avg waiting time: (0 + 24 + 27) / 3 = 17
+
+Problem: CONVOY EFFECT — short processes stuck behind long ones
+```
+
+### Shortest Job First (SJF)
+
+```
+Order: P2 → P3 → P1
+Timeline: |P2(3)|P3(3)|---P1(24)---|
+
+Avg waiting time: (6 + 0 + 3) / 3 = 3   ← much better!
+
+Optimal for avg waiting time, but:
+- Can't know burst time in advance (must predict)
+- Starvation: long processes may never run
+```
+
+### Round Robin (RR)
+
+```
+Time quantum = 4
+
+Timeline: |P1(4)|P2(3)|P3(3)|P1(4)|P1(4)|P1(4)|P1(4)|P1(4)|
+
+Every process gets at most 4ms, then goes to back of queue.
+Fair, good response time, but more context switches.
+
+Quantum tradeoff:
+  Too large → becomes FCFS
+  Too small → too many context switches (overhead)
+  Typical: 10-100 ms
+```
+
+### Multi-Level Feedback Queue (MLFQ)
+
+```
+Queue 0 (highest priority, RR quantum=8ms):
+  New processes start here.
+  If they use full quantum → demote to Queue 1.
+
+Queue 1 (medium priority, RR quantum=16ms):
+  If they use full quantum → demote to Queue 2.
+
+Queue 2 (lowest priority, FCFS):
+  Long-running (CPU-bound) processes end up here.
+
+Key insight: Interactive processes voluntarily give up CPU
+(I/O wait) before quantum expires → stay in high-priority queue.
+CPU-bound processes use full quantum → get demoted.
+
+This automatically separates interactive from batch processes!
+```
+
+## How It Actually Works — Linux CFS
+
+Linux uses the **Completely Fair Scheduler (CFS)**:
+
+```
+Idea: Track "virtual runtime" for each process.
+      Always run the process with the LEAST virtual runtime.
+      Uses a red-black tree for O(log n) scheduling.
+
+vruntime increases proportional to actual runtime / weight.
+Higher-priority processes have larger weight → vruntime increases slower.
+
+Result: All processes get fair CPU share proportional to their priority.
+No starvation possible — everyone's vruntime eventually becomes smallest.
+```
+
+## Why It Matters
+
+- Scheduling directly affects system responsiveness and throughput.
+- Understanding scheduling helps diagnose performance issues (is your process being starved?).
+- The same concepts apply to task scheduling in distributed systems, databases, and network queues.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/cpu-scheduling"
+  questions={[
+    {q: "Why is SJF optimal for average waiting time but not used in practice?", options: ["It's too slow", "SJF requires knowing future burst times (impossible in general), and it can starve long processes — a stream of short jobs can prevent a long job from ever running", "It doesn't work", "It uses too much memory"], answer: 1, explanation: "SJF provably minimizes average waiting time (mathematical fact). But it needs to know how long each process will run BEFORE it runs — impossible in general. Approximations (exponential averaging of past bursts) help but aren't perfect. Worse, starvation: if short jobs keep arriving, a long job waits forever. Real schedulers use priority aging to prevent starvation."},
+    {q: "How does MLFQ automatically distinguish interactive from CPU-bound processes?", options: ["User labels them", "Interactive processes frequently block for I/O before their time quantum expires (staying in high-priority queues), while CPU-bound processes use their full quantum and get demoted to lower-priority queues", "It checks process names", "It monitors memory usage"], answer: 1, explanation: "MLFQ uses behavior observation, not labels. A text editor reads keystrokes (I/O blocks after microseconds), staying in the top queue with fast response time. A compiler computes continuously, using its full quantum → demoted. This adapts automatically. Periodic priority boosting prevents starvation of CPU-bound processes that have been demoted."},
+    {q: "What problem does Linux CFS solve that MLFQ doesn't?", options: ["Speed", "CFS provides provably fair CPU allocation proportional to priority — unlike MLFQ where fairness depends on queue parameters and boost intervals, CFS continuously tracks virtual runtime ensuring every process gets its fair share over any time window", "Memory management", "File access"], answer: 1, explanation: "MLFQ requires tuning: queue count, quantum sizes, boost frequency. Wrong parameters → unfairness. CFS uses a single mechanism: virtual runtime. Each process's vruntime increases by (actual_time / weight). The process with smallest vruntime always runs next. Over any time window, each process gets CPU proportional to its weight. Red-black tree keeps this O(log n). Simple, fair, and tuning-free (mostly)."}
+  ]}
+/>
+
+## What's Next
+
+Processes need to coordinate. How do they communicate and share data safely? Next: <ConceptLink to="os/concurrency" label="Concurrency & Synchronization" />.

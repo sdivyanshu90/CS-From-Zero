@@ -1,0 +1,160 @@
+{/* Lesson 2.2 — Instruction Set Architecture (ISA) */}
+
+<PrerequisiteBadge prerequisites={["architecture/gates-to-cpu"]} />
+
+## Hook — The CPU's Native Language
+
+When you write `x = a + b` in Python or C, the compiler eventually translates it to something like `ADD R1, R2, R3` — a **machine instruction** that the CPU directly understands. The complete set of instructions a CPU can execute is its **Instruction Set Architecture (ISA)**. The ISA is the contract between hardware and software — the hardware promises to execute these instructions, and the software promises to only use them.
+
+## What Is an ISA?
+
+An **Instruction Set Architecture** defines:
+
+1. **What instructions exist** (ADD, SUB, LOAD, STORE, JUMP, etc.)
+2. **How instructions are encoded** in binary (the format of each instruction)
+3. **What registers are available** (how many, how wide)
+4. **What data types are supported** (integers, floats, etc.)
+5. **How memory is accessed** (addressing modes)
+6. **How the CPU behaves** (what happens on overflow, interrupts, etc.)
+
+### CISC vs. RISC — The Two Design Philosophies
+
+**CISC (Complex Instruction Set Computer)** — exemplified by x86:
+- Many instructions (hundreds to thousands)
+- Instructions vary in length (1 to 15 bytes in x86)
+- Single instructions can do complex tasks (e.g., string operations, loop with decrement and branch)
+- Hardware is complex to support all instructions
+- Example: `MOVSB` — moves a byte from one memory location to another, increments/decrements pointers, all in one instruction
+
+**RISC (Reduced Instruction Set Computer)** — exemplified by ARM, RISC-V, MIPS:
+- Fewer, simpler instructions (~50-200)
+- Fixed-length instructions (typically 32 bits)
+- Each instruction does one simple thing
+- Hardware is simpler → can run faster, use less power
+- Example: moving a byte requires separate LOAD, STORE instructions
+
+```
+CISC approach (one complex instruction):
+  MOVS  [destination], [source]  ; moves, increments pointers
+
+RISC approach (multiple simple instructions):
+  LOAD  R1, [R2]        ; load byte from source
+  STORE R1, [R3]        ; store byte to destination
+  ADD   R2, R2, #1      ; increment source pointer
+  ADD   R3, R3, #1      ; increment destination pointer
+```
+
+**Modern reality**: x86 CPUs internally translate CISC instructions into RISC-like micro-operations. ARM (used in smartphones, Apple Silicon) has proven that RISC can deliver both high performance and low power.
+
+## See It Work — Anatomy of an Instruction
+
+### Instruction Format (RISC-style, 32-bit)
+
+```
+R-type (Register operations):
+┌────────┬─────┬─────┬─────┬───────┬────────┐
+│ opcode │ rs1 │ rs2 │  rd │ funct │ unused │
+│ 6 bits │5 bit│5 bit│5 bit│ 6 bit │ 5 bits │
+└────────┴─────┴─────┴─────┴───────┴────────┘
+
+Example: ADD R1, R2, R3
+opcode = 000000 (R-type)
+rs1 = 00010 (R2 - source 1)
+rs2 = 00011 (R3 - source 2)
+rd  = 00001 (R1 - destination)
+funct = 100000 (ADD function)
+
+I-type (Immediate operations):
+┌────────┬─────┬─────┬──────────────────┐
+│ opcode │ rs  │  rd │   immediate      │
+│ 6 bits │5 bit│5 bit│    16 bits       │
+└────────┴─────┴─────┴──────────────────┘
+
+Example: ADDI R1, R2, 42
+opcode = 001000 (ADDI)
+rs = 00010 (R2)
+rd = 00001 (R1)
+immediate = 0000000000101010 (42)
+```
+
+### Common Instruction Categories
+
+```
+Category        Examples              Purpose
+──────────      ──────────            ──────────────────
+Arithmetic      ADD, SUB, MUL, DIV   Math on registers
+Logic           AND, OR, XOR, NOT    Bitwise operations
+Shift           SHL, SHR, SAR        Shift bits left/right
+Data Transfer   LOAD, STORE, MOV     Move data between registers and memory
+Control Flow    JUMP, BRANCH, CALL   Change execution order
+Comparison      CMP, TEST            Set flags for conditional branches
+Stack           PUSH, POP            Manage the stack
+System          SYSCALL, INT, NOP    OS interaction, interrupts, do-nothing
+```
+
+### Branch Instructions — Making Decisions
+
+Conditional branches check flags set by previous operations:
+
+```
+Assembly:                    C equivalent:
+  CMP R1, R2                if (a == b)
+  BEQ equal_label               goto equal_label;
+  ; code for not equal       // not equal code
+  JMP end_label              goto end_label;
+equal_label:               equal_label:
+  ; code for equal           // equal code
+end_label:                 end_label:
+```
+
+The `CMP` instruction subtracts R2 from R1 and sets flags (Zero flag if equal, Negative flag if R1 < R2). The `BEQ` (Branch if Equal) checks the Zero flag.
+
+## How It Actually Works — Real ISA Comparison
+
+```
+Task: a = b + c (where a, b, c are in memory)
+
+x86 (CISC):
+  MOV  EAX, [b]      ; load b into register
+  ADD  EAX, [c]      ; add c directly from memory (!)
+  MOV  [a], EAX      ; store result
+  ; 3 instructions, variable length
+
+ARM (RISC):
+  LDR  R0, [R5]      ; load b (R5 points to b)
+  LDR  R1, [R6]      ; load c (R6 points to c)
+  ADD  R2, R0, R1    ; add
+  STR  R2, [R7]      ; store result (R7 points to a)
+  ; 4 instructions, all 32-bit
+
+RISC-V (RISC):
+  LW   x10, 0(x5)    ; load b
+  LW   x11, 0(x6)    ; load c  
+  ADD  x12, x10, x11 ; add
+  SW   x12, 0(x7)    ; store result
+  ; 4 instructions, all 32-bit
+```
+
+Notice: RISC requires separate load/store instructions (only registers can be ALU operands), while CISC allows memory operands directly in ALU instructions.
+
+## Why It Matters
+
+- The ISA is the **fundamental interface** between hardware and software. Programs compiled for x86 won't run on ARM (and vice versa) without translation or emulation.
+- **RISC-V** is an open-source ISA gaining momentum — anyone can build a RISC-V CPU without paying license fees.
+- Understanding the ISA helps you write better assembly, understand compiler output, and debug low-level issues.
+- The choice of ISA affects performance, power consumption, and code density — which is why smartphones use ARM (power-efficient RISC) while desktops traditionally used x86 (high-performance CISC).
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="architecture/isa"
+  questions={[
+    {q: "What is the key difference between CISC and RISC?", options: ["CISC is newer", "CISC has many complex variable-length instructions; RISC has fewer simple fixed-length instructions", "RISC uses more registers", "CISC is faster"], answer: 1, explanation: "CISC (like x86) has hundreds of instructions of varying complexity and length. RISC (like ARM, RISC-V) has a smaller set of simple instructions, all the same length. RISC philosophy: keep hardware simple, let the compiler combine simple instructions. Both can achieve high performance through different strategies."},
+    {q: "In RISC architecture, why can't ALU instructions access memory directly?", options: ["It's a hardware limitation", "Separating memory access (load/store) from computation simplifies the hardware, enables pipelining, and keeps instruction timing predictable", "RISC doesn't support memory", "It's slower"], answer: 1, explanation: "The load/store architecture is a deliberate design choice. By restricting ALU operations to registers only, every ALU instruction takes the same time (one cycle). Memory access is unpredictable (cache hit vs. miss), so isolating it in separate load/store instructions simplifies pipeline design and timing analysis."},
+    {q: "Why is the ISA considered a 'contract' between hardware and software?", options: ["It's a legal document", "Hardware guarantees it will execute ISA instructions correctly; software guarantees it will only use defined instructions — this allows hardware and software to evolve independently", "It defines pricing", "It controls the clock speed"], answer: 1, explanation: "The ISA is an abstraction boundary. Software only needs to know the ISA to run correctly — it doesn't care about the internal microarchitecture. Hardware only needs to implement the ISA correctly — it can use any internal design. This is why software written for x86 in 1995 still runs on modern x86 CPUs with completely different internals."}
+  ]}
+/>
+
+## What's Next
+
+Instructions need to specify *where* their data comes from. There are many ways to specify an operand's location — register, immediate value, memory address, indirect address. These are called **addressing modes**. Next: <ConceptLink to="architecture/addressing-modes" label="Addressing Modes" />.

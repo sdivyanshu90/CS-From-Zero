@@ -1,0 +1,109 @@
+{/* Lesson 4.4 — Searching Algorithms */}
+
+<PrerequisiteBadge prerequisites={["algorithms/sorting"]} />
+
+## Hook — Finding Needles in Haystacks
+
+You search for things constantly: a file on your computer, a word in a document, a contact in your phone, a product on Amazon. The difference between a good search and a bad one is the difference between instant results and waiting minutes. Search algorithms are so fundamental that entire companies (Google) are built around them.
+
+## Linear Search — O(n)
+
+Check each element one by one:
+
+```c
+int linear_search(int arr[], int n, int target) {
+    for (int i = 0; i < n; i++) {
+        if (arr[i] == target) return i;
+    }
+    return -1;
+}
+// Best: O(1), Worst: O(n), Average: O(n/2) = O(n)
+// Works on unsorted data. Simple but slow for large arrays.
+```
+
+## Binary Search — O(log n)
+
+**Requires sorted data.** Repeatedly halve the search space:
+
+```c
+int binary_search(int arr[], int n, int target) {
+    int low = 0, high = n - 1;
+    while (low <= high) {
+        int mid = low + (high - low) / 2;  // avoids overflow
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target) low = mid + 1;
+        else high = mid - 1;
+    }
+    return -1;
+}
+```
+
+```
+Search for 7 in [1, 3, 5, 7, 9, 11, 13, 15]:
+Step 1: mid=3 (value 7). Found! → return 3
+
+Search for 11:
+Step 1: mid=3 (7). 11 > 7 → search [9,11,13,15]
+Step 2: mid=5 (11). Found! → return 5
+
+Each step eliminates half → O(log n)
+1 billion elements: only ~30 comparisons!
+```
+
+### Binary Search Variants
+
+```
+Lower bound: First element ≥ target
+Upper bound: First element > target
+First occurrence: Binary search + check left neighbor
+Last occurrence: Binary search + check right neighbor
+
+All O(log n). Used extensively in competitive programming.
+```
+
+## How It Actually Works — Search in Different Data Structures
+
+```
+Data Structure        Search Time    Algorithm
+──────────            ───────────    ─────────
+Unsorted array        O(n)           Linear search
+Sorted array          O(log n)       Binary search
+Hash table            O(1) avg       Hash function
+BST (balanced)        O(log n)       Tree traversal
+BST (unbalanced)      O(n)           Tree traversal
+Trie                  O(m)           Prefix matching (m = key length)
+```
+
+### Interpolation Search
+
+Like binary search but guesses where the target might be based on value distribution (like how you'd search a phone book — names starting with Z are near the end):
+
+```
+For uniformly distributed data: O(log log n) average
+For non-uniform data: O(n) worst case
+```
+
+### Ternary Search
+
+Divides into three parts instead of two. Useful for finding the minimum/maximum of a unimodal function (not for sorted arrays — binary search is faster).
+
+## Why It Matters
+
+- Binary search is the most important O(log n) algorithm — used in databases, file systems, and libraries.
+- The "sorted data" requirement connects searching to sorting — often you sort once, search many times.
+- Understanding search complexity helps you choose the right data structure.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/searching"
+  questions={[
+    {q: "Why do we use mid = low + (high - low) / 2 instead of (low + high) / 2?", options: ["It's faster", "To avoid integer overflow: if low and high are both large, their sum can exceed the maximum integer value, causing incorrect results or undefined behavior", "It gives a different result", "Style preference"], answer: 1, explanation: "In languages with fixed-size integers (C, Java), if low = 2 billion and high = 2 billion, then low + high = 4 billion, which overflows a 32-bit int (max ~2.1 billion). low + (high - low) / 2 avoids this: high - low = 0, then low + 0 = 2 billion. This is a famous bug that existed in Java's Arrays.binarySearch for 9 years!"},
+    {q: "Binary search requires sorted data. When is it still worth sorting first?", options: ["Always", "When you'll search many times: sorting costs O(n log n) once, then each search is O(log n) instead of O(n) — after ~log n searches, the sorting cost is recovered", "Never", "Only for small arrays"], answer: 1, explanation: "If you search once, linear search O(n) beats sort O(n log n) + binary search O(log n). But if you search k times: linear = O(kn), sort+binary = O(n log n + k log n). When k > log n, sorting wins. For k = 1000 searches on n = 1,000,000: linear = 10⁹ ops, sort+binary = 20M + 20K ≈ 20M ops — 50× faster!"},
+    {q: "Why are hash tables O(1) for search while sorted arrays are O(log n)?", options: ["Hash tables are newer", "Hash tables compute the exact location from the key using a hash function — no comparisons needed — while binary search must compare and narrow down the range", "Sorted arrays are buggy", "Hash tables use more memory so they're faster"], answer: 1, explanation: "A hash table computes index = hash(key) % table_size — one function call gives the exact slot. No iteration or narrowing needed. Binary search must compare the target with the middle element and eliminate half the array, requiring log n comparisons. The tradeoff: hash tables use more memory and don't support ordered operations (find nearest, range query)."}
+  ]}
+/>
+
+## What's Next
+
+Many algorithms solve problems by breaking them into smaller independent subproblems. This powerful technique is called **divide and conquer**. Next: <ConceptLink to="algorithms/divide-conquer" label="Divide & Conquer" />.

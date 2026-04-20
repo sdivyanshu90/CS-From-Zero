@@ -1,0 +1,177 @@
+{/* Lesson 2.6 — Pipeline Hazards */}
+
+<PrerequisiteBadge prerequisites={["architecture/pipelining"]} />
+
+## Hook — When the Assembly Line Breaks Down
+
+Pipelining promises one instruction per cycle, but reality intervenes. What if instruction 2 needs the result of instruction 1 that hasn't finished yet? What if a branch instruction changes where execution goes? These **pipeline hazards** force the CPU to stall, waste cycles, or use clever tricks to keep performance high.
+
+## What Are Pipeline Hazards?
+
+A **pipeline hazard** is a situation where the next instruction cannot execute in the next clock cycle due to a dependency or conflict. There are three types:
+
+### 1. Data Hazards — Instruction Needs Unavailable Data
+
+A **data hazard** occurs when an instruction depends on the result of a previous instruction that hasn't completed yet.
+
+```
+ADD R1, R2, R3    ; R1 = R2 + R3 (result available after WB, cycle 5)
+SUB R4, R1, R5    ; R4 = R1 - R5 (needs R1 in ID, cycle 3!)
+
+Pipeline view:
+Time:    1   2   3   4   5
+ADD:    IF  ID  EX  MEM  WB  ← R1 written here
+SUB:        IF  ID  ← needs R1 here, but it's not written yet!
+```
+
+**Three subtypes:**
+- **RAW (Read After Write)** — most common. Instruction reads a register before a prior instruction writes it.
+- **WAR (Write After Read)** — instruction writes a register before a prior instruction reads it (only in out-of-order CPUs).
+- **WAW (Write After Write)** — two instructions write the same register (only in out-of-order CPUs).
+
+### 2. Control Hazards — Branch Changes Direction
+
+A **control hazard** occurs at branch instructions. The CPU doesn't know which instruction to fetch next until the branch is resolved:
+
+```
+BEQ R1, R2, target    ; branch if R1 == R2
+ADD R3, R4, R5        ; should this execute? Depends on branch!
+SUB R6, R7, R8        ; and this?
+
+Pipeline view:
+Time:    1   2   3   4   5
+BEQ:    IF  ID  EX  ← branch decided here
+???:        IF  ID  ← fetched, but might be wrong instruction!
+???:            IF  ← also might be wrong!
+```
+
+If the branch is taken, the fetched instructions (ADD, SUB) must be **flushed** — their work is wasted.
+
+### 3. Structural Hazards — Hardware Conflict
+
+A **structural hazard** occurs when two instructions need the same hardware resource:
+
+```
+If instruction memory and data memory share one port:
+  Instruction in IF stage needs to read instruction memory
+  Instruction in MEM stage needs to read/write data memory
+  → They can't both access memory at the same time!
+
+Solution: Use separate instruction and data memories (Harvard architecture)
+          or add more memory ports.
+```
+
+## See It Work — Solutions to Data Hazards
+
+### Solution 1: Stalling (Bubbles)
+
+Insert "no-op" cycles (bubbles) until the data is available:
+
+```
+Time:    1   2   3   4   5   6   7
+ADD:    IF  ID  EX  MEM  WB
+        ──  ──  bubble  bubble
+SUB:                IF  ID  EX  MEM  WB  ← safe, R1 is written
+
+Cost: 2 wasted cycles per stall. Terrible for performance!
+```
+
+### Solution 2: Forwarding (Bypassing)
+
+**Forward** the ALU result directly to the next instruction without waiting for WB:
+
+```
+Time:    1   2   3   4   5   6
+ADD:    IF  ID  EX  MEM  WB
+                │ forward!
+SUB:        IF  ID  EX  MEM  WB
+                ↑ uses forwarded value
+
+The ALU result is available at the END of EX.
+Forwarding hardware routes it directly to the EX stage input of the next instruction.
+No stall needed!
+```
+
+Forwarding eliminates most data hazards but requires extra multiplexers and wiring in the datapath.
+
+### Solution 3: Compiler Reordering
+
+The compiler rearranges instructions to avoid hazards:
+
+```
+Before reordering:           After reordering:
+ADD R1, R2, R3               ADD R1, R2, R3
+SUB R4, R1, R5  ← hazard!   MUL R7, R8, R9   ← independent, fills the gap
+MUL R7, R8, R9               SUB R4, R1, R5   ← R1 now available, no hazard!
+```
+
+## How It Actually Works — Solving Control Hazards
+
+### Solution 1: Branch Prediction
+
+Modern CPUs **predict** whether a branch will be taken and start fetching accordingly:
+
+```
+Static prediction:
+  - Always predict "not taken" (simple, ~60% accurate)
+  - Predict backward branches as taken (loops usually loop back, ~65% accurate)
+
+Dynamic prediction:
+  - Keep a history table of recent branch outcomes
+  - 2-bit saturating counter per branch:
+    
+    Strongly     Weakly      Weakly      Strongly
+    Not Taken ←→ Not Taken ←→ Taken ←→ Taken
+    
+    Must mispredict twice to change prediction direction.
+  
+Modern predictors: 95-99% accuracy using tournament predictors, 
+neural branch predictors, and perceptron-based predictors.
+```
+
+### Misprediction Penalty
+
+When a prediction is wrong, all incorrectly fetched/decoded instructions must be **flushed**:
+
+```
+Misprediction penalty = number of pipeline stages before branch resolves
+
+5-stage pipeline:  ~2 cycles wasted per misprediction
+20-stage pipeline: ~15+ cycles wasted per misprediction
+
+This is why deep pipelines (Pentium 4) suffer more from mispredictions.
+```
+
+### Solution 2: Delayed Branching
+
+Some RISC architectures define that the instruction AFTER a branch always executes (the "branch delay slot"):
+
+```
+BEQ R1, R2, target
+ADD R3, R4, R5    ← this ALWAYS executes (delay slot)
+; branch takes effect AFTER the delay slot instruction
+```
+
+The compiler fills the delay slot with a useful instruction. If it can't find one, it inserts a NOP. This was used in MIPS but is considered outdated — modern branch predictors work better.
+
+## Why It Matters
+
+- Pipeline hazards are the main reason CPUs don't achieve theoretical maximum throughput.
+- **Branch prediction** accuracy is one of the most important factors in CPU performance. A 1% improvement in prediction accuracy can translate to significant real-world speedups.
+- Understanding hazards helps you write branch-friendly code (predictable patterns, avoiding deeply nested conditionals).
+- Compiler optimizations like instruction scheduling exist specifically to minimize pipeline stalls.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="architecture/pipeline-hazards"
+  questions={[
+    {q: "What is forwarding (bypassing) in a pipeline?", options: ["Skipping pipeline stages", "Routing the ALU result directly to the input of a dependent instruction without waiting for the write-back stage", "Predicting branch outcomes", "Rearranging instructions"], answer: 1, explanation: "Forwarding adds hardware paths that take the output of the ALU (available at the end of EX) and feed it directly to the ALU input of the next instruction. This bypasses the MEM and WB stages, eliminating the 2-cycle stall that would otherwise occur on RAW data hazards."},
+    {q: "Why are deeper pipelines more affected by branch mispredictions?", options: ["They use more power", "More instructions are in-flight and must be flushed when a misprediction is detected, wasting more cycles", "They have slower clock speeds", "Branch prediction is less accurate"], answer: 1, explanation: "In a 20-stage pipeline, when a branch misprediction is detected (say at stage 10), all 9 instructions that were speculatively fetched and partially processed in stages 1-9 must be flushed. That's 9 wasted cycles. In a 5-stage pipeline, only 2 instructions need flushing. The misprediction penalty scales with pipeline depth."},
+    {q: "What accuracy do modern branch predictors typically achieve?", options: ["50-60%", "70-80%", "95-99%", "100%"], answer: 2, explanation: "Modern CPUs use sophisticated branch predictors combining multiple strategies (tournament predictors, TAGE predictors, perceptron-based predictors) and large history tables to achieve 95-99% accuracy. This is crucial because even a 1% misprediction rate causes significant slowdowns in deep pipelines."}
+  ]}
+/>
+
+## What's Next
+
+All programs need data, and data needs to be stored somewhere fast. But fast memory is expensive and small. How do CPUs work with limited fast memory while having access to gigabytes of slow memory? The answer is the **memory hierarchy**. Next: <ConceptLink to="architecture/memory-hierarchy" label="Memory Hierarchy" />.

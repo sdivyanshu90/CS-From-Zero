@@ -1,0 +1,138 @@
+{/* Lesson 4.6 — Dynamic Programming */}
+
+<PrerequisiteBadge prerequisites={["algorithms/divide-conquer"]} />
+
+## Hook — Remember, Don't Recompute
+
+Recall the recursive Fibonacci: fib(5) calls fib(3) twice, fib(2) three times. That's wasted work. **Dynamic Programming (DP)** fixes this by storing results of subproblems so they're computed only once. DP transforms exponential algorithms into polynomial ones — it's the single most important technique for solving optimization problems.
+
+## What Is Dynamic Programming?
+
+DP applies when a problem has:
+1. **Optimal substructure**: The optimal solution contains optimal solutions to subproblems.
+2. **Overlapping subproblems**: The same subproblems are solved multiple times.
+
+### Fibonacci — The Gateway
+
+```c
+// Naive recursion: O(2ⁿ) — exponential!
+int fib(int n) {
+    if (n <= 1) return n;
+    return fib(n-1) + fib(n-2);
+}
+
+// DP with memoization (top-down): O(n)
+int memo[100] = {0};
+int fib_memo(int n) {
+    if (n <= 1) return n;
+    if (memo[n] != 0) return memo[n];  // already computed!
+    memo[n] = fib_memo(n-1) + fib_memo(n-2);
+    return memo[n];
+}
+
+// DP with tabulation (bottom-up): O(n)
+int fib_tab(int n) {
+    int dp[n+1];
+    dp[0] = 0; dp[1] = 1;
+    for (int i = 2; i <= n; i++)
+        dp[i] = dp[i-1] + dp[i-2];
+    return dp[n];
+}
+```
+
+```
+Call tree without DP:           With DP (memoization):
+       fib(5)                        fib(5)
+      /      \                      /      \
+   fib(4)   fib(3)              fib(4)   fib(3) ← cached!
+   /   \    /   \               /   \
+fib(3) fib(2) fib(2) fib(1)  fib(3) fib(2) ← cached!
+                               ↑ cached!
+
+Without DP: 15 calls          With DP: 5 calls (each fib(i) computed once)
+```
+
+## See It Work — Classic DP Problems
+
+### 0/1 Knapsack
+
+You have a bag with weight capacity W. Given n items with weights and values, maximize total value:
+
+```
+Items: [(weight=2, value=3), (w=3, v=4), (w=4, v=5), (w=5, v=6)]
+Capacity: 7
+
+dp[i][w] = max value using first i items with capacity w
+
+For each item: either include it or don't
+dp[i][w] = max(dp[i-1][w],            // don't include item i
+               dp[i-1][w-w_i] + v_i)  // include item i
+
+Answer: dp[4][7] = 7 (items 1 and 2: weight 2+3=5, value 3+4=7)
+```
+
+### Longest Common Subsequence (LCS)
+
+```
+X = "ABCBDAB"
+Y = "BDCAB"
+
+dp[i][j] = length of LCS of X[1..i] and Y[1..j]
+
+If X[i] == Y[j]: dp[i][j] = dp[i-1][j-1] + 1
+Else:            dp[i][j] = max(dp[i-1][j], dp[i][j-1])
+
+    ""  B  D  C  A  B
+""   0  0  0  0  0  0
+A    0  0  0  0  1  1
+B    0  1  1  1  1  2
+C    0  1  1  2  2  2
+B    0  1  1  2  2  3
+D    0  1  2  2  2  3
+A    0  1  2  2  3  3
+B    0  1  2  2  3  4
+
+LCS = "BCAB", length 4
+```
+
+## How It Actually Works — Two Approaches
+
+### Top-Down (Memoization)
+- Start with the original problem, recurse, cache results
+- Only solves subproblems that are actually needed
+- Easier to write (just add caching to recursion)
+
+### Bottom-Up (Tabulation)
+- Start with smallest subproblems, build up
+- Solves all subproblems (may compute unneeded ones)
+- Often more cache-friendly and avoids recursion overhead
+- Can sometimes optimize space (only keep last row)
+
+### The DP Recipe
+
+1. **Define state**: What does dp[i] or dp[i][j] represent?
+2. **Base case**: What's the answer for the simplest subproblem?
+3. **Transition**: How do you compute dp[i] from smaller subproblems?
+4. **Answer**: Which dp entry is the final answer?
+5. **Optimize space** if possible (often only need previous row)
+
+## Why It Matters
+
+- DP solves problems that would otherwise take exponential time: knapsack, shortest paths, sequence alignment, parsing.
+- Used in bioinformatics (DNA alignment), finance (option pricing), NLP (speech recognition), and compilers.
+- The most common category of hard interview questions.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/dynamic-programming"
+  questions={[
+    {q: "What two properties must a problem have for DP to apply?", options: ["Speed and simplicity", "Optimal substructure (optimal solution built from optimal sub-solutions) AND overlapping subproblems (same subproblems recur multiple times)", "Recursion and iteration", "Sorting and searching"], answer: 1, explanation: "Optimal substructure means the answer to a big problem uses answers to smaller versions of itself. Overlapping subproblems means those smaller versions appear multiple times (unlike divide-and-conquer where subproblems are independent). Without overlap, there's nothing to cache. Without optimal substructure, caching sub-solutions doesn't help build the global optimum."},
+    {q: "What is the key difference between memoization and tabulation?", options: ["They solve different problems", "Memoization is top-down (recursion + caching, solves only needed subproblems); tabulation is bottom-up (iterative, fills entire table systematically)", "Memoization is faster", "Tabulation uses recursion"], answer: 1, explanation: "Memoization starts from the original problem and recurses, caching results as it goes — lazy evaluation. Tabulation starts from the base cases and iteratively fills the table — eager evaluation. Both give the same asymptotic complexity. Tabulation typically has better cache performance and no recursion overhead; memoization avoids computing unneeded subproblems."},
+    {q: "How does DP transform Fibonacci from O(2ⁿ) to O(n)?", options: ["It uses a faster formula", "By caching each fib(i) after its first computation, eliminating the exponential redundant calls — each of the n subproblems is solved exactly once", "By avoiding recursion", "By using a different algorithm"], answer: 1, explanation: "Naive recursion recomputes fib(k) exponentially many times. DP stores fib(k) after the first computation: next time fib(k) is needed, it's a O(1) lookup. Since there are only n distinct subproblems (fib(0) through fib(n)), and each takes O(1) work (one addition), total time is O(n). The exponential blowup was entirely due to redundant recomputation."}
+  ]}
+/>
+
+## What's Next
+
+DP optimizes by remembering. Another powerful strategy is **greedy** — always making the locally optimal choice. When does greedy work? Next: <ConceptLink to="algorithms/greedy" label="Greedy Algorithms" />.

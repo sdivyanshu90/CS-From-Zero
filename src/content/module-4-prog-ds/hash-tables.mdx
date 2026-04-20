@@ -1,0 +1,146 @@
+{/* Lesson 3.12 — Hash Tables */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/heaps"]} />
+
+## Hook — O(1) Lookup for Everything
+
+Arrays give O(1) access by index, but what if your key isn't an integer? What if you want to look up a user by username, find a word's definition, or check if an email already exists — all in O(1) time? **Hash tables** make this possible by using a **hash function** to convert any key into an array index.
+
+## What Is a Hash Table?
+
+A **hash table** (also called hash map, dictionary, or associative array) stores key-value pairs and supports:
+
+- **Insert(key, value)**: Store a key-value pair — average O(1)
+- **Search(key)**: Find the value for a key — average O(1)
+- **Delete(key)**: Remove a key-value pair — average O(1)
+
+```
+hash("alice") = 2
+hash("bob")   = 5
+hash("carol") = 1
+
+Index: 0    1       2       3    4    5
+      [ ] [carol] [alice]  [ ]  [ ] [bob]
+```
+
+### The Hash Function
+
+A **hash function** maps keys to array indices:
+
+```
+hash(key) → index in range [0, table_size - 1]
+
+Requirements:
+1. Deterministic: same key always gives same hash
+2. Uniform: distributes keys evenly across indices
+3. Fast: O(1) to compute
+
+Common approach for strings:
+hash("cat") = ('c'×31² + 'a'×31¹ + 't'×31⁰) % table_size
+            = (99×961 + 97×31 + 116) % table_size
+```
+
+## See It Work — Collision Handling
+
+Two different keys can hash to the same index — a **collision**. There are two main strategies:
+
+### 1. Chaining (Separate Chaining)
+
+Each slot holds a linked list of entries:
+
+```
+hash("alice") = 2
+hash("dave")  = 2  ← collision!
+
+Index: 0    1    2                  3    4    5
+      [ ]  [ ]  [alice]→[dave]     [ ]  [ ]  [bob]
+
+Search "dave": hash("dave")=2, traverse list at index 2
+```
+
+### 2. Open Addressing (Linear Probing)
+
+If slot is occupied, try the next slot:
+
+```
+hash("alice") = 2 → slot 2 is empty → place here
+hash("dave")  = 2 → slot 2 occupied → try 3 → empty → place at 3
+
+Index: 0    1    2       3      4    5
+      [ ]  [ ]  [alice] [dave]  [ ]  [bob]
+
+Search "dave": hash=2, check slot 2 (alice, not dave), probe slot 3 (dave, found!)
+```
+
+### Load Factor
+
+```
+Load factor α = number_of_entries / table_size
+
+α < 0.7:  Good performance, few collisions
+α = 1.0:  Table is full (for open addressing, search degrades)
+α > 0.7:  Time to resize! (usually double the table size)
+
+When resizing:
+1. Allocate new array of 2× size
+2. Rehash ALL entries (because hash depends on table_size)
+3. Free old array
+```
+
+## How It Actually Works — Performance Analysis
+
+```
+Operation    Average    Worst Case    When Worst Case Happens
+─────────    ───────    ──────────    ──────────────────────
+Search       O(1)       O(n)          All keys hash to same index
+Insert       O(1)       O(n)          Resize needed, or all collisions
+Delete       O(1)       O(n)          All keys in one chain
+
+Amortized: With a good hash function and load factor < 0.7,
+           the average chain length is < 2, so operations are effectively O(1).
+```
+
+### Real-World Usage
+
+```python
+# Python dictionary IS a hash table
+user = {"name": "Alice", "age": 25, "email": "alice@example.com"}
+print(user["name"])     # O(1) lookup → "Alice"
+
+# Python set IS a hash table (keys only, no values)
+seen = set()
+seen.add("hello")       # O(1) insert
+print("hello" in seen)  # O(1) lookup → True
+```
+
+```
+Language        Hash Table Implementation
+────────        ──────────────────────────
+Python          dict, set
+JavaScript      Object, Map, Set
+Java            HashMap, HashSet
+C++             std::unordered_map, std::unordered_set
+Go              map
+```
+
+## Why It Matters
+
+- Hash tables are the **most frequently used** data structure after arrays.
+- Databases use hash indexes for fast lookups.
+- Caches, symbol tables, routers, and spell checkers all use hash tables.
+- Understanding hash collisions helps you choose good hash functions and avoid performance degradation.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/hash-tables"
+  questions={[
+    {q: "What causes hash table operations to degrade to O(n)?", options: ["The table is too small", "When many keys hash to the same index (poor hash function or adversarial input), creating long chains that must be searched linearly", "Hash tables are always O(n)", "When the load factor is 0"], answer: 1, explanation: "If all n keys hash to the same index, the chain at that index has length n, and searching it is O(n). This can happen with a poor hash function or deliberately crafted input (hash collision attack). Good hash functions distribute keys uniformly, keeping chains short (average length ≈ load factor)."},
+    {q: "Why does resizing a hash table require rehashing all entries?", options: ["To save memory", "The hash function uses table_size in its calculation (hash % table_size), so changing the size changes where every key maps to", "To remove deleted entries", "To sort the entries"], answer: 1, explanation: "hash(key) = f(key) % table_size. When table_size doubles, every key's computed index changes. For example, if key hashed to index 5 with table_size 8, it might hash to index 13 with table_size 16. All entries must be rehashed to their new positions. This is why resize is O(n), but it happens rarely enough to be O(1) amortized."},
+    {q: "What is a good load factor for a hash table?", options: ["As high as possible", "Below 0.7 — this keeps the average chain length short and collisions rare, maintaining near-O(1) performance", "Exactly 1.0", "Below 0.1"], answer: 1, explanation: "At load factor 0.7, about 70% of slots are occupied. Collisions are relatively rare and chains are short. Above 0.7, collision probability increases rapidly (especially with open addressing). Below 0.5, too much memory is wasted. 0.7 is the sweet spot used by most implementations (Java HashMap resizes at 0.75)."}
+  ]}
+/>
+
+## What's Next
+
+Hash tables give O(1) lookup but don't support ordered operations. For representing complex relationships between entities (social networks, maps, web links), we need **graphs**. Next: <ConceptLink to="prog-ds/graphs" label="Graphs" />.

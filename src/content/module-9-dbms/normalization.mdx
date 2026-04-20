@@ -1,0 +1,123 @@
+{/* Lesson 8.5 — Normalization */}
+
+<PrerequisiteBadge prerequisites={["dbms/sql"]} />
+
+## Hook — Why Your Data Is Lying to You
+
+A table stores student name, department name, and department head in every row. The department head changes — now you must update hundreds of rows. Miss one? Inconsistent data. This is an **update anomaly**, and **normalization** systematically eliminates these problems.
+
+## The Anomalies
+
+```
+StudentCourse table (unnormalized):
+| sid | sname  | dept    | dept_head | course | grade |
+|-----|--------|---------|-----------|--------|-------|
+| 1   | Alice  | CS      | Dr. Smith | DB     | A     |
+| 1   | Alice  | CS      | Dr. Smith | OS     | B     |
+| 2   | Bob    | Math    | Dr. Jones | Calc   | A     |
+
+Update Anomaly: Change dept_head for CS → must update ALL CS rows.
+Insert Anomaly: Can't add new department without a student.
+Delete Anomaly: Delete Bob → lose Math department info entirely!
+```
+
+## Normal Forms
+
+### First Normal Form (1NF)
+
+```
+Rule: Every column must contain atomic (single) values.
+      No repeating groups or arrays.
+
+Violation:
+| sid | courses          |
+| 1   | DB, OS, Networks |   ← NOT atomic!
+
+Fix: One row per course.
+| sid | course   |
+| 1   | DB       |
+| 1   | OS       |
+| 1   | Networks |
+```
+
+### Second Normal Form (2NF)
+
+```
+Rule: 1NF + no partial dependencies.
+      Every non-key attribute depends on the ENTIRE primary key.
+
+Table: Enrollment(student_id, course_id, student_name, grade)
+PK: (student_id, course_id)
+
+student_name depends on student_id alone (partial dependency!)
+grade depends on (student_id, course_id) — full dependency ✓
+
+Fix: Split into:
+  Student(student_id, student_name)
+  Enrollment(student_id, course_id, grade)
+```
+
+### Third Normal Form (3NF)
+
+```
+Rule: 2NF + no transitive dependencies.
+      Non-key attributes must not depend on other non-key attributes.
+
+Table: Student(sid, sname, dept_id, dept_name, dept_head)
+
+dept_name depends on dept_id (not on sid directly)
+sid → dept_id → dept_name (transitive!)
+
+Fix: Split into:
+  Student(sid, sname, dept_id)
+  Department(dept_id, dept_name, dept_head)
+```
+
+### Boyce-Codd Normal Form (BCNF)
+
+```
+Rule: Every determinant must be a candidate key.
+      Stricter than 3NF.
+
+3NF allows: A → B where A is part of a candidate key.
+BCNF forbids this: only full candidate keys can determine anything.
+
+In practice, 3NF is usually sufficient.
+Most real databases are designed to 3NF.
+```
+
+## How It Actually Works — Denormalization
+
+```
+Normalization: Split tables to eliminate redundancy.
+  + No anomalies, less storage, easier updates
+  - More JOINs needed for queries → slower reads
+
+Denormalization: Intentionally add redundancy back.
+  + Faster reads (fewer JOINs)
+  - Risk of anomalies, more storage, harder updates
+
+Real systems: Normalize first, then denormalize specific
+tables for performance where needed. Measure, don't guess.
+```
+
+## Why It Matters
+
+- Normalization prevents data corruption from update/insert/delete anomalies.
+- Understanding normal forms is essential for database design interviews and real projects.
+- Knowing WHEN to denormalize (read-heavy analytics) vs. normalize (write-heavy OLTP) is a key architectural decision.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/normalization"
+  questions={[
+    {q: "Why is Third Normal Form (3NF) the most common target?", options: ["It's easiest", "3NF eliminates all practical anomalies (update, insert, delete) by removing partial and transitive dependencies, while higher normal forms (BCNF, 4NF) provide marginal benefit for significantly more complexity and more table splits", "It's the newest", "It's required by SQL"], answer: 1, explanation: "3NF removes: partial dependencies (2NF) and transitive dependencies (3NF). This eliminates the common anomalies. BCNF is slightly stricter but rarely makes a practical difference — the cases where 3NF allows anomalies but BCNF doesn't are uncommon. 4NF and 5NF handle multi-valued and join dependencies, which are rare in practice. The rule of thumb: normalize to 3NF for OLTP (transactional) databases. Denormalize selectively for OLAP (analytical) workloads."},
+    {q: "When should you denormalize?", options: ["Always", "Denormalize when read performance is critical and the data is read far more often than written — the redundancy speeds up queries by eliminating JOINs, but you accept the risk of anomalies and must maintain consistency manually", "Never", "Only for small databases"], answer: 1, explanation: "Example: an e-commerce product page needs product name, category name, and brand name. Normalized: 3 JOINs per page view. Denormalized: store category_name and brand_name in the product table — one read, no JOINs. With millions of page views per day and rare category name changes, the tradeoff is worth it. Common denormalization: caching computed values (order_total), storing redundant copies for read performance, and materialized views. Always normalize first, then denormalize with measurements to justify it."},
+    {q: "What is a transitive dependency?", options: ["A circular reference", "When a non-key attribute determines another non-key attribute: A→B→C, where A is the key, B is non-key, and C depends on B rather than directly on A — this causes update anomalies because changing B's associated C requires finding all rows with that B value", "A foreign key", "A missing index"], answer: 1, explanation: "Student(sid, dept_id, dept_name). sid→dept_id→dept_name. dept_name depends on dept_id, not directly on sid. If CS department changes name to 'Computer Science': must update every CS student's row. Miss one → inconsistent data. Fix: separate Department(dept_id, dept_name) table. Now name change = one row update. The dependency chain (transitive) through a non-key attribute is the problem — 3NF breaks it by splitting tables."}
+  ]}
+/>
+
+## What's Next
+
+Fast queries need efficient data retrieval. Next: <ConceptLink to="dbms/b-plus-indexes" label="B+ Trees & Indexing" /> — the data structures behind database speed.

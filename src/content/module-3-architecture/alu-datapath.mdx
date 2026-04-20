@@ -1,0 +1,175 @@
+{/* Lesson 2.4 — ALU & Datapath */}
+
+<PrerequisiteBadge prerequisites={["architecture/addressing-modes"]} />
+
+## Hook — The Engine Room
+
+If the CPU is a factory, the **ALU** is the machine that does the actual work, and the **datapath** is the conveyor belt system that moves materials to and from that machine. Together, they form the computational core of every processor.
+
+## What Is the ALU?
+
+The **Arithmetic Logic Unit (ALU)** is a combinational circuit that performs arithmetic and logical operations. It takes two inputs, a control signal telling it which operation to perform, and produces a result plus status flags.
+
+```
+         ┌──────────────────────┐
+  A ────►│                      │
+         │        ALU           ├──── Result
+  B ────►│                      │
+         │                      ├──── Flags (Z, C, N, V)
+         └──────────┬───────────┘
+                    │
+              ALU Control
+              (from CU)
+```
+
+### ALU Operations
+
+```
+Control Code    Operation       Description
+────────────    ──────────      ───────────────────────
+0000            ADD             A + B
+0001            SUB             A - B
+0010            AND             A & B (bitwise)
+0011            OR              A | B (bitwise)
+0100            XOR             A ^ B (bitwise)
+0101            NOT             ~A (bitwise complement)
+0110            SHL             A << B (shift left)
+0111            SHR             A >> B (shift right, logical)
+1000            SRA             A >> B (shift right, arithmetic — preserves sign)
+1001            CMP             A - B (sets flags, discards result)
+1010            MUL             A × B (lower bits of product)
+```
+
+### Status Flags
+
+After every ALU operation, four flags are updated:
+
+```
+Flag    Name        Set when...
+────    ────        ──────────────────────
+Z       Zero        Result equals zero
+C       Carry       Unsigned overflow (carry out of MSB)
+N       Negative    Result's MSB is 1 (negative in two's complement)
+V       Overflow    Signed overflow (result doesn't fit in signed range)
+
+Example: 8-bit subtraction of 5 - 5
+  00000101 - 00000101 = 00000000
+  Z=1 (result is zero), C=1, N=0, V=0
+
+Example: 8-bit addition of 127 + 1 (signed overflow)
+  01111111 + 00000001 = 10000000 (-128 in signed!)
+  Z=0, C=0, N=1, V=1 (overflow — positive + positive gave negative)
+```
+
+Conditional branch instructions check these flags to make decisions.
+
+## See It Work — Building a Simple ALU
+
+A 1-bit ALU slice performs one of several operations on single-bit inputs:
+
+```
+          A ──┬──────────── [AND] ─┐
+              │                    │
+          B ──┼──────────── [AND] ─┤
+              │                    │
+              ├──────────── [OR]  ─┤
+              │                    │     ┌─────────┐
+              ├──────────── [XOR] ─┼────►│  4-to-1 ├──► Result
+              │                    │     │   MUX   │
+              └── [Full Adder] ───┘     └────┬────┘
+                                             │
+                                        ALU Control
+                                        (selects operation)
+```
+
+Chain 32 (or 64) of these slices together, and you have a full ALU. The carry output of each slice feeds the carry input of the next (like the ripple-carry adder from the combinational circuits lesson).
+
+## How It Actually Works — The Complete Datapath
+
+The **datapath** is the network of components and connections that routes data through the CPU. Here's a simplified single-cycle datapath:
+
+```
+                                    ┌─────────────┐
+              ┌──────── PC ────────►│ Instruction  │
+              │                     │   Memory     │
+              │         ┌──────────►│              │
+              │         │           └──────┬───────┘
+              │         │                  │ Instruction
+              │    ┌────┴────┐      ┌──────▼───────┐
+              │    │ PC + 4  │      │   Control    │
+              │    │ Adder   │      │    Unit      │──── Control Signals
+              │    └────┬────┘      └──────────────┘
+              │         │
+              └─────────┘
+              
+Instruction fields:
+  ┌──────┬──────┬──────┐
+  │ rs1  │ rs2  │  rd  │
+  └──┬───┴──┬───┴──┬───┘
+     │      │      │
+  ┌──▼──────▼──────▼───┐
+  │   Register File    │
+  │  (32 registers)    │
+  └──┬───────────┬─────┘
+     │ Read 1    │ Read 2
+     │           │
+  ┌──▼───────────▼─────┐
+  │       ALU          │──── Flags
+  └──────────┬─────────┘
+             │ Result
+        ┌────▼─────┐
+        │   MUX    │──── Write back to register file
+        └────┬─────┘         or
+             │          ┌────▼─────┐
+             └─────────►│  Data    │
+                        │  Memory  │
+                        └──────────┘
+```
+
+### Data Flow for Different Instructions
+
+**ADD R1, R2, R3** (register arithmetic):
+```
+1. Read R2 and R3 from register file → ALU inputs
+2. ALU performs addition → result
+3. Write result to R1 in register file
+```
+
+**LOAD R1, [R2 + offset]** (memory read):
+```
+1. Read R2 from register file → ALU input A
+2. Sign-extend offset → ALU input B
+3. ALU adds R2 + offset → memory address
+4. Data Memory reads at that address → data
+5. Write data to R1 in register file
+```
+
+**BEQ R1, R2, target** (conditional branch):
+```
+1. Read R1 and R2 from register file → ALU inputs
+2. ALU subtracts R1 - R2 → sets Zero flag
+3. If Zero=1: PC ← PC + target offset
+4. If Zero=0: PC ← PC + 4 (next instruction)
+```
+
+## Why It Matters
+
+- The ALU and datapath determine what operations a CPU can do and how fast.
+- Understanding the datapath explains why different instructions take different amounts of time.
+- Modern CPUs have much more complex datapaths with multiple ALUs, floating-point units, and vector processing units — but they all follow these same principles.
+- The critical path through the datapath determines the maximum clock frequency.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="architecture/alu-datapath"
+  questions={[
+    {q: "What are the four main status flags set by ALU operations?", options: ["Add, Subtract, Multiply, Divide", "Read, Write, Execute, Delete", "Zero (Z), Carry (C), Negative (N), Overflow (V)", "Fast, Slow, Normal, Error"], answer: 2, explanation: "Z (Zero) is set when the result is 0. C (Carry) indicates unsigned overflow. N (Negative) indicates the result's MSB is 1 (negative in signed arithmetic). V (Overflow) indicates signed overflow. Conditional branches check these flags to implement if/else, loops, and comparisons."},
+    {q: "How does the datapath handle a LOAD instruction differently from an ADD?", options: ["It doesn't — both are the same", "LOAD uses the ALU to compute a memory address, then reads from Data Memory; ADD uses the ALU for arithmetic and writes directly to a register", "LOAD skips the ALU entirely", "ADD requires memory access"], answer: 1, explanation: "For ADD, the ALU performs arithmetic and the result goes to the register file. For LOAD, the ALU computes the effective address (base + offset), then Data Memory is read at that address, and the data (not the ALU result) is written to the destination register. The same ALU serves double duty: arithmetic for computations, address calculation for memory access."},
+    {q: "Why does the ALU use a multiplexer at its output?", options: ["To slow down the signal", "To select which ALU operation's result to output based on the control signal from the Control Unit", "To store the result", "To convert binary to decimal"], answer: 1, explanation: "The ALU internally computes AND, OR, ADD, and other operations simultaneously on the inputs. The MUX, controlled by the ALU control signal from the Control Unit, selects which computed result to pass to the output. This is faster than computing only the needed operation because all operations happen in parallel."}
+  ]}
+/>
+
+## What's Next
+
+A single-cycle CPU completes one instruction per clock cycle, but it's slow because the clock must be long enough for the slowest instruction. What if we could overlap instructions like an assembly line? That's **pipelining**. Next: <ConceptLink to="architecture/pipelining" label="Pipelining" />.

@@ -1,0 +1,152 @@
+{/* Lesson 8.4 — SQL */}
+
+<PrerequisiteBadge prerequisites={["dbms/relational-model"]} />
+
+## Hook — Talk to Your Data
+
+SQL (Structured Query Language) lets you ask questions of your data in plain English-like syntax. "Give me all customers who spent over $1000 last month, sorted by amount." One line. No loops. No parsing. SQL is the most successful programming language ever designed for a specific purpose.
+
+## DDL — Defining Structure
+
+```sql
+-- Create a table
+CREATE TABLE Student (
+    id       INT PRIMARY KEY,
+    name     VARCHAR(100) NOT NULL,
+    email    VARCHAR(100) UNIQUE,
+    gpa      DECIMAL(3,2) CHECK (gpa >= 0 AND gpa <= 4.0),
+    dept_id  INT REFERENCES Department(dept_id)
+);
+
+-- Modify structure
+ALTER TABLE Student ADD COLUMN phone VARCHAR(20);
+ALTER TABLE Student DROP COLUMN phone;
+
+-- Delete table (careful!)
+DROP TABLE Student;  -- gone forever
+```
+
+## DML — Manipulating Data
+
+```sql
+-- Insert
+INSERT INTO Student (id, name, email, gpa, dept_id)
+VALUES (1, 'Alice', 'alice@uni.edu', 3.8, 10);
+
+-- Select (the most important SQL statement)
+SELECT name, gpa FROM Student WHERE gpa > 3.5 ORDER BY gpa DESC;
+
+-- Update
+UPDATE Student SET gpa = 3.9 WHERE id = 1;
+
+-- Delete
+DELETE FROM Student WHERE id = 1;
+```
+
+## See It Work — Queries
+
+### Filtering and Sorting
+
+```sql
+-- WHERE with multiple conditions
+SELECT * FROM Student
+WHERE gpa > 3.0 AND dept_id = 10
+ORDER BY name ASC
+LIMIT 10;
+
+-- Pattern matching
+SELECT * FROM Student WHERE name LIKE 'A%';  -- starts with A
+SELECT * FROM Student WHERE email LIKE '%@gmail.com';
+
+-- NULL handling (= doesn't work with NULL!)
+SELECT * FROM Student WHERE phone IS NULL;
+```
+
+### Aggregation
+
+```sql
+-- COUNT, SUM, AVG, MIN, MAX
+SELECT dept_id, COUNT(*) AS num_students, AVG(gpa) AS avg_gpa
+FROM Student
+GROUP BY dept_id
+HAVING AVG(gpa) > 3.0;  -- filter AFTER grouping
+
+-- Execution order:
+-- FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT
+```
+
+### Joins
+
+```sql
+-- Inner Join: only matching rows
+SELECT s.name, d.dept_name
+FROM Student s
+INNER JOIN Department d ON s.dept_id = d.dept_id;
+
+-- Left Join: all students, even without department
+SELECT s.name, d.dept_name
+FROM Student s
+LEFT JOIN Department d ON s.dept_id = d.dept_id;
+-- Students without dept → dept_name is NULL
+
+-- Self Join: compare rows within same table
+SELECT e1.name AS employee, e2.name AS manager
+FROM Employee e1
+JOIN Employee e2 ON e1.manager_id = e2.id;
+```
+
+### Subqueries
+
+```sql
+-- Scalar subquery
+SELECT name FROM Student
+WHERE gpa > (SELECT AVG(gpa) FROM Student);
+
+-- IN subquery
+SELECT name FROM Student
+WHERE dept_id IN (SELECT dept_id FROM Department WHERE budget > 1000000);
+
+-- EXISTS
+SELECT name FROM Department d
+WHERE EXISTS (SELECT 1 FROM Student s WHERE s.dept_id = d.dept_id);
+```
+
+## How It Actually Works — Query Execution
+
+```
+SQL Query
+    ↓
+Parser → Abstract Syntax Tree
+    ↓
+Optimizer → Execution Plan
+    ↓
+Executor → Results
+
+The optimizer decides:
+  - Which index to use (or full table scan)
+  - Join algorithm (nested loop, hash join, merge join)
+  - Join order (which table first)
+  
+EXPLAIN SELECT ... → shows the chosen plan
+```
+
+## Why It Matters
+
+- SQL is used by millions of developers, analysts, and data scientists daily.
+- Understanding SQL execution order (FROM→WHERE→GROUP BY→...) prevents common bugs.
+- Writing efficient SQL (proper joins, avoiding N+1 queries) is a critical skill.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/sql"
+  questions={[
+    {q: "Why does SQL have both WHERE and HAVING?", options: ["They're the same", "WHERE filters individual rows BEFORE grouping, HAVING filters groups AFTER aggregation — you can't use aggregate functions in WHERE because groups don't exist yet at that stage of query execution", "HAVING is newer", "WHERE is faster"], answer: 1, explanation: "Query execution: FROM → WHERE (filter rows) → GROUP BY (form groups) → HAVING (filter groups) → SELECT. 'WHERE gpa > 3.0' filters individual students before any grouping. 'HAVING AVG(gpa) > 3.0' filters entire departments after computing their average. You can't write 'WHERE AVG(gpa) > 3.0' because at the WHERE stage, rows haven't been grouped yet — there's no group to average."},
+    {q: "Why is LEFT JOIN useful compared to INNER JOIN?", options: ["It's faster", "LEFT JOIN preserves all rows from the left table even if there's no match in the right table — this is essential when you want to find rows WITHOUT matches (e.g., students not enrolled in any course) or when missing data shouldn't exclude results", "It's the default", "It uses less memory"], answer: 1, explanation: "INNER JOIN: Student JOIN Enrollment → only students who have enrollments. Students with zero enrollments disappear from results! LEFT JOIN: ALL students appear, with NULL for enrollment columns if they have no enrollments. Essential for: 'find students not in any course' (LEFT JOIN + WHERE enrollment.id IS NULL), reports that must show all entities regardless of related data, and preserving complete datasets."},
+    {q: "What does EXPLAIN tell you about a query?", options: ["It explains SQL syntax", "EXPLAIN shows the query execution plan the optimizer chose — which indexes are used, join algorithms, estimated row counts, and cost — helping you identify why a query is slow and how to optimize it", "It runs the query faster", "It checks for errors"], answer: 1, explanation: "EXPLAIN reveals: (1) Seq Scan vs Index Scan (is your index being used?), (2) Join method (Nested Loop for small tables, Hash Join for larger), (3) Estimated rows at each step (are estimates accurate?), (4) Cost (arbitrary units for comparison). Common finding: 'Seq Scan on users' when you expected an index scan → missing index, wrong data type in WHERE, or function wrapping the indexed column. EXPLAIN ANALYZE actually runs the query and shows real vs estimated numbers."}
+  ]}
+/>
+
+## What's Next
+
+Good schema design prevents data anomalies. Next: <ConceptLink to="dbms/normalization" label="Normalization" /> — the science of eliminating redundancy.

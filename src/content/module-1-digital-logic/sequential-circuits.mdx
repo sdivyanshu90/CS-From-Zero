@@ -1,0 +1,194 @@
+{/* Lesson 1.5 — Sequential Circuits */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/combinational-circuits"]} />
+
+## Hook — Circuits That Remember
+
+Every computation you've seen so far has been instant and stateless — inputs go in, outputs come out, nothing is remembered. But real computers need **memory**. They need to remember which step of a program they're on, what value a variable holds, and what happened one clock cycle ago. Sequential circuits add **feedback** and **storage** to combinational logic, creating circuits that have *state*.
+
+## What Is a Sequential Circuit?
+
+A **sequential circuit** is a logic circuit whose output depends on:
+1. The **current inputs** (just like combinational circuits)
+2. The **current state** — information stored from previous inputs
+
+This "memory" comes from **feedback loops** — outputs that connect back to inputs, allowing the circuit to store information.
+
+```
+                   ┌─────────────────┐
+Current Inputs ───►│  Combinational   ├──► Outputs
+                   │     Logic        │
+         ┌────────►│                  │
+         │         └────────┬─────────┘
+         │                  │
+         │         ┌────────▼─────────┐
+         │         │  Memory Elements  │
+         └─────────┤  (Flip-Flops)     │
+                   └──────────────────┘
+```
+
+### The Clock Signal
+
+Sequential circuits are typically **synchronous** — they change state only at specific moments, controlled by a **clock signal**. The clock is a square wave that alternates between 0 and 1 at a fixed frequency:
+
+```
+Clock: ───┐  ┌──┐  ┌──┐  ┌──┐  ┌──
+          │  │  │  │  │  │  │  │
+          └──┘  └──┘  └──┘  └──┘
+
+The circuit reads inputs and updates state at each clock edge (usually the rising edge ↑).
+```
+
+A CPU running at 3 GHz has its clock toggling 3 billion times per second. Every clock tick, the CPU reads inputs, performs computations, and updates its state.
+
+## See It Work — Fundamental Memory Elements
+
+### The SR Latch — Simplest Memory
+
+The **SR (Set-Reset) latch** is the simplest memory element, built from two cross-coupled NOR gates:
+
+```
+        ┌────────┐
+S ──────┤ NOR    ├──────── Q
+        │        │  ┌────►
+        └────────┘  │
+                    │
+        ┌────────┐  │
+R ──────┤ NOR    ├──┘───── Q̅
+   ┌───►│        │
+   │    └────────┘
+   │         ▲
+   └─────────┘
+
+S | R | Q (next) | Action
+--|---|----------|--------
+0 | 0 | Q (prev)| Hold — remembers current value
+1 | 0 |    1     | Set — Q becomes 1
+0 | 1 |    0     | Reset — Q becomes 0
+1 | 1 | Invalid  | Forbidden — both outputs would be 0 (unstable)
+```
+
+**Key insight**: When S=0 and R=0, the latch **holds** its previous value. This is memory! The circuit remembers what happened last time S or R was pulsed.
+
+### The D Flip-Flop — The Workhorse of Digital Design
+
+The **D (Data) flip-flop** captures the value of its D input at the rising edge of the clock and holds it until the next rising edge:
+
+```
+        ┌─────────┐
+D ──────┤         ├──── Q
+        │  D  FF  │
+CLK ───►│         ├──── Q̅
+        └─────────┘
+
+At each rising clock edge:
+  Q ← D (captures whatever D is at that moment)
+  Q holds this value until the next rising edge
+
+Clock:  ──┐  ┌──┐  ┌──┐  ┌──
+          └──┘  └──┘  └──┘
+D:      1  0  1  1  0  1  0
+Q:      ?  1  0  1  1  0  1  (Q follows D, delayed by one clock edge)
+```
+
+The D flip-flop solves the SR latch's problems: there's no invalid state, and updates only happen at clock edges, making the circuit predictable.
+
+### Registers — Groups of Flip-Flops
+
+A **register** is a group of flip-flops that store a multi-bit value:
+
+```
+8-bit Register:
+
+D7 D6 D5 D4 D3 D2 D1 D0    (8-bit input)
+│  │  │  │  │  │  │  │
+▼  ▼  ▼  ▼  ▼  ▼  ▼  ▼
+┌──┬──┬──┬──┬──┬──┬──┬──┐
+│FF│FF│FF│FF│FF│FF│FF│FF│  ← All share the same clock
+└──┴──┴──┴──┴──┴──┴──┴──┘
+│  │  │  │  │  │  │  │
+▼  ▼  ▼  ▼  ▼  ▼  ▼  ▼
+Q7 Q6 Q5 Q4 Q3 Q2 Q1 Q0    (8-bit output)
+
+At each clock edge, all 8 flip-flops capture their D input simultaneously.
+```
+
+Your CPU's registers (EAX, EBX, etc.) are exactly this — groups of 32 or 64 flip-flops.
+
+## How It Actually Works — Real Sequential Circuits
+
+### Counters
+
+A **counter** increments (or decrements) its value on each clock cycle. A 4-bit counter counts from 0000 to 1111 (0 to 15), then wraps around:
+
+```
+Clock tick:  1    2    3    4    5  ... 15   16
+Count:     0000 0001 0010 0011 0100 ... 1111 0000
+
+Built from: 4 flip-flops + incrementer logic
+```
+
+Counters are used for program counters (tracking which instruction to execute next), timers, and frequency dividers.
+
+### Shift Registers
+
+A **shift register** moves data one position on each clock tick:
+
+```
+Serial input: 1, 0, 1, 1 (one bit per clock)
+
+Clock 0: [0][0][0][0]
+Clock 1: [1][0][0][0]  ← 1 enters
+Clock 2: [0][1][0][0]  ← 0 enters, 1 shifts right
+Clock 3: [1][0][1][0]  ← 1 enters
+Clock 4: [1][1][0][1]  ← 1 enters, data is now loaded
+
+After 4 clocks: serial data (1,0,1,1) is now parallel data [1][1][0][1]
+```
+
+Shift registers convert between serial (one-bit-at-a-time) and parallel (all-bits-at-once) data — essential for communication interfaces like USB, SPI, and UART.
+
+### Finite State Machines (FSMs)
+
+An **FSM** is a sequential circuit with defined states and transitions. It's the general model for any sequential circuit:
+
+```
+Example: Traffic Light Controller
+
+States: GREEN → YELLOW → RED → GREEN → ...
+
+     ┌─── timer=30s ───┐
+     ▼                  │
+  [GREEN] ──timer=30s──► [YELLOW] ──timer=5s──► [RED]
+     ▲                                           │
+     └──────────── timer=30s ─────────────────────┘
+
+Implementation: State register (flip-flops) + next-state logic (combinational)
+```
+
+FSMs are used everywhere: elevator controllers, vending machines, CPU instruction decoders, network protocol handlers, and regular expression matchers.
+
+## Why It Matters
+
+Sequential circuits are what make a computer a **computer** rather than a fancy calculator:
+
+- **Registers** in CPUs hold data being processed
+- **Program counters** track which instruction comes next
+- **Memory cells** (each is essentially a flip-flop) store your data
+- **State machines** control everything from USB protocols to CPU pipelines
+- Without memory, you could compute but never store, sequence, or iterate
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/sequential-circuits"
+  questions={[
+    {q: "What makes sequential circuits different from combinational circuits?", options: ["They use more gates", "Their output depends on current inputs AND stored state (memory), not just current inputs", "They are faster", "They don't use Boolean logic"], answer: 1, explanation: "The defining characteristic of sequential circuits is memory — they store state using feedback loops (typically flip-flops). Their output depends on both current inputs and the current state, which was determined by past inputs. This is what gives computers the ability to execute programs step by step."},
+    {q: "What does a D flip-flop do on a rising clock edge?", options: ["It resets to 0", "It toggles its output", "It captures the current value of input D and holds it until the next rising edge", "It outputs the inverse of D"], answer: 2, explanation: "At each rising clock edge, the D flip-flop samples its D input and copies it to Q. Between clock edges, Q holds its value regardless of changes to D. This 'sample and hold' behavior is what makes D flip-flops the standard building block for registers and memory."},
+    {q: "Why are sequential circuits controlled by a clock signal?", options: ["To save power", "To synchronize all state changes to happen at defined moments, preventing unpredictable behavior from different gate delays", "To make circuits louder", "Clocks are optional"], answer: 1, explanation: "Without a clock, different parts of a circuit would update at different times due to varying propagation delays, leading to race conditions and unpredictable outputs. The clock synchronizes all flip-flops to update simultaneously at each edge, ensuring the circuit behaves predictably."}
+  ]}
+/>
+
+## What's Next
+
+Now that we can compute (combinational circuits) and remember (sequential circuits), how do we represent different kinds of numbers efficiently? Next: <ConceptLink to="digital-logic/number-systems" label="Number Systems" />.

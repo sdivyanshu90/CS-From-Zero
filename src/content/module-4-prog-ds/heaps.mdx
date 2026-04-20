@@ -1,0 +1,146 @@
+{/* Lesson 3.11 — Heaps & Priority Queues */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/binary-search-trees"]} />
+
+## Hook — Always Know the Best Option
+
+An emergency room doesn't treat patients in arrival order — the most critical patient goes first. A CPU scheduler runs the highest-priority process next. An algorithm needs the smallest value instantly. These all need a **priority queue**, and the efficient implementation is a **heap** — a clever tree structure that keeps the min (or max) always at the top.
+
+## What Is a Heap?
+
+A **heap** is a complete binary tree satisfying the **heap property**:
+
+- **Min-Heap**: Every parent is ≤ its children (smallest at root).
+- **Max-Heap**: Every parent is ≥ its children (largest at root).
+
+```
+Min-Heap:           Max-Heap:
+     1                  9
+    / \                / \
+   3   5              7   8
+  / \                / \
+ 7   4              3   5
+
+The root is always the min (or max) — accessible in O(1)!
+```
+
+### Key Difference from BST
+
+```
+BST: left < parent < right (everything sorted)
+Heap: parent ≤ both children (only parent-child relationship matters)
+
+BST supports:  search, min, max, predecessor, successor, range queries
+Heap supports: find-min (or max), insert, extract-min — that's it, but FAST
+```
+
+### Array Representation
+
+A heap is stored as an array (no pointers needed!) because it's a **complete binary tree**:
+
+```
+      1
+     / \
+    3   5
+   / \
+  7   4
+
+Array: [1, 3, 5, 7, 4]
+Index:  0  1  2  3  4
+
+For node at index i:
+  Parent:      (i - 1) / 2
+  Left child:  2i + 1
+  Right child: 2i + 2
+
+Node 3 (index 1): parent = (1-1)/2 = 0 → value 1 ✓
+                   left = 2(1)+1 = 3 → value 7 ✓
+                   right = 2(1)+2 = 4 → value 4 ✓
+```
+
+## See It Work — Heap Operations
+
+### Insert — O(log n) — "Bubble Up"
+
+```
+Insert 2 into min-heap [1, 3, 5, 7, 4]:
+
+Step 1: Add to end → [1, 3, 5, 7, 4, 2]
+                            1
+                           / \
+                          3   5
+                         / \ /
+                        7  4 2 ← added here
+
+Step 2: Bubble up — compare with parent, swap if smaller
+  2 < 5 → swap: [1, 3, 2, 7, 4, 5]
+  2 > 1 → stop
+
+Result:     1
+           / \
+          3   2
+         / \ /
+        7  4 5
+```
+
+### Extract Min — O(log n) — "Bubble Down"
+
+```
+Extract min from [1, 3, 2, 7, 4, 5]:
+
+Step 1: Remove root (1), replace with last element (5)
+  [5, 3, 2, 7, 4]
+
+Step 2: Bubble down — compare with children, swap with smaller child
+  5 vs children 3, 2 → swap with 2: [2, 3, 5, 7, 4]
+  5 vs children 7, 4 → swap with 4: [2, 3, 4, 7, 5]
+  No more children → stop
+
+Result: Extracted 1, heap is now [2, 3, 4, 7, 5]
+```
+
+### Build Heap — O(n) — Surprisingly Not O(n log n)
+
+```
+Build heap from [4, 1, 3, 2, 16, 9, 10, 14, 8, 7]:
+
+Start from last non-leaf node, bubble down each:
+  Most nodes are near the bottom (lots of leaves)
+  Leaves need 0 swaps, nodes 1 level up need 1 swap, etc.
+  Total work: sum of (nodes at level) × (height - level) = O(n)
+```
+
+### Heapsort — O(n log n)
+
+```
+1. Build a max-heap from the array — O(n)
+2. Repeatedly extract-max and place at end — O(n log n)
+
+[4, 1, 3, 2, 16] → build max-heap → [16, 4, 3, 2, 1]
+Extract 16: [4, 3, 1, 2 | 16]
+Extract 4:  [3, 2, 1 | 4, 16]
+Extract 3:  [2, 1 | 3, 4, 16]
+Extract 2:  [1 | 2, 3, 4, 16]
+Done:       [1, 2, 3, 4, 16]
+```
+
+## Why It Matters
+
+- **Priority queues** are used in Dijkstra's shortest path, A* pathfinding, Huffman coding, and CPU scheduling.
+- Heaps provide O(1) access to the min/max with O(log n) insert and extract.
+- Heapsort is an O(n log n) in-place sorting algorithm.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/heaps"
+  questions={[
+    {q: "Why can heaps be stored in arrays without pointers?", options: ["Heaps are small", "A heap is a complete binary tree — nodes fill each level left-to-right with no gaps, so parent-child relationships can be computed from array indices", "Arrays are faster", "Heaps don't need tree structure"], answer: 1, explanation: "A complete binary tree has no gaps — all levels are full except possibly the last, which fills left-to-right. This means the shape is entirely determined by the number of nodes. We can map this shape directly to an array: node at index i has parent at (i-1)/2, left child at 2i+1, right child at 2i+2. No pointers needed!"},
+    {q: "Why is building a heap O(n) instead of O(n log n)?", options: ["It skips some nodes", "Most nodes are near the bottom and need few swaps; mathematically, the sum of (nodes at each level × swaps needed) telescopes to O(n)", "It uses a different algorithm", "It's approximate"], answer: 1, explanation: "Half the nodes are leaves (0 swaps). Quarter are 1 level up (1 swap). Eighth are 2 levels up (2 swaps). The total work is n/2×0 + n/4×1 + n/8×2 + ... which converges to O(n). Contrast with inserting n elements one by one: each insert is O(log n), giving O(n log n) total. Bottom-up build is more efficient."},
+    {q: "What is the time complexity of finding the minimum in a min-heap?", options: ["O(n)", "O(log n)", "O(1) — the minimum is always at the root, accessible directly at index 0", "O(n log n)"], answer: 2, explanation: "The heap property guarantees the root is the smallest element. It's always at array index 0 — direct access in constant time. This is the heap's primary advantage: instant access to the extremal element. Note that finding an arbitrary element is O(n) because heaps aren't sorted like BSTs."}
+  ]}
+/>
+
+## What's Next
+
+Heaps give O(1) access to the min/max but can't search for arbitrary values. What if you need O(1) search for any key? That's the domain of **hash tables**. Next: <ConceptLink to="prog-ds/hash-tables" label="Hash Tables" />.

@@ -1,0 +1,125 @@
+{/* Lesson 4.9 — Shortest Path Algorithms */}
+
+<PrerequisiteBadge prerequisites={["algorithms/graph-traversals"]} />
+
+## Hook — Finding the Best Route
+
+Every time you use Google Maps, a shortest path algorithm runs. Given a graph with weighted edges (distances, times, costs), find the cheapest path from one vertex to another. This is one of the most practically important problems in CS.
+
+## Dijkstra's Algorithm — O((V + E) log V)
+
+For graphs with **non-negative edge weights**. Uses a greedy approach with a priority queue:
+
+```
+Graph:
+A --1-- B --2-- D
+|       |       |
+4       1       3
+|       |       |
+C --5---+---1-- E
+
+Dijkstra from A:
+  dist: A=0, B=∞, C=∞, D=∞, E=∞
+
+  Visit A (dist=0): Update B=1, C=4
+  Visit B (dist=1): Update D=3, C=2 (1+1<4), E=∞
+  Visit C (dist=2): Update (nothing improves)
+  Visit D (dist=3): Update E=6
+  Visit E (dist=4 via B→E=1+1+1... depends on edges)
+  
+Key idea: Always process the unvisited vertex with smallest distance.
+          Once a vertex is processed, its distance is final.
+```
+
+```c
+// Pseudocode
+void dijkstra(Graph G, int source) {
+    dist[source] = 0;  // all others = ∞
+    priority_queue pq;
+    pq.insert(source, 0);
+    
+    while (!pq.empty()) {
+        u = pq.extract_min();
+        for each neighbor v of u:
+            if (dist[u] + weight(u,v) < dist[v]) {
+                dist[v] = dist[u] + weight(u,v);
+                prev[v] = u;
+                pq.decrease_key(v, dist[v]);
+            }
+    }
+}
+// Time: O((V + E) log V) with binary heap
+//       O(V² + E) with simple array (better for dense graphs)
+```
+
+**Dijkstra FAILS with negative edges** because it assumes processed vertices have final distances. A negative edge could provide a shortcut to an already-processed vertex.
+
+## Bellman-Ford — O(V × E)
+
+Handles **negative edge weights** and detects **negative cycles**:
+
+```c
+void bellman_ford(int V, int E, Edge edges[], int source) {
+    int dist[V];
+    fill(dist, INF);
+    dist[source] = 0;
+    
+    // Relax all edges V-1 times
+    for (int i = 0; i < V - 1; i++)
+        for (int j = 0; j < E; j++)
+            if (dist[edges[j].u] + edges[j].w < dist[edges[j].v])
+                dist[edges[j].v] = dist[edges[j].u] + edges[j].w;
+    
+    // Check for negative cycles (one more pass)
+    for (int j = 0; j < E; j++)
+        if (dist[edges[j].u] + edges[j].w < dist[edges[j].v])
+            printf("Negative cycle detected!\n");
+}
+```
+
+**Why V-1 iterations?** The shortest path has at most V-1 edges. Each iteration correctly computes paths using one more edge.
+
+## Floyd-Warshall — O(V³)
+
+Finds shortest paths between **ALL pairs** of vertices:
+
+```c
+// dp[i][j] = shortest distance from i to j
+for (int k = 0; k < V; k++)      // try each vertex as intermediate
+    for (int i = 0; i < V; i++)
+        for (int j = 0; j < V; j++)
+            dp[i][j] = min(dp[i][j], dp[i][k] + dp[k][j]);
+```
+
+Beautifully simple. O(V³) but handles negative edges. Negative cycle exists if `dp[i][i] < 0`.
+
+## How It Actually Works — Comparison
+
+```
+Algorithm        Edges      All-pairs?  Time           Negative edges
+─────────        ─────      ──────────  ────           ──────────────
+BFS              Unweighted Single-src  O(V + E)       N/A
+Dijkstra         Non-neg    Single-src  O((V+E)log V)  No!
+Bellman-Ford     Any        Single-src  O(VE)          Yes + detection
+Floyd-Warshall   Any        All-pairs   O(V³)          Yes + detection
+```
+
+## Why It Matters
+
+- GPS navigation, network routing (OSPF uses Dijkstra), and logistics all use shortest paths.
+- Understanding which algorithm to use depends on edge weights and whether you need single-source or all-pairs.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/shortest-paths"
+  questions={[
+    {q: "Why does Dijkstra's algorithm fail with negative edge weights?", options: ["It's too slow", "Dijkstra marks vertices as 'done' after processing — a negative edge could later provide a shorter path to an already-finalized vertex, violating the algorithm's greedy assumption", "It can't handle large graphs", "Negative weights don't exist"], answer: 1, explanation: "Dijkstra's correctness relies on the invariant: when a vertex is dequeued from the priority queue, its distance is final. With non-negative edges, no future path can be shorter (adding non-negative edges can only increase distance). But a negative edge could reduce the distance to an already-processed vertex, making the finalized distance wrong."},
+    {q: "What does a negative cycle mean for shortest paths?", options: ["The graph is invalid", "Shortest paths are undefined — you can loop around the negative cycle infinitely to reduce the path cost without bound", "It just means negative weights", "The path length is negative"], answer: 1, explanation: "A negative cycle has total edge weight < 0. If a path can reach this cycle, you can traverse it repeatedly, each time reducing the total path cost. After k traversals, the cost decreases by k × (cycle weight). Since k can be arbitrarily large, there's no finite shortest path. Bellman-Ford detects this; Dijkstra silently gives wrong answers."},
+    {q: "When should you use Floyd-Warshall instead of running Dijkstra V times?", options: ["Always", "For dense graphs with negative edges — Floyd-Warshall is O(V³) regardless of edge count, handles negative edges, and has simpler code; V×Dijkstra is O(V(V+E)log V)", "For sparse graphs", "Never"], answer: 1, explanation: "Floyd-Warshall: O(V³), handles negative edges, simple triple loop. V×Dijkstra: O(V(V+E)log V), no negative edges. For dense graphs (E ≈ V²), V×Dijkstra is O(V³ log V) — slower! For sparse graphs (E ≈ V), V×Dijkstra is O(V² log V) — much faster. Also, if you need negative edge support, Floyd-Warshall wins (or use V×Bellman-Ford at O(V²E))."}
+  ]}
+/>
+
+## What's Next
+
+Shortest paths find the cheapest route between vertices. **Minimum Spanning Trees** find the cheapest way to connect ALL vertices. Next: <ConceptLink to="algorithms/mst" label="Minimum Spanning Trees" />.

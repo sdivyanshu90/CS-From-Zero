@@ -1,0 +1,141 @@
+{/* Lesson 3.14 — B-Trees */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/graphs"]} />
+
+## Hook — Trees for Databases
+
+A BST with a billion records has height ~30 — that's 30 disk reads to find one record. Each disk read takes ~5 milliseconds, so a single lookup takes 150 ms. Unacceptable! What if each node held 1,000 keys instead of 1, making the tree height only 3? Three disk reads × 5 ms = 15 ms — 10× faster. That's a **B-Tree**: a tree designed for disk-based storage with massive branching factor.
+
+## What Is a B-Tree?
+
+A **B-Tree of order m** is a self-balancing tree where:
+- Each node holds up to **m-1 keys** (and m children)
+- Each node (except root) has at least **⌈m/2⌉ - 1 keys**
+- All leaves are at the **same depth** (perfectly balanced)
+- Keys within a node are sorted
+
+```
+B-Tree of order 4 (max 3 keys per node):
+
+              [10 | 20]
+             /    |    \
+      [3|5|7]  [12|15]  [25|30|40]
+
+Each node is one disk block (e.g., 4 KB).
+A node with 3 keys has 4 children (pointers between and around keys).
+```
+
+### Why Not BSTs for Databases?
+
+```
+BST (binary, 2 children):
+  1 billion records → height ≈ 30
+  30 disk reads per search
+
+B-Tree (order 1000, 999 keys per node):
+  1 billion records → height ≈ 3
+  3 disk reads per search!
+
+Each node fills one disk block (4-16 KB), maximizing data per read.
+```
+
+## See It Work — B-Tree Operations
+
+### Search
+
+```
+Search for key 15 in:
+              [10 | 20]
+             /    |    \
+      [3|5|7]  [12|15]  [25|30|40]
+
+1. Read root [10|20] — 15 is between 10 and 20 → middle child
+2. Read node [12|15] — found 15!
+
+Only 2 disk reads for the entire search.
+```
+
+### Insert
+
+```
+Insert 8 into B-Tree of order 3 (max 2 keys):
+
+Before:     [5 | 10]
+           /   |   \
+        [3]  [7]  [12|15]
+
+Step 1: Search → 8 goes into [7]
+Step 2: [7,8] — fits (2 keys max). Done!
+
+After:      [5 | 10]
+           /   |   \
+        [3]  [7|8]  [12|15]
+
+If node overflows (3 keys in order-3):
+  Split the node in half, push middle key up to parent.
+  If parent overflows, split it too (may cascade to root).
+  If root splits, tree height increases by 1.
+```
+
+### B+ Trees — The Database Standard
+
+Most databases use **B+ Trees**, a variant where:
+- All actual data is in **leaf nodes** only
+- Internal nodes only store keys (for navigation)
+- Leaves are linked in a **linked list** for efficient range queries
+
+```
+B+ Tree:
+              [10 | 20]
+             /    |    \
+    [3→5→7→] → [10→12→15→] → [20→25→30→]
+    ↑ leaf       ↑ leaf         ↑ leaf
+    
+Range query "find all between 7 and 20":
+1. Search for 7 → land in first leaf
+2. Scan forward through linked list: 7, 10, 12, 15, 20 → done!
+   No need to go back to internal nodes.
+```
+
+## How It Actually Works — Why B-Trees Match Disk Hardware
+
+```
+Disk read: Read one block (4 KB) at a time.
+           Latency: ~5 ms (spinning HDD) or ~0.1 ms (SSD)
+           Reading 1 byte costs the same as reading 4 KB!
+
+B-Tree node = exactly one disk block:
+  With 4 KB blocks and 8-byte keys + 8-byte pointers:
+  Keys per node ≈ 4096 / 16 ≈ 250
+  Order ≈ 251
+
+Height of B-Tree with 1 billion records:
+  Level 0 (root): 250 keys
+  Level 1: 251 × 250 = 62,750 keys
+  Level 2: 251² × 250 ≈ 15.7 million keys
+  Level 3: 251³ × 250 ≈ 3.9 billion keys
+
+  3 levels handle 3.9 billion records!
+  Root is cached in RAM → only 2 disk reads per search.
+```
+
+## Why It Matters
+
+- **Every major database** (PostgreSQL, MySQL, SQLite, Oracle, MongoDB) uses B-Trees or B+ Trees for indexing.
+- File systems (NTFS, ext4, HFS+) use B-Trees for directory indexing.
+- Understanding B-Trees helps you understand database performance, when to add indexes, and why some queries are fast while others are slow.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/b-trees"
+  questions={[
+    {q: "Why are B-Trees preferred over BSTs for database indexing?", options: ["B-Trees are simpler", "B-Trees have a much larger branching factor, drastically reducing tree height and thus the number of slow disk reads needed per search", "BSTs can't store data", "B-Trees use less memory"], answer: 1, explanation: "A BST with 1 billion records has height ~30 (30 disk reads per search). A B-Tree with order 1000 has height ~3 (3 disk reads). Since each disk read takes milliseconds, reducing reads from 30 to 3 is a 10× speedup. The key insight: reading one byte from disk costs the same as reading 4KB, so packing hundreds of keys into one node is essentially free."},
+    {q: "What is the key advantage of B+ Trees over B-Trees?", options: ["They're smaller", "All data is in leaf nodes which are linked together, enabling efficient sequential range queries by scanning the leaf linked list", "They have more keys", "They're faster to insert"], answer: 1, explanation: "In a B+ Tree, internal nodes contain only keys (for routing) and leaf nodes contain all data. Leaves are linked in a sorted linked list. For a range query like 'find all records with key 10 to 50', you search for 10 (log time), then scan forward through the linked list until you pass 50. No need to traverse internal nodes for the range — extremely efficient."},
+    {q: "Why does the root of a B-Tree typically stay in RAM?", options: ["It's smaller than other nodes", "The root is accessed on every single search operation, making it the most frequently accessed node — caching it eliminates one disk read per query", "It's the most important node", "RAM is faster"], answer: 1, explanation: "Every search, insert, and delete starts at the root. If you do 1000 queries per second, the root is read 1000 times per second. Caching it in RAM (a few KB) eliminates one disk read per operation. For a height-3 B-Tree, this reduces disk reads from 3 to 2 per search — a 33% improvement for negligible memory cost."}
+  ]}
+/>
+
+## What's Next
+
+Congratulations! You've completed the **Programming & Data Structures** module. You've learned arrays, linked lists, stacks, queues, trees, heaps, hash tables, graphs, and B-Trees — the core toolkit of every software engineer. Next module: <ConceptLink to="algorithms/time-space-complexity" label="Algorithms" /> — where we'll learn the techniques for solving problems efficiently.

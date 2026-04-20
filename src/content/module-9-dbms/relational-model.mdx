@@ -1,0 +1,111 @@
+{/* Lesson 8.3 — Relational Model */}
+
+<PrerequisiteBadge prerequisites={["dbms/er-model"]} />
+
+## Hook — Data as Mathematics
+
+In 1970, Edgar Codd proposed organizing data as **relations** — mathematical sets of tuples. This sounds abstract, but it's simply: tables with rows and columns. The relational model gave us a rigorous foundation for querying data, and it powers virtually every database you use today.
+
+## Terminology
+
+```
+Relational Term    ↔    Informal Term
+───────────────         ──────────────
+Relation               Table
+Tuple                  Row / Record
+Attribute              Column / Field
+Domain                 Data type (INT, VARCHAR, ...)
+Degree                 Number of columns
+Cardinality            Number of rows
+Schema                 Table structure (name + attributes)
+Instance               Current data in the table
+```
+
+## See It Work — Relational Algebra
+
+Relational algebra is the formal query language — SQL is built on it.
+
+```
+Six fundamental operations:
+
+1. Selection (σ): Filter rows
+   σ(gpa > 3.5)(Student) → students with gpa > 3.5
+   SQL: SELECT * FROM Student WHERE gpa > 3.5
+
+2. Projection (π): Choose columns
+   π(name, gpa)(Student) → only name and gpa columns
+   SQL: SELECT name, gpa FROM Student
+
+3. Union (∪): Combine rows from two compatible relations
+   R ∪ S → all rows in R or S (no duplicates)
+   SQL: SELECT * FROM R UNION SELECT * FROM S
+
+4. Set Difference (−): Rows in R but not in S
+   R − S
+   SQL: SELECT * FROM R EXCEPT SELECT * FROM S
+
+5. Cartesian Product (×): Every row of R paired with every row of S
+   R × S → |R| × |S| rows
+   SQL: SELECT * FROM R, S  (rarely useful alone)
+
+6. Rename (ρ): Rename a relation or attributes
+   ρ(NewName)(R)
+   SQL: SELECT name AS student_name FROM R
+```
+
+### Joins (Derived from Cartesian Product + Selection)
+
+```
+Natural Join (⋈): Match rows on common attribute names
+  Student ⋈ Enrollment
+  → pairs where Student.id = Enrollment.student_id
+  SQL: SELECT * FROM Student NATURAL JOIN Enrollment
+
+Theta Join: Cartesian product + arbitrary condition
+  R ⋈(R.a > S.b) S
+  SQL: SELECT * FROM R JOIN S ON R.a > S.b
+
+Equi-Join: Theta join where condition is equality
+  SQL: SELECT * FROM R JOIN S ON R.id = S.id
+```
+
+## How It Actually Works — Integrity Constraints
+
+```
+Entity Integrity:
+  Primary key values must be unique and NOT NULL.
+  Every row must be identifiable.
+
+Referential Integrity:
+  Foreign key values must reference existing PK values
+  (or be NULL).
+  DELETE student → what about their enrollments?
+    CASCADE:    Delete enrollments too
+    SET NULL:   Set enrollment.student_id = NULL
+    RESTRICT:   Prevent deletion if enrollments exist
+
+Domain Constraints:
+  Values must be of the correct type and range.
+  age INT CHECK (age >= 0 AND age <= 150)
+```
+
+## Why It Matters
+
+- The relational model's mathematical foundation is why SQL works — every SQL query maps to relational algebra operations.
+- Understanding relational algebra helps you write better queries and understand query optimization.
+- Integrity constraints prevent bad data from entering your database — enforced automatically.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/relational-model"
+  questions={[
+    {q: "Why is the Cartesian product rarely useful by itself?", options: ["It's slow", "It pairs EVERY row of R with EVERY row of S, producing |R|×|S| rows — mostly meaningless combinations. It becomes useful only when combined with selection to filter matching pairs (which is exactly what a join does)", "It's not supported", "It produces duplicates"], answer: 1, explanation: "If Students has 100 rows and Courses has 50 rows, their Cartesian product has 5,000 rows — every student paired with every course, including students and courses that have nothing to do with each other. A join = Cartesian product + filter: Student ⋈ Enrollment = σ(Student.id = Enrollment.student_id)(Student × Enrollment). The filter removes meaningless pairings. This is why query optimizers never actually compute the full Cartesian product — they use join algorithms that only produce matching rows."},
+    {q: "What happens if you delete a row that is referenced by a foreign key?", options: ["Nothing", "The DBMS enforces referential integrity: depending on the FK constraint, it either cascades the delete (removes referencing rows too), sets the FK to NULL, or restricts the operation (prevents deletion until references are removed)", "The FK becomes 0", "The database crashes"], answer: 1, explanation: "Without referential integrity: delete a department → employees still reference it → broken links (orphan records). With RI: CASCADE deletes employees too (dangerous but sometimes appropriate). SET NULL sets emp.dept_id = NULL (employee exists but unassigned). RESTRICT prevents the delete entirely until all employees are reassigned. The choice depends on business rules. RESTRICT is the safest default."},
+    {q: "How does relational algebra relate to SQL?", options: ["They're unrelated", "SQL is a declarative implementation of relational algebra — every SQL query can be expressed as a relational algebra expression, and the query optimizer converts SQL into an optimized sequence of relational algebra operations for execution", "SQL replaced relational algebra", "Relational algebra is newer"], answer: 1, explanation: "SELECT name FROM Student WHERE gpa > 3.5 = π(name)(σ(gpa>3.5)(Student)). The query optimizer parses SQL into a relational algebra tree, then transforms it using algebraic equivalences (e.g., push selections down, reorder joins) to find the cheapest execution plan. Understanding relational algebra helps you understand why certain queries are fast (the optimizer can push selections early) and why others are slow (Cartesian products with late filtering)."}
+  ]}
+/>
+
+## What's Next
+
+Time to write actual database queries. Next: <ConceptLink to="dbms/sql" label="SQL" /> — the language of databases.

@@ -1,0 +1,125 @@
+{/* Lesson 7.6 — Inter-Process Communication */}
+
+<PrerequisiteBadge prerequisites={["os/deadlock"]} />
+
+## Hook — Talking Between Processes
+
+Threads share memory, but processes have separate address spaces. How does your web browser talk to the server process? How do microservices communicate? **Inter-Process Communication (IPC)** mechanisms enable processes to exchange data and coordinate — from simple pipes to complex message queues.
+
+## IPC Mechanisms
+
+### Pipes (Unidirectional)
+
+```c
+int fd[2];
+pipe(fd);  // fd[0]=read end, fd[1]=write end
+
+if (fork() == 0) {
+    // Child writes
+    close(fd[0]);
+    write(fd[1], "hello", 5);
+    close(fd[1]);
+} else {
+    // Parent reads
+    close(fd[1]);
+    char buf[10];
+    read(fd[0], buf, 5);  // buf = "hello"
+    close(fd[0]);
+}
+
+// Shell pipes: ls | grep ".c" | wc -l
+// Each | creates a pipe between processes
+```
+
+### Named Pipes (FIFOs)
+
+```bash
+mkfifo /tmp/myfifo
+
+# Terminal 1 (writer):
+echo "hello" > /tmp/myfifo
+
+# Terminal 2 (reader):
+cat /tmp/myfifo  # prints "hello"
+
+# Unlike anonymous pipes, named pipes have a filesystem path
+# Unrelated processes can communicate
+```
+
+### Shared Memory (Fastest IPC)
+
+```c
+// Process A: create and write
+int shmid = shmget(IPC_PRIVATE, 4096, IPC_CREAT | 0666);
+char *mem = shmat(shmid, NULL, 0);
+strcpy(mem, "shared data");
+
+// Process B: attach and read
+char *mem = shmat(shmid, NULL, 0);
+printf("%s\n", mem);  // "shared data"
+
+// Fastest: no kernel involvement after setup
+// But: needs synchronization (semaphores/mutexes)!
+```
+
+### Message Queues
+
+```c
+// Send
+int msqid = msgget(key, IPC_CREAT | 0666);
+struct msg { long type; char text[100]; };
+struct msg m = {1, "hello"};
+msgsnd(msqid, &m, sizeof(m.text), 0);
+
+// Receive
+msgrcv(msqid, &m, sizeof(m.text), 1, 0);
+// Messages have types — selective receive possible
+```
+
+### Sockets (Network IPC)
+
+```
+TCP/UDP sockets work between processes on same or different machines.
+
+Local: Unix domain sockets (AF_UNIX) — fast, no network overhead
+  /var/run/docker.sock — Docker daemon communication
+  /tmp/.X11-unix/X0 — X11 display server
+
+Network: TCP/UDP sockets (AF_INET) — cross-machine
+  HTTP, database connections, microservices
+```
+
+## How It Actually Works — Comparison
+
+```
+Mechanism      Speed       Scope          Complexity
+─────────      ─────       ─────          ──────────
+Pipe           Medium      Parent-child   Simple
+Named Pipe     Medium      Same machine   Simple
+Shared Memory  Fastest     Same machine   Needs sync
+Message Queue  Medium      Same machine   Medium
+Unix Socket    Fast        Same machine   Medium
+TCP Socket     Slower      Any machine    Complex
+Signal         Fast        Same machine   Very limited (just a number)
+```
+
+## Why It Matters
+
+- Unix philosophy: "Do one thing well." IPC connects small programs into powerful pipelines.
+- Microservices architecture is entirely built on IPC (typically HTTP/gRPC over sockets).
+- Understanding IPC helps you choose the right communication mechanism for your use case.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/ipc"
+  questions={[
+    {q: "Why is shared memory the fastest IPC mechanism?", options: ["It uses less RAM", "After initial setup, processes read/write directly to the same physical memory pages — no kernel involvement, no data copying. Other IPC mechanisms (pipes, sockets) require copying data to/from kernel buffers", "It's simpler to use", "It works over networks"], answer: 1, explanation: "With pipes or sockets, sending data: user buffer → kernel buffer → user buffer (two copies, two syscalls). With shared memory: processes map the same physical pages into their address spaces. Reads/writes go directly to RAM — zero copies, zero syscalls (after setup). The tradeoff: processes must synchronize access themselves (semaphores/mutexes). No protection against concurrent corruption without explicit locking."},
+    {q: "When should you use sockets over shared memory?", options: ["Always", "When processes might run on different machines, when you need clean message boundaries, or when you want the kernel to handle synchronization — sockets provide network transparency and built-in buffering that shared memory lacks", "Never", "When processes are on the same machine"], answer: 1, explanation: "Shared memory only works on the same machine (same physical RAM). Sockets work across machines (TCP/UDP) AND locally (Unix domain sockets). Sockets also provide built-in synchronization (blocking reads/writes), message framing (message boundaries), and flow control. Shared memory is faster but requires manual synchronization and only works locally. For microservices across machines, sockets (HTTP/gRPC) are the only option."},
+    {q: "How do Unix shell pipes work?", options: ["They copy files", "The shell creates an anonymous pipe (kernel buffer) between two processes, connecting stdout of the first to stdin of the second — data flows through the kernel buffer without touching the filesystem", "They use shared memory", "They create temporary files"], answer: 1, explanation: "When you type 'ls | grep .c', the shell: (1) creates a pipe (fd pair), (2) forks twice, (3) in child 1 (ls): redirects stdout to pipe write end, (4) in child 2 (grep): redirects stdin to pipe read end. ls writes to stdout → goes to pipe buffer (kernel memory, typically 64KB) → grep reads from stdin. No files created. If the pipe buffer fills, ls blocks until grep reads. This is flow control — the fast producer waits for the slow consumer."}
+  ]}
+/>
+
+## What's Next
+
+Programs need memory, but physical RAM is limited. **Memory management** and **virtual memory** create the illusion of unlimited address space. Next: <ConceptLink to="os/memory-management" label="Memory Management" />.

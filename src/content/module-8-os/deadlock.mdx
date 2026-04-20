@@ -1,0 +1,122 @@
+{/* Lesson 7.5 — Deadlock */}
+
+<PrerequisiteBadge prerequisites={["os/concurrency"]} />
+
+## Hook — The Deadly Embrace
+
+Thread A holds Lock 1 and wants Lock 2. Thread B holds Lock 2 and wants Lock 1. Neither can proceed. Both wait forever. This is **deadlock** — one of the most dangerous bugs in concurrent systems. Understanding it is essential for writing reliable multi-threaded code.
+
+## Four Necessary Conditions
+
+All four must hold simultaneously for deadlock to occur:
+
+```
+1. Mutual Exclusion: Resources can't be shared
+2. Hold and Wait: Holding resources while waiting for more
+3. No Preemption: Resources can't be forcibly taken away
+4. Circular Wait: A→B→C→...→A chain of waiting
+
+Break ANY one condition → no deadlock possible
+```
+
+## See It Work — Deadlock Example
+
+```c
+// Thread A:                  // Thread B:
+pthread_mutex_lock(&lock1);   pthread_mutex_lock(&lock2);
+// ... do work ...            // ... do work ...
+pthread_mutex_lock(&lock2);   pthread_mutex_lock(&lock1);
+// DEADLOCK!                  // DEADLOCK!
+// A holds lock1, waits lock2 // B holds lock2, waits lock1
+```
+
+### Resource Allocation Graph
+
+```
+Thread A → Lock 2 (wants)     Lock 1 → Thread A (held by)
+Thread B → Lock 1 (wants)     Lock 2 → Thread B (held by)
+
+Cycle detected! → Deadlock.
+
+    A ──wants──→ L2
+    ↑             │
+  held by      held by
+    │             ↓
+    L1 ←──wants── B
+```
+
+## How It Actually Works — Strategies
+
+### Prevention (Break a Condition)
+
+```
+Break Circular Wait (most practical):
+  Order all locks globally (e.g., by address).
+  Always acquire in order: lock1 before lock2.
+
+// Fixed:
+// Thread A:                  // Thread B:
+pthread_mutex_lock(&lock1);   pthread_mutex_lock(&lock1);  // same order!
+pthread_mutex_lock(&lock2);   pthread_mutex_lock(&lock2);
+// No deadlock possible — both acquire in same order.
+
+Break Hold-and-Wait:
+  Acquire ALL needed locks at once (atomic).
+  Impractical if you don't know all locks in advance.
+
+Break No-Preemption:
+  If you can't get a lock, release what you hold and retry.
+  pthread_mutex_trylock() — non-blocking attempt.
+```
+
+### Avoidance (Banker's Algorithm)
+
+```
+Before granting a resource, check if the system stays in a "safe state"
+(a state where every process can eventually finish).
+
+Process   Max   Allocated   Need   Available
+P1        10    5           5      3
+P2        4     2           2
+P3        9     2           7
+
+Safe sequence: P2(needs 2, avail 3→finish→return 2→avail 5),
+               P1(needs 5, avail 5→finish→return 5→avail 10),
+               P3(needs 7, avail 10→finish)
+
+If granting a request makes no safe sequence possible → deny it.
+O(n²m) per request — expensive but prevents deadlock.
+```
+
+### Detection and Recovery
+
+```
+Periodically check for cycles in the wait-for graph.
+If deadlock detected:
+  - Kill one process (victim selection)
+  - Roll back to checkpoint
+  - Preempt resources
+
+Most real systems: just detect and kill (databases do this).
+```
+
+## Why It Matters
+
+- Deadlocks crash servers, freeze databases, and hang operating systems.
+- Lock ordering is the most practical prevention technique — used everywhere.
+- Understanding deadlock helps you design concurrent systems that don't get stuck.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/deadlock"
+  questions={[
+    {q: "Why is lock ordering the most common deadlock prevention technique?", options: ["It's the newest", "It breaks the circular wait condition with minimal overhead — if all threads acquire locks in the same global order, a cycle in the wait graph is impossible, and no runtime checking or resource preemption is needed", "It's required by POSIX", "It prevents all bugs"], answer: 1, explanation: "With consistent lock ordering (e.g., always lock1 before lock2), thread A can't hold lock2 while waiting for lock1 (it would have acquired lock1 first). No circular dependency can form. The overhead is zero at runtime — it's a coding convention. The challenge: in large systems with hundreds of locks, maintaining a consistent order requires discipline. Tools like lockdep (Linux kernel) verify ordering at runtime during development."},
+    {q: "Why isn't the Banker's Algorithm used in practice?", options: ["It doesn't work", "It requires knowing maximum resource needs in advance (often impossible), has O(n²m) overhead per allocation request, and is too conservative — it may deny safe requests to maintain safety margin", "It's too new", "It only works for memory"], answer: 1, explanation: "The Banker's Algorithm needs each process to declare its maximum resource needs upfront — impractical for general-purpose programs. Checking safety for every allocation is expensive (O(n²m) where n=processes, m=resource types). It's also conservative: it prevents deadlock by denying some requests that wouldn't actually cause deadlock. Real systems prefer prevention (lock ordering) or detection (databases abort one transaction to break deadlocks)."},
+    {q: "How do databases handle deadlocks?", options: ["They prevent all deadlocks", "Databases use detection: they periodically check the wait-for graph for cycles, and when a deadlock is found, they abort one transaction (the 'victim') and roll it back, allowing the other transactions to proceed", "They use the Banker's Algorithm", "They don't support concurrent access"], answer: 1, explanation: "Databases use optimistic concurrency: let transactions run, detect deadlocks periodically (check for cycles in waits-for graph), and abort the cheapest victim (youngest, least work done). The aborted transaction is rolled back (ACID properties ensure this is safe) and retried. This is practical because deadlocks are rare — prevention overhead for every operation would be wasteful. PostgreSQL, MySQL, and SQL Server all use this approach."}
+  ]}
+/>
+
+## What's Next
+
+Processes need to talk to each other. **Inter-Process Communication** provides the channels. Next: <ConceptLink to="os/ipc" label="Inter-Process Communication" />.

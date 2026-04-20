@@ -1,0 +1,122 @@
+{/* Lesson 9.7 — Flow & Congestion Control */}
+
+<PrerequisiteBadge prerequisites={["networks/transport-layer"]} />
+
+## Hook — Preventing Internet Meltdown
+
+In 1986, the internet nearly collapsed. Senders kept retransmitting into an already overloaded network, making congestion worse — a positive feedback loop called **congestion collapse**. Van Jacobson's congestion control algorithms saved the internet and remain in use today.
+
+## Flow Control vs Congestion Control
+
+```
+Flow Control:
+  Prevent overwhelming the RECEIVER.
+  Receiver advertises window size.
+  Sender respects it.
+  End-to-end (sender ↔ receiver).
+
+Congestion Control:
+  Prevent overwhelming the NETWORK.
+  Sender infers congestion from packet loss/delay.
+  No explicit signal from network (usually).
+  End-to-end (sender guesses network state).
+
+Effective window = min(receiver window, congestion window)
+```
+
+## See It Work — TCP Congestion Control
+
+### Slow Start
+
+```
+Start with cwnd (congestion window) = 1 MSS.
+For each ACK received: cwnd += 1 MSS.
+→ Window DOUBLES every RTT (exponential growth).
+
+RTT 1: cwnd = 1  → send 1 segment
+RTT 2: cwnd = 2  → send 2 segments
+RTT 3: cwnd = 4  → send 4 segments
+RTT 4: cwnd = 8  → send 8 segments
+
+Grows until:
+  - Packet loss → cut cwnd
+  - Reaches ssthresh → switch to congestion avoidance
+```
+
+### Congestion Avoidance
+
+```
+After reaching ssthresh:
+  For each ACK: cwnd += 1/cwnd (additive increase)
+  → Window grows by ~1 MSS per RTT (linear growth).
+
+On packet loss (timeout):
+  ssthresh = cwnd / 2
+  cwnd = 1 MSS
+  → Back to slow start!
+
+AIMD (Additive Increase, Multiplicative Decrease):
+  Increase: +1 per RTT (linear, gentle probe)
+  Decrease: ÷2 on loss (aggressive cut)
+  
+  Creates a "sawtooth" pattern:
+  cwnd  ╱╲  ╱╲  ╱╲
+       ╱  ╲╱  ╲╱  ╲
+       time →
+```
+
+### Fast Recovery (TCP Reno)
+
+```
+3 duplicate ACKs (mild congestion, not timeout):
+  ssthresh = cwnd / 2
+  cwnd = ssthresh (NOT back to 1!)
+  → Skip slow start, resume congestion avoidance.
+
+Much faster recovery than restarting from cwnd=1.
+```
+
+## How It Actually Works — Modern Algorithms
+
+```
+Algorithm    Approach              Used By
+─────────    ────────              ───────
+Reno         Loss-based (AIMD)     Classic, still common
+Cubic        Loss-based (cubic fn) Linux default
+BBR          Model-based           Google (YouTube, Cloud)
+             (bandwidth + RTT)
+
+Cubic: Grows faster far from last loss, slower near it.
+  Cubic function of time since last loss event.
+  Better than Reno for high-bandwidth, high-latency links.
+
+BBR (Bottleneck Bandwidth and RTT):
+  Instead of waiting for loss, BBR:
+  1. Estimates bottleneck bandwidth (max delivery rate)
+  2. Estimates minimum RTT
+  3. Targets: send at bandwidth × min_RTT
+  
+  Better on links with large buffers (doesn't need loss signal).
+  Used by Google for YouTube — 4-14% throughput improvement.
+```
+
+## Why It Matters
+
+- Without congestion control, the internet would collapse under heavy load.
+- Understanding AIMD explains why downloads start slow and speed up.
+- BBR represents a paradigm shift — measuring bandwidth instead of reacting to loss.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/flow-congestion"
+  questions={[
+    {q: "Why does TCP use multiplicative decrease instead of additive decrease?", options: ["It's simpler", "Multiplicative decrease (halving cwnd) aggressively backs off during congestion, preventing collapse — additive decrease would be too slow, allowing continued congestion. The asymmetry (additive increase, multiplicative decrease) ensures stability: all flows converge to fair share regardless of starting point", "It's faster", "It uses less memory"], answer: 1, explanation: "Imagine 10 flows sharing a link. One flow has cwnd=100, another has cwnd=10. Additive decrease (-1): after loss, 99 and 9 — still unfair. Multiplicative decrease (÷2): 50 and 5 — ratio preserved but absolute difference shrinks. Over many AIMD cycles, all flows converge to equal share. Jacobson proved this mathematically. The aggressive decrease also rapidly frees up bandwidth during congestion, while the gentle increase cautiously probes for available capacity."},
+    {q: "Why does slow start grow exponentially if it's called 'slow'?", options: ["The name is wrong", "It's called 'slow' compared to the original TCP behavior of immediately sending a full window of data — slow start begins from 1 segment and doubles each RTT, which is exponential but still much more cautious than dumping all data at once into an unknown network", "It grows linearly", "It's the slowest algorithm"], answer: 1, explanation: "Original TCP (before Jacobson): open connection, send receiver-window-worth of data immediately. If the network can't handle it → massive packet loss → congestion. Slow start: begin with 1 segment, grow exponentially. After ~10 RTTs, you're sending 1024 segments — you've found the network's capacity. 'Slow' is relative: compared to 'send everything immediately,' starting from 1 is slow. But the exponential doubling quickly finds the right rate. It's a clever balance: fast enough to utilize bandwidth quickly, cautious enough to avoid flooding."},
+    {q: "How does BBR differ from traditional loss-based congestion control?", options: ["BBR is slower", "Traditional algorithms (Reno, Cubic) treat packet loss as the congestion signal and react by cutting the window. BBR proactively measures bottleneck bandwidth and minimum RTT, then paces packets to match the measured capacity — avoiding both under-utilization and buffer bloat", "BBR doesn't control congestion", "BBR uses UDP"], answer: 1, explanation: "Loss-based: send faster and faster until packets drop, then back off. Problem: on links with large buffers, packets fill the buffer before dropping — high latency (bufferbloat) while the algorithm thinks everything is fine. BBR: continuously estimates max bandwidth (highest delivery rate seen) and min RTT (lowest latency seen). Sends at: bandwidth × min_RTT. If sending faster doesn't increase delivery rate → you've found the bottleneck. No need to fill buffers or cause loss. Result: higher throughput AND lower latency."}
+  ]}
+/>
+
+## What's Next
+
+Applications need to talk over the network. How do HTTP, DNS, and email work? Next: <ConceptLink to="networks/application-layer" label="Application Layer" />.

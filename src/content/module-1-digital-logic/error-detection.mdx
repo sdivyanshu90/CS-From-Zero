@@ -1,0 +1,175 @@
+{/* Lesson 1.8 — Error Detection */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/data-representation"]} />
+
+## Hook — When Bits Go Wrong
+
+Bits don't always arrive intact. Cosmic rays can flip a bit in RAM. Electromagnetic interference can corrupt data on a cable. A scratch on a disc can make a 1 look like a 0. Every day, billions of bit errors occur across the world's computing systems. Yet your files rarely get corrupted, your messages arrive intact, and your bank balance doesn't randomly change. How? **Error detection and correction codes**.
+
+## What Is Error Detection?
+
+**Error detection** is the ability to determine whether data has been corrupted during storage or transmission. **Error correction** goes further — it can identify *which* bits are wrong and fix them without retransmission.
+
+### The Fundamental Idea: Redundancy
+
+The key insight is **controlled redundancy** — adding extra bits that encode information *about* the data. If the data changes but the redundancy bits don't match, we know an error occurred.
+
+```
+Data alone:        10110  (if a bit flips, we can't tell)
+Data + check bit:  10110 1  (the extra bit lets us detect single-bit errors)
+```
+
+## See It Work — Parity Checks
+
+### Single Parity Bit
+
+The simplest error detection scheme. Add one bit that makes the total number of 1s either always even (**even parity**) or always odd (**odd parity**).
+
+```
+Even Parity:
+Data:     1011001  (four 1s — already even)
+Parity:   0
+Transmitted: 10110010
+
+Data:     1011011  (five 1s — odd)  
+Parity:   1        (makes total six 1s — even)
+Transmitted: 10110111
+
+Error Detection:
+Received: 10100010  (count 1s: three — odd! ERROR DETECTED)
+Received: 10110010  (count 1s: four — even, OK)
+```
+
+**Limitation**: Parity can detect **odd** numbers of bit errors but NOT **even** numbers. If two bits flip, the parity still checks out and the error goes undetected.
+
+### Two-Dimensional Parity
+
+Arrange data in a grid and add parity to each row AND column:
+
+```
+Data rows with row parity:
+1 0 1 1 | 1
+1 1 0 1 | 0
+0 1 1 0 | 0
+─────────
+0 0 0 0   Column parity
+
+If bit [1,2] flips (0→1):
+1 0 1 1 | 1  ✓
+1 1 1 1 | 0  ✗ ← row 2 parity fails
+0 1 1 0 | 0  ✓
+─────────
+0 0 0 0       
+      ✗ ← column 3 parity fails
+
+The intersection (row 2, column 3) identifies the exact bit that flipped!
+```
+
+2D parity can **detect and correct** single-bit errors, and detect (but not correct) most multi-bit errors.
+
+## How It Actually Works — Practical Error Codes
+
+### Checksums
+
+A **checksum** is a value computed from the data using addition or XOR:
+
+```
+Internet Checksum (simplified):
+Data words: 0x4500, 0x0073, 0x0000, 0x4000
+Sum:        0x4500 + 0x0073 + 0x0000 + 0x4000 = 0x8573
+Complement: 0x7A8C
+Transmit:   data + 0x7A8C
+
+Receiver adds all words including checksum:
+0x4500 + 0x0073 + 0x0000 + 0x4000 + 0x7A8C = 0xFFFF
+If result isn't 0xFFFF → error detected
+```
+
+Used in: TCP, UDP, IP headers.
+
+### CRC (Cyclic Redundancy Check)
+
+**CRC** treats data as a polynomial and divides by a generator polynomial. The remainder becomes the check value.
+
+```
+Example with CRC-3 (generator: 1011):
+
+Data:       11010011101100
+Append 3 zeros: 11010011101100 000
+Divide by 1011 using XOR (binary long division):
+... (several steps of XOR division) ...
+Remainder: 100
+
+Transmit: 11010011101100 100
+
+Receiver divides received data by 1011:
+If remainder is 000 → no error
+If remainder is not 000 → error detected
+```
+
+CRC is much stronger than simple checksums. CRC-32 (used in Ethernet, ZIP files, PNG) can detect:
+- All single-bit errors
+- All double-bit errors
+- All odd numbers of errors
+- All burst errors up to 32 bits long
+
+### Hamming Code — Single Error Correction
+
+**Hamming code** places parity bits at positions that are powers of 2 (1, 2, 4, 8, ...). Each parity bit covers a specific subset of data bits:
+
+```
+7-bit Hamming code (4 data bits, 3 parity bits):
+
+Position:  1  2  3  4  5  6  7
+Type:      P1 P2 D1 P4 D2 D3 D4
+
+P1 checks positions 1,3,5,7 (binary: bit 0 set)
+P2 checks positions 2,3,6,7 (binary: bit 1 set)
+P4 checks positions 4,5,6,7 (binary: bit 2 set)
+
+Example encoding data 1011:
+Position:  1  2  3  4  5  6  7
+Data:            1     0  1  1
+P1: pos 1,3,5,7 → 1,0,1 → P1=0 (even parity)
+P2: pos 2,3,6,7 → 1,1,1 → P2=1
+P4: pos 4,5,6,7 → 0,1,1 → P4=0
+Code:      0  1  1  0  0  1  1
+
+Error correction:
+If bit 5 flips (0→1): 0 1 1 0 1 1 1
+P1 check: 0,1,1,1 = 3 ones (odd!) → error bit 1 set
+P2 check: 1,1,1,1 = 4 ones (even) → error bit 0
+P4 check: 0,1,1,1 = 3 ones (odd!) → error bit 4 set
+Error position = 1 + 0 + 4 = 5 → flip bit 5 to correct!
+```
+
+### ECC Memory (SECDED)
+
+Server RAM uses **SECDED** — Single Error Correction, Double Error Detection. For every 64 data bits, 8 check bits are added (72 bits total). The memory controller automatically corrects single-bit errors and detects double-bit errors in real time.
+
+This is critical for servers that run 24/7 — cosmic rays cause about 1 bit error per GB per month.
+
+## Why It Matters
+
+- **Networking**: Every packet on the internet has checksums (IP, TCP, UDP) and CRC (Ethernet).
+- **Storage**: Hard drives, SSDs, and optical discs use ECC codes.
+- **Memory**: Server RAM uses ECC to prevent data corruption.
+- **QR codes**: Use Reed-Solomon error correction (can recover even with damage).
+- **Deep space**: NASA's Voyager probes use Golay codes and convolutional codes to communicate across billions of kilometers with minimal errors.
+
+Error detection and correction is what makes reliable digital systems possible in an unreliable physical world.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/error-detection"
+  questions={[
+    {q: "Why can a single parity bit NOT detect double-bit errors?", options: ["The parity bit is too small", "Two bit flips cancel out — the count of 1s changes by 0 or 2, keeping the same parity (even stays even, odd stays odd)", "Double errors are too rare to matter", "The parity formula is wrong"], answer: 1, explanation: "If two bits flip, one changes a 0→1 and another changes a 1→0 (or both 0→1 or both 1→0). In every case, the total number of 1s changes by an even amount, so the parity remains the same. The error is invisible to the parity check."},
+    {q: "What advantage does CRC have over simple checksums?", options: ["CRC is faster to compute", "CRC has much better error detection — it can detect all single, double, odd-count, and burst errors up to the CRC width", "CRC uses less space", "There is no advantage"], answer: 1, explanation: "CRC uses polynomial division which creates complex dependencies between all data bits and the check value. This catches patterns that simple addition-based checksums miss. CRC-32 can detect ALL burst errors up to 32 bits long, all single and double errors, and all odd-count errors."},
+    {q: "How does Hamming code identify the position of a flipped bit?", options: ["It tries flipping each bit until parity works", "Each parity bit covers a specific subset of positions; the combination of failing parity checks gives the binary position of the error", "It compares against a stored copy", "It uses a hash function"], answer: 1, explanation: "Parity bits at positions 1, 2, 4, 8... each check positions where the corresponding bit is set in the binary representation. When an error occurs, the failing parity checks give a binary number pointing to the exact error position. For example, P1 and P4 failing means the error is at position 1+4=5."}
+  ]}
+/>
+
+## What's Next
+
+Congratulations! You've completed the **Digital Logic** module. You now understand how information is represented, how Boolean algebra works, how gates and circuits are built, and how errors are caught and corrected. Up next: <ConceptLink to="architecture/what-is-architecture" label="Computer Organization & Architecture" /> — where we'll see how all these circuits come together to form a working computer.

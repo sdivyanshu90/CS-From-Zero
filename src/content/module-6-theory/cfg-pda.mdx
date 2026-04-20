@@ -1,0 +1,117 @@
+{/* Lesson 5.4 — Context-Free Grammars & Pushdown Automata */}
+
+<PrerequisiteBadge prerequisites={["theory/pumping-lemma"]} />
+
+## Hook — Parsing Programming Languages
+
+Every compiler parses source code using **context-free grammars (CFGs)** — rules that describe how valid programs are structured. Behind every CFG is a **pushdown automaton (PDA)**, a finite automaton enhanced with a stack. This stack memory lets it handle nested structures that regular languages cannot — parentheses, if-else blocks, and recursive syntax.
+
+## What Is a Context-Free Grammar?
+
+A CFG is a 4-tuple (V, Σ, R, S):
+
+```
+V = variables (non-terminals)    e.g., \{S, A, B\}
+Σ = terminals (alphabet)         e.g., \{a, b, (, )\}
+R = production rules              e.g., S → aSb | ε
+S = start variable
+```
+
+### Example: Balanced Parentheses
+
+```
+Grammar:
+  S → (S) | SS | ε
+
+Derivations:
+  S ⇒ (S) ⇒ ((S)) ⇒ (())           ✓
+  S ⇒ SS ⇒ (S)S ⇒ ()S ⇒ ()(S) ⇒ ()()   ✓
+  S ⇒ (S) ⇒ ((S)S) ⇒ (()S) ⇒ (()())     ✓
+```
+
+### Example: Simple Arithmetic
+
+```
+Grammar:
+  E → E + T | T
+  T → T × F | F
+  F → (E) | id
+
+Derivation of "id + id × id":
+  E ⇒ E + T ⇒ T + T ⇒ F + T ⇒ id + T
+  ⇒ id + T × F ⇒ id + F × F ⇒ id + id × F ⇒ id + id × id
+
+Parse tree encodes precedence: × binds tighter than +
+```
+
+### Parse Trees and Ambiguity
+
+```
+Parse tree for "id + id × id":
+        E
+       /|\
+      E + T
+      |  /|\
+      T T × F
+      |  |   |
+      F  F  id
+      |  |
+     id  id
+
+Ambiguous grammar: same string has two different parse trees.
+Ambiguity makes parsing non-deterministic — compilers need unambiguous grammars!
+```
+
+## See It Work — Pushdown Automata
+
+A PDA = finite automaton + stack. Transitions depend on input AND stack top:
+
+```
+PDA for aⁿbⁿ:
+
+State    Input    Stack top    Action
+─────    ─────    ─────────    ──────
+q0       a        any          push A, stay in q0
+q0       b        A            pop A, go to q1
+q1       b        A            pop A, stay in q1
+q1       ε        empty        ACCEPT
+
+Processing "aabb":
+  q0: read 'a', push A      Stack: [A]
+  q0: read 'a', push A      Stack: [A, A]
+  q0: read 'b', pop A → q1  Stack: [A]
+  q1: read 'b', pop A       Stack: []
+  q1: stack empty → ACCEPT ✓
+```
+
+**Key theorem**: CFGs and PDAs are equivalent — they recognize exactly the same class of languages (context-free languages).
+
+## How It Actually Works — Chomsky Normal Form
+
+Any CFG can be converted to **Chomsky Normal Form (CNF)** where every rule is:
+- A → BC (two non-terminals), or
+- A → a (single terminal), or
+- S → ε (only start variable)
+
+CNF enables the **CYK algorithm** — O(n³) parsing for any CFG.
+
+## Why It Matters
+
+- Every programming language's syntax is defined by a CFG.
+- Compilers use CFG-based parsers (LL, LR, LALR — we'll study these in the compilers module).
+- JSON, XML, HTML, and SQL are all context-free languages.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="theory/cfg-pda"
+  questions={[
+    {q: "What can a PDA do that a DFA cannot?", options: ["Process longer strings", "Use a stack for unbounded memory, enabling it to count and match nested structures like balanced parentheses and aⁿbⁿ", "Run faster", "Handle more symbols"], answer: 1, explanation: "A DFA has only finite states — no way to remember unbounded information. A PDA adds a stack: it can push symbols when entering a structure and pop when leaving. For aⁿbⁿ: push during a's, pop during b's, accept if stack empties. The stack provides unbounded memory organized as LIFO, exactly what's needed for nested/recursive structures."},
+    {q: "What does it mean for a grammar to be ambiguous?", options: ["It generates no strings", "A string in the language has two or more distinct parse trees — the grammar doesn't uniquely determine the structure of valid strings, causing problems for compilers", "It has too many rules", "It's not context-free"], answer: 1, explanation: "Consider E → E+E | E×E | id. The string 'id+id×id' has two parse trees: one where + is at the root (× first), another where × is at the root (+ first). This ambiguity means the grammar doesn't specify operator precedence. Compilers need unambiguous grammars (or disambiguation rules) to produce unique parse trees and thus unique meaning for programs."},
+    {q: "Why is Chomsky Normal Form useful?", options: ["It's shorter", "Every rule has exactly 2 non-terminals or 1 terminal on the right side, enabling the CYK dynamic programming algorithm to parse any CFL in O(n³) time", "It eliminates ambiguity", "It makes grammars regular"], answer: 1, explanation: "CNF's restricted form (A→BC or A→a) means each derivation step either splits a substring into two pieces or produces a terminal. This binary structure enables CYK: for each substring of length l, try all split points and all rules A→BC. Build bottom-up from length 1 to n. O(n³) time, O(n²) space. Works for ANY context-free grammar."}
+  ]}
+/>
+
+## What's Next
+
+CFGs describe what programming languages look like. **Turing machines** describe the ultimate limit of computation — what ANY algorithm can do. Next: <ConceptLink to="theory/turing-machines" label="Turing Machines" />.

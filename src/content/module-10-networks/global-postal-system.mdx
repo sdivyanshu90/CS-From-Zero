@@ -1,0 +1,103 @@
+{/* Lesson 9.1 — The Global Postal System */}
+
+<PrerequisiteBadge prerequisites={["dbms/concurrency-control"]} />
+
+## Hook — How Does This Page Reach You?
+
+You type a URL. Milliseconds later, a page appears from a server thousands of miles away. Between your click and the response, data travels through cables, routers, switches, and protocols — a global communication system more complex than anything humans have ever built. **Computer networking** is how it all works.
+
+## The OSI Model — Seven Layers
+
+```
+Layer  Name           What It Does               Example
+─────  ────           ────────────               ───────
+7      Application    User-facing protocols       HTTP, DNS, SMTP
+6      Presentation   Data formatting/encryption  TLS, JPEG, JSON
+5      Session        Connection management       Sessions, auth
+4      Transport      Reliable delivery           TCP, UDP
+3      Network        Routing across networks     IP, ICMP
+2      Data Link      Hop-to-hop delivery         Ethernet, WiFi
+1      Physical       Bits on the wire            Cables, radio
+```
+
+### TCP/IP Model (What's Actually Used)
+
+```
+TCP/IP Layer    ↔  OSI Layers    Protocols
+────────────       ──────────    ─────────
+Application        5, 6, 7      HTTP, DNS, SMTP, SSH
+Transport          4             TCP, UDP
+Internet           3             IP, ICMP, ARP
+Link               1, 2         Ethernet, WiFi, PPP
+```
+
+## See It Work — A Packet's Journey
+
+```
+You type: https://example.com/page
+
+1. DNS: "What's the IP for example.com?" → 93.184.216.34
+2. TCP: Three-way handshake (SYN → SYN-ACK → ACK)
+3. TLS: Negotiate encryption (keys, certificates)
+4. HTTP: GET /page HTTP/1.1
+5. Server processes request, sends response
+6. Data travels through routers across the internet
+7. Browser renders the HTML
+
+Each layer adds a header (encapsulation):
+[Ethernet HDR | IP HDR | TCP HDR | HTTP Data | Ethernet Trailer]
+     L2           L3       L4         L7            L2
+```
+
+## How It Actually Works — Encapsulation
+
+```
+Application:  "Hello World"
+                    ↓ add HTTP header
+Transport:    [TCP HDR | "Hello World"]
+                    ↓ add IP header
+Network:      [IP HDR | TCP HDR | "Hello World"]
+                    ↓ add Ethernet header + trailer
+Link:         [ETH HDR | IP | TCP | "Hello World" | ETH FCS]
+
+At each router: strip L2 header, check L3 (IP), 
+                add new L2 header for next hop.
+
+At destination: strip headers layer by layer (decapsulation).
+```
+
+### Circuit Switching vs Packet Switching
+
+```
+Circuit Switching (old phone network):
+  Dedicated path for entire call duration.
+  Guaranteed bandwidth but wasteful (path reserved even during silence).
+
+Packet Switching (the internet):
+  Data split into packets. Each routed independently.
+  Shared links. No reservation. Best effort.
+  + Efficient: links shared by many users
+  + Resilient: packets can take different paths
+  - No guaranteed delivery or timing
+```
+
+## Why It Matters
+
+- The layered model lets engineers work on one layer without understanding others.
+- Understanding encapsulation is essential for debugging network issues (Wireshark, tcpdump).
+- Every web developer, sysadmin, and security engineer needs networking fundamentals.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/global-postal-system"
+  questions={[
+    {q: "Why does the internet use packet switching instead of circuit switching?", options: ["It's newer", "Packet switching shares network links among many users by breaking data into independent packets routed on-demand — this is far more efficient than dedicating a circuit to each connection, especially for bursty web traffic where connections are mostly idle", "It's simpler", "It's required by IP"], answer: 1, explanation: "A web page request: ~1 second of data transfer, then minutes of reading. With circuit switching, the dedicated path sits idle during reading — wasted capacity. With packet switching, those links carry other users' packets. Statistical multiplexing: if each user is active 10% of the time, one link can serve ~10 users. The tradeoff: no guaranteed bandwidth or latency (packets may be delayed or dropped). Real-time apps (VoIP, video) use UDP + application-level buffering to cope."},
+    {q: "What is encapsulation in networking?", options: ["Encryption", "Each layer wraps the data from the layer above with its own header (and sometimes trailer), creating a nested structure — at each hop, only the relevant layer's header is examined while inner layers remain untouched", "Compression", "Routing"], answer: 1, explanation: "When you send 'Hello': HTTP adds method/headers → TCP adds port numbers/sequence numbers → IP adds source/destination addresses → Ethernet adds MAC addresses + checksum. Each layer only reads its own header. A router (L3 device) strips the Ethernet header, reads the IP header (destination address), decides the next hop, adds a new Ethernet header for that hop. The TCP and HTTP data pass through untouched — the router doesn't need to understand them."},
+    {q: "Why is the layered model important for network design?", options: ["It's faster", "Layering provides modularity — each layer has a well-defined interface to the layers above and below, allowing any layer to be changed or replaced without affecting others (e.g., switching from WiFi to Ethernet doesn't change TCP or HTTP)", "It uses less bandwidth", "It's required by law"], answer: 1, explanation: "Without layers, changing the physical medium (copper → fiber) would require rewriting every application. With layers: the physical layer changes, but IP, TCP, and HTTP remain the same. This is why HTTP works over WiFi, Ethernet, 4G, satellite — the transport and application layers don't know or care about the physical medium. The same modularity lets us replace HTTP/1.1 with HTTP/2 without changing TCP or IP."}
+  ]}
+/>
+
+## What's Next
+
+Let's start from the bottom. How do bits travel through cables and how do devices share a wire? Next: <ConceptLink to="networks/physical-data-link" label="Physical & Data Link Layer" />.

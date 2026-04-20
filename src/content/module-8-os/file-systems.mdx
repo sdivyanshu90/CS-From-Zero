@@ -1,0 +1,117 @@
+{/* Lesson 7.8 — File Systems */}
+
+<PrerequisiteBadge prerequisites={["os/memory-management"]} />
+
+## Hook — Persistent Storage That Makes Sense
+
+A hard drive is just a sequence of bytes. Yet you see folders, filenames, and permissions. The **file system** creates this abstraction — organizing raw storage into a hierarchical, named, protected structure. Understanding file systems explains how data persists and why disk performance matters.
+
+## File System Structure
+
+```
+Application:     open("file.txt")
+                      ↓
+Logical FS:      Lookup name → inode number
+                      ↓
+File Organization: inode → data block locations
+                      ↓
+Basic FS:        Read block 4523 from disk
+                      ↓
+I/O Control:     Send command to disk controller
+                      ↓
+Device:          Physical read from platter/flash
+```
+
+## See It Work — Unix File System (ext4)
+
+### Inodes
+
+```
+Every file has an inode (index node):
+┌──────────────────────────┐
+│ Inode #12345              │
+│ Type: regular file        │
+│ Permissions: rwxr-xr-x   │
+│ Owner: somu               │
+│ Size: 8192 bytes          │
+│ Timestamps: atime, mtime  │
+│ Link count: 1             │
+│ Direct blocks: [100, 101] │ ← first 12 blocks (48KB)
+│ Indirect: [500]           │ ← points to block of pointers
+│ Double indirect: [600]    │ ← pointer to pointers to pointers
+│ Triple indirect: [700]    │ ← for huge files
+└──────────────────────────┘
+
+File data is in blocks (typically 4KB each).
+Filename is NOT in the inode — it's in the directory!
+```
+
+### Directories
+
+```
+A directory is just a file containing (name, inode) pairs:
+
+Directory /home/somu/:
+┌──────────────────────┐
+│ "."        → inode 50 │  ← current directory
+│ ".."       → inode 2  │  ← parent directory
+│ "file.txt" → inode 12345 │
+│ "code/"    → inode 67890 │
+└──────────────────────┘
+
+Hard link: Multiple names pointing to same inode.
+Symbolic link: A file containing a path string.
+```
+
+### Journaling (Crash Recovery)
+
+```
+Problem: Power loss during write → inconsistent filesystem.
+  Writing file requires updating: data block, inode, bitmap, directory.
+  If only some updates complete → corruption!
+
+Solution: Write-Ahead Logging (Journal)
+  1. Write ALL changes to journal first
+  2. Then apply changes to actual locations
+  3. If crash during step 2: replay journal on reboot
+
+ext4 journal modes:
+  journal:  Log data + metadata (safest, slowest)
+  ordered:  Log metadata, write data first (default, good balance)
+  writeback: Log metadata only (fastest, risk of stale data)
+```
+
+## How It Actually Works — Modern File Systems
+
+```
+File System    OS         Features
+───────────    ──        ────────
+ext4           Linux      Journaling, extents, default Linux FS
+XFS            Linux      High performance, large files
+Btrfs          Linux      Copy-on-write, snapshots, checksums
+ZFS            FreeBSD    Enterprise, RAID, deduplication, checksums
+NTFS           Windows    Journaling, ACLs, compression
+APFS           macOS/iOS  Copy-on-write, encryption, snapshots
+FAT32          Universal  Simple, no journaling, 4GB file limit
+```
+
+## Why It Matters
+
+- File systems determine data reliability, performance, and recoverability after crashes.
+- Understanding inodes explains hard links, `ls -i`, and why "out of space" can happen with free blocks (out of inodes!).
+- Journaling vs. non-journaling is the difference between "fsck for 2 hours" and "reboot in 5 seconds."
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/file-systems"
+  questions={[
+    {q: "Why are filenames stored in directories, not in inodes?", options: ["Historical accident", "Separating names from metadata enables hard links — multiple directory entries can point to the same inode, allowing one file to have multiple names/paths without duplicating data or metadata", "Directories are faster", "Names are too long for inodes"], answer: 1, explanation: "If the filename were in the inode, each file could have only one name. By storing (name, inode#) pairs in directories, multiple directory entries can reference the same inode — this is a hard link. The file's data and metadata exist once; only the name-to-inode mapping is duplicated. This also makes rename() efficient: just update the directory entry, don't touch the inode or data."},
+    {q: "Why is journaling critical for file system reliability?", options: ["It makes files smaller", "Without journaling, a crash during a multi-step write operation (update data, inode, bitmap, directory) can leave the filesystem in an inconsistent state. The journal ensures atomicity — either all changes apply or none do", "It speeds up reads", "It prevents viruses"], answer: 1, explanation: "Deleting a file requires: (1) remove directory entry, (2) free inode, (3) free data blocks, (4) update free-space bitmap. If power fails after step 1 but before step 3: data blocks are allocated but unreferenced (leaked space). Without a journal, fsck must scan the ENTIRE disk to find inconsistencies (hours for large disks). With a journal, replay the log on reboot (seconds). This is why every modern filesystem uses journaling."},
+    {q: "What is the difference between hard links and symbolic links?", options: ["They're the same", "A hard link is another directory entry pointing to the same inode (same file, two names). A symbolic link is a separate file containing a path string — it can cross filesystem boundaries and link to directories, but breaks if the target is deleted", "Hard links are faster", "Symbolic links use less space"], answer: 1, explanation: "Hard link: both names point to inode 12345. Delete one name → file still exists (link count > 0). Can't cross filesystems (different inode tables). Can't link to directories (would create cycles). Symbolic link: a file containing '/path/to/target'. The OS follows the path when accessing it. Can cross filesystems, can link to directories. But if target is deleted → dangling symlink (broken link). 'ls -l' shows symlinks with -> arrow."}
+  ]}
+/>
+
+## What's Next
+
+Disks are slow. How does the OS schedule I/O requests to maximize throughput? Next: <ConceptLink to="os/io-scheduling" label="I/O & Disk Scheduling" />.

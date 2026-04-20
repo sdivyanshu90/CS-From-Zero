@@ -1,0 +1,97 @@
+{/* Lesson 9.3 — MAC Addresses & Ethernet */}
+
+<PrerequisiteBadge prerequisites={["networks/physical-data-link"]} />
+
+## Hook — Your Device's Hardware Identity
+
+Every network interface has a unique 48-bit **MAC address** burned into its hardware. While IP addresses change as you move between networks, your MAC address stays the same. It's how devices find each other on a local network — the "name tag" of the data link layer.
+
+## MAC Addresses
+
+```
+Format: 6 bytes, written as hex pairs
+  AA:BB:CC:DD:EE:FF
+
+First 3 bytes (OUI): Manufacturer ID
+  00:1A:2B = manufacturer X
+  
+Last 3 bytes: Device serial number
+
+Special addresses:
+  FF:FF:FF:FF:FF:FF = Broadcast (all devices on LAN)
+  01:xx:xx:xx:xx:xx = Multicast (bit 0 of first byte = 1)
+```
+
+## See It Work — Ethernet Switching
+
+```
+Switch has a MAC Address Table (CAM table):
+  Port 1 → AA:BB:CC:11:22:33
+  Port 2 → AA:BB:CC:44:55:66
+  Port 3 → AA:BB:CC:77:88:99
+
+Frame arrives on Port 1, dest = AA:BB:CC:44:55:66:
+  → Look up MAC table → Port 2 → forward only to Port 2.
+
+Unknown destination?
+  → Flood: send to ALL ports except source port.
+  → When destination replies, learn its port.
+
+This is why switches are "self-learning."
+```
+
+### ARP — Bridging IP and MAC
+
+```
+Problem: IP knows destination IP, but Ethernet needs MAC address.
+Solution: Address Resolution Protocol (ARP).
+
+Host A wants to send to 192.168.1.5:
+  1. A broadcasts: "Who has 192.168.1.5? Tell 192.168.1.1"
+     (Dest MAC: FF:FF:FF:FF:FF:FF)
+  2. Host at 192.168.1.5 replies: "I'm at AA:BB:CC:DD:EE:FF"
+  3. A caches this in ARP table (timeout ~20 min)
+  4. Future packets use cached MAC directly.
+
+$ arp -a   ← view ARP cache
+$ ip neigh ← Linux equivalent
+```
+
+## How It Actually Works — VLANs
+
+```
+VLAN (Virtual LAN): Logically separate one switch into multiple LANs.
+
+Physical switch, 24 ports:
+  Ports 1-12: VLAN 10 (Engineering)
+  Ports 13-24: VLAN 20 (Marketing)
+
+Traffic between VLANs must go through a router (L3).
+Even though devices are on the same physical switch,
+they can't see each other across VLANs.
+
+802.1Q: Adds 4-byte VLAN tag to Ethernet frame.
+  [Dest MAC | Src MAC | 802.1Q Tag | Type | Data | FCS]
+                        └─ VLAN ID (12 bits = 4096 VLANs)
+```
+
+## Why It Matters
+
+- MAC addresses are how local network delivery works — every frame on your LAN uses them.
+- Understanding ARP explains ARP spoofing attacks (man-in-the-middle on LANs).
+- VLANs are the foundation of network segmentation in every office and data center.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/mac-ethernet"
+  questions={[
+    {q: "Why do we need both MAC addresses and IP addresses?", options: ["Redundancy", "MAC addresses identify devices on a local network (L2, hardware-based, fixed), while IP addresses identify devices globally across networks (L3, software-based, changeable) — both are needed because local delivery uses MACs and cross-network routing uses IPs", "MAC is newer", "IP is faster"], answer: 1, explanation: "When you send a packet to google.com: the IP header has google's IP (for routing across the internet). But the Ethernet header has your router's MAC (for local delivery to the router). At each hop, the MAC addresses change (current hop's source/dest) while the IP addresses stay the same (original source/final destination). MAC = 'which device on THIS network?' IP = 'which device on ANY network?' You need both: IP for routing decisions, MAC for actual frame delivery on each link."},
+    {q: "How does a switch learn which MAC addresses are on which ports?", options: ["Manual configuration", "When a frame arrives on a port, the switch records the source MAC address and port number in its CAM table — over time, it learns the location of every device. Unknown destinations are flooded to all ports until the destination responds and is learned", "It uses DNS", "It uses ARP"], answer: 1, explanation: "Switch starts with empty CAM table. Frame from AA:BB:CC:11:22:33 arrives on port 1 → table entry: (AA:BB:CC:11:22:33, port 1, timestamp). If dest MAC is unknown → flood to all ports. When dest replies, its MAC is learned on its port. Entries expire after ~300 seconds (aging). This 'backward learning' is why switches work out of the box with zero configuration. The table has finite size (~8K-32K entries); overflow causes flooding (performance degradation, potential security issue)."},
+    {q: "Why can ARP be exploited for attacks?", options: ["ARP is encrypted", "ARP has no authentication — any device can send a gratuitous ARP reply claiming to own any IP address, causing other devices to send their traffic to the attacker's MAC instead of the legitimate destination (ARP spoofing/poisoning)", "ARP is too slow", "ARP uses UDP"], answer: 1, explanation: "ARP is entirely trust-based: if a device says 'IP 192.168.1.1 is at my MAC,' everyone believes it and updates their ARP cache. An attacker sends: 'I am the router (192.168.1.1)' → all devices send traffic to attacker → attacker forwards to real router (man-in-the-middle). The attacker can read/modify all traffic. Defense: Dynamic ARP Inspection (DAI) on managed switches validates ARP against DHCP bindings. Static ARP entries for critical devices. 802.1X port authentication."}
+  ]}
+/>
+
+## What's Next
+
+Local networks are connected by **IP addresses** and routing. Next: <ConceptLink to="networks/ip-addressing" label="IP Addressing" />.

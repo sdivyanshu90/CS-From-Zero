@@ -1,0 +1,111 @@
+{/* Lesson 5.6 — Decidability */}
+
+<PrerequisiteBadge prerequisites={["theory/turing-machines"]} />
+
+## Hook — Problems No Computer Can Solve
+
+Here's a program: `while(x != 1) { if(x%2==0) x/=2; else x=3*x+1; }`. Does it halt for every input? Nobody knows — and it gets worse. Alan Turing proved in 1936 that **no algorithm can determine whether an arbitrary program halts**. This isn't a matter of cleverness — it's mathematically impossible.
+
+## The Halting Problem
+
+**HALT** = \{⟨M, w⟩ | Turing machine M halts on input w\}
+
+**Theorem**: HALT is undecidable.
+
+**Proof** (by contradiction):
+
+```
+Assume H decides HALT:
+  H(⟨M, w⟩) = accept if M halts on w
+  H(⟨M, w⟩) = reject if M loops on w
+
+Construct D: On input ⟨M⟩:
+  1. Run H(⟨M, ⟨M⟩⟩)    — does M halt on its own description?
+  2. If H accepts → loop forever
+  3. If H rejects → halt and accept
+
+Now run D(⟨D⟩):
+  If D halts on ⟨D⟩ → H accepts → D loops    CONTRADICTION!
+  If D loops on ⟨D⟩ → H rejects → D halts    CONTRADICTION!
+
+D cannot exist → H cannot exist → HALT is undecidable. ∎
+```
+
+This is a **diagonalization argument**, similar to Cantor's proof that real numbers are uncountable.
+
+## See It Work — Decidable vs. Undecidable
+
+```
+DECIDABLE (algorithm always halts with correct answer):
+  - "Is this string in language L?" for any regular L
+  - "Is this string in language L?" for any context-free L
+  - "Is this number prime?"
+  - "Does this DFA accept any string?"
+  - "Are these two DFAs equivalent?"
+
+UNDECIDABLE:
+  - "Does this TM halt on input w?"           (Halting Problem)
+  - "Does this TM accept any string?"         (Emptiness of TM)
+  - "Are these two TMs equivalent?"
+  - "Does this program have a bug?"           (Rice's Theorem)
+  - "Is this mathematical statement provable?" (Gödel)
+```
+
+## How It Actually Works — Reductions
+
+To prove problem B is undecidable, **reduce** a known undecidable problem A to B:
+
+```
+Reduction: A ≤ B means "if we could solve B, we could solve A"
+
+If A is undecidable and A ≤ B, then B must be undecidable too!
+(If B were decidable, we could solve A through it — contradiction)
+
+Example: Reduce HALT to EMPTY_TM
+  "Does TM M accept no strings?"
+
+  Given ⟨M, w⟩, build M':
+    M' ignores its input, runs M on w
+    If M halts → M' accepts
+    
+  M halts on w ↔ M' accepts something ↔ M' is NOT empty
+  So EMPTY_TM decidable → HALT decidable → contradiction!
+```
+
+### Rice's Theorem
+
+**Any non-trivial property of the language of a TM is undecidable.**
+
+```
+"Non-trivial" = some TMs have the property, some don't.
+
+Examples of undecidable questions:
+  "Does this TM accept exactly 42 strings?"
+  "Is the language of this TM finite?"
+  "Is the language of this TM regular?"
+  "Does this TM compute the factorial function?"
+
+The ONLY decidable properties are trivial ones:
+  "Is this a TM?" (always yes) or "Does this TM fly?" (always no)
+```
+
+## Why It Matters
+
+- You cannot build a perfect bug detector, virus scanner, or program verifier — Rice's theorem says so.
+- Decidability tells you when to stop looking for an algorithm and instead seek heuristics or approximations.
+- Reductions connect problems: solving one would solve many others.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="theory/decidability"
+  questions={[
+    {q: "What is the core technique in the halting problem proof?", options: ["Mathematical induction", "Diagonalization — constructing a machine D that does the opposite of what the halting decider H predicts, creating a self-referential contradiction when D is run on its own description", "Counting arguments", "Graph theory"], answer: 1, explanation: "The proof constructs D that asks H 'does D halt on ⟨D⟩?' then does the opposite. If H says 'yes, D halts,' D loops. If H says 'no, D loops,' D halts. Either way, H is wrong about D. This self-reference trick (D analyzing itself) is the essence of diagonalization. It's the same technique Cantor used to prove uncountability of reals and Gödel used in the incompleteness theorems."},
+    {q: "What does Rice's Theorem tell us about program analysis?", options: ["All programs can be analyzed", "No algorithm can determine any non-trivial semantic property of programs in general — perfect static analysis, bug detection, and optimization are all impossible for arbitrary programs", "Only simple programs can be analyzed", "Analysis is just slow"], answer: 1, explanation: "Rice's theorem: ANY non-trivial property of what a program computes is undecidable. 'Does this program ever output 0?' Undecidable. 'Does this program halt on all inputs?' Undecidable. 'Is this program equivalent to that one?' Undecidable. This doesn't mean analysis is useless — it means perfect analysis is impossible. Real tools use approximations (sound but incomplete, or complete but unsound)."},
+    {q: "How do reductions help prove undecidability?", options: ["They simplify problems", "If we can transform any instance of a known undecidable problem A into an instance of problem B (preserving yes/no answers), then B must also be undecidable — otherwise we could solve A through B", "They make problems decidable", "They only work for regular languages"], answer: 1, explanation: "A reduction A ≤ B is a computable function that maps instances of A to instances of B such that x ∈ A ↔ f(x) ∈ B. If B were decidable, we could decide A: given x, compute f(x), ask the B-decider. Since A is undecidable, B must be too. This is the primary technique for proving undecidability — reduce HALT to your target problem."}
+  ]}
+/>
+
+## What's Next
+
+We know what's decidable and what's not. But among decidable problems, some are **much harder** than others. Next: <ConceptLink to="theory/complexity-classes" label="Complexity Classes — P, NP, and Beyond" />.

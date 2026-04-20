@@ -1,0 +1,121 @@
+{/* Lesson 4.7 — Greedy Algorithms */}
+
+<PrerequisiteBadge prerequisites={["algorithms/dynamic-programming"]} />
+
+## Hook — Be Greedy, Sometimes It Works
+
+At each step, make the choice that looks best right now, without worrying about the future. Surprisingly, for some problems, this simple strategy gives the **globally optimal** solution. For others, it fails spectacularly. Knowing when greedy works (and proving it) is a key algorithmic skill.
+
+## What Is a Greedy Algorithm?
+
+A **greedy algorithm** builds a solution piece by piece, always choosing the option that seems best at the current moment, without reconsidering previous choices.
+
+### Activity Selection Problem
+
+Given activities with start and end times, select the maximum number of non-overlapping activities:
+
+```
+Activities: [(1,4), (3,5), (0,6), (5,7), (3,9), (5,9), (6,10), (8,11), (8,12), (2,14)]
+
+Greedy strategy: Always pick the activity that finishes earliest!
+
+Sort by end time:
+(1,4) (3,5) (0,6) (5,7) (3,9) (5,9) (6,10) (8,11) (8,12) (2,14)
+
+Pick (1,4) → Pick (5,7) → Pick (8,11)
+Skip (3,5) overlaps with (1,4)
+Skip (0,6) overlaps with (1,4)
+Skip (3,9) overlaps with (5,7)
+...
+
+Result: 3 activities — this IS optimal!
+```
+
+### Fractional Knapsack
+
+Unlike 0/1 knapsack (which needs DP), you can take fractions of items:
+
+```
+Greedy: Always take the item with highest value/weight ratio first.
+
+Items: [(w=10, v=60), (w=20, v=100), (w=30, v=120)]
+Capacity: 50
+
+Value/weight ratios: 6, 5, 4
+Take all of item 1 (10 kg, value 60): remaining = 40
+Take all of item 2 (20 kg, value 100): remaining = 20
+Take 2/3 of item 3 (20 kg, value 80): remaining = 0
+
+Total value: 60 + 100 + 80 = 240 — OPTIMAL!
+```
+
+### Huffman Coding
+
+Build an optimal prefix code for data compression:
+
+```
+Characters: A(45%), B(13%), C(12%), D(16%), E(9%), F(5%)
+
+Greedy: Always merge the two least frequent nodes.
+
+Step 1: Merge F(5) + E(9) = FE(14)
+Step 2: Merge C(12) + B(13) = CB(25)
+Step 3: Merge FE(14) + D(16) = FED(30)
+Step 4: Merge CB(25) + FED(30) = CBFED(55)
+Step 5: Merge A(45) + CBFED(55) = root(100)
+
+Result: A=0, C=100, B=101, F=1100, E=1101, D=111
+Optimal — no prefix code uses fewer bits!
+```
+
+## How It Actually Works — When Does Greedy Work?
+
+Greedy works when the problem has:
+1. **Greedy choice property**: A locally optimal choice leads to a globally optimal solution.
+2. **Optimal substructure**: Optimal solution contains optimal solutions to subproblems.
+
+### When Greedy FAILS — 0/1 Knapsack
+
+```
+Items: [(w=10, v=60), (w=20, v=100), (w=30, v=120)]
+Capacity: 50
+
+Greedy (best ratio first): Take item 1 (60) + item 2 (100) = 160
+Optimal (DP): Take item 2 (100) + item 3 (120) = 220
+
+Greedy gets the WRONG answer because you can't take fractions!
+```
+
+### Greedy vs. DP Comparison
+
+```
+Problem              Greedy    DP        Why
+───────              ──────    ──        ───
+Activity selection   ✓         ✓         Greedy choice property holds
+Fractional knapsack  ✓         ✓         Can take fractions
+0/1 knapsack         ✗         ✓         Must take whole items
+Shortest paths       ✓*        ✓         *Dijkstra (no negative edges)
+Coin change (some)   ✓         ✓         Standard denominations
+Coin change (general)✗         ✓         Arbitrary denominations
+```
+
+## Why It Matters
+
+- Greedy algorithms are simple, fast (usually O(n log n) for sorting + O(n) for selection), and easy to implement.
+- They're the foundation of many practical algorithms: Dijkstra, Prim/Kruskal MST, Huffman coding.
+- Knowing when greedy fails prevents bugs and wrong answers.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/greedy"
+  questions={[
+    {q: "Why does the greedy approach work for activity selection?", options: ["It's faster", "Choosing the earliest-finishing activity maximizes remaining time for future activities — proven by exchange argument (swapping any choice for the greedy choice never worsens the solution)", "It processes all activities", "It uses dynamic programming internally"], answer: 1, explanation: "The exchange argument proof: suppose an optimal solution doesn't include the earliest-finishing activity. Replace its first activity with the earliest-finishing one — it finishes no later, so all subsequent activities still fit. The solution is still optimal. This proves the greedy choice is always safe, which is the greedy choice property."},
+    {q: "Why does greedy fail for 0/1 knapsack?", options: ["Greedy is too slow", "Taking the highest value/weight ratio item first may not leave enough capacity for a more valuable combination — the greedy choice can block better global solutions", "0/1 knapsack is unsolvable", "Greedy doesn't sort correctly"], answer: 1, explanation: "In 0/1 knapsack, taking a high-ratio item uses up capacity that might be better used by a combination of other items. Unlike fractional knapsack, you can't take partial items to fill remaining capacity optimally. The greedy choice doesn't have the greedy choice property: the locally best option can prevent the globally best combination. That's why DP is needed."},
+    {q: "What makes Huffman coding optimal?", options: ["It compresses all data equally", "By always merging the two least frequent characters, it assigns the shortest codes to the most frequent characters, minimizing the weighted average code length", "It uses fixed-length codes", "It ignores rare characters"], answer: 1, explanation: "Huffman's greedy strategy ensures rare characters end up deep in the tree (long codes) and frequent characters stay near the root (short codes). The proof of optimality uses the same exchange argument: for any two least-frequent characters, there exists an optimal code where they're siblings at the deepest level. This greedy choice leads to an optimal prefix-free code."}
+  ]}
+/>
+
+## What's Next
+
+We've been discussing graph traversals informally. Let's formalize BFS and DFS and explore their applications in depth. Next: <ConceptLink to="algorithms/graph-traversals" label="Graph Traversals" />.

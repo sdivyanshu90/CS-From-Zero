@@ -1,0 +1,147 @@
+{/* Lesson 9.9 — Socket Programming */}
+
+<PrerequisiteBadge prerequisites={["networks/application-layer"]} />
+
+## Hook — Building Networked Applications
+
+Every networked application — web servers, chat apps, multiplayer games — uses **sockets**. A socket is an endpoint for communication: an IP address + port number. Understanding sockets is understanding how programs talk over the network.
+
+## What Is a Socket?
+
+```
+Socket = (IP address, Port number, Protocol)
+
+Example: (192.168.1.100, 8080, TCP)
+
+Well-known ports (0-1023):
+  80   HTTP
+  443  HTTPS
+  22   SSH
+  53   DNS
+  25   SMTP
+
+Ephemeral ports (49152-65535):
+  Assigned by OS for client-side connections.
+  
+  Client: 192.168.1.100:52431 → Server: 93.184.216.34:443
+```
+
+## See It Work — TCP Server/Client in C
+
+### Server
+
+```c
+// 1. Create socket
+int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+
+// 2. Bind to address
+struct sockaddr_in addr;
+addr.sin_family = AF_INET;
+addr.sin_addr.s_addr = INADDR_ANY;  // listen on all interfaces
+addr.sin_port = htons(8080);         // port 8080
+bind(server_fd, (struct sockaddr*)&addr, sizeof(addr));
+
+// 3. Listen for connections
+listen(server_fd, 10);  // backlog queue of 10
+
+// 4. Accept connection (blocks until client connects)
+int client_fd = accept(server_fd, NULL, NULL);
+
+// 5. Read/Write
+char buf[1024];
+int n = read(client_fd, buf, sizeof(buf));
+write(client_fd, "Hello!\n", 7);
+
+// 6. Close
+close(client_fd);
+close(server_fd);
+```
+
+### Client
+
+```c
+int sock = socket(AF_INET, SOCK_STREAM, 0);
+
+struct sockaddr_in addr;
+addr.sin_family = AF_INET;
+addr.sin_port = htons(8080);
+inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr);
+
+connect(sock, (struct sockaddr*)&addr, sizeof(addr));
+write(sock, "Hi server!", 10);
+
+char buf[1024];
+int n = read(sock, buf, sizeof(buf));
+printf("Server said: %s\n", buf);
+close(sock);
+```
+
+## How It Actually Works — Handling Multiple Clients
+
+```
+Problem: accept() and read() block.
+  Server handles one client at a time!
+
+Solution 1: Fork per connection
+  accept() → fork() → child handles client.
+  Simple but expensive (process per connection).
+
+Solution 2: Thread per connection
+  accept() → pthread_create() → thread handles client.
+  Better but still limited (~10K threads max).
+
+Solution 3: Event-driven I/O (select/poll/epoll)
+  Single thread monitors MANY sockets.
+  epoll (Linux): O(1) notification when any socket is ready.
+  
+  This is how nginx, Node.js, Redis work.
+  Can handle 100K+ concurrent connections on one thread!
+
+  // Pseudocode:
+  epoll_fd = epoll_create();
+  epoll_ctl(epoll_fd, ADD, server_fd);  // watch server socket
+  while (true) \{
+    events = epoll_wait(epoll_fd);  // blocks until activity
+    for each ready socket:
+      if server_fd: accept() new client, add to epoll
+      if client_fd: read/write data
+  \}
+```
+
+### UDP Sockets
+
+```c
+// No connect/accept — just send/receive
+int sock = socket(AF_INET, SOCK_DGRAM, 0);
+bind(sock, ...);
+
+// Receive from anyone
+recvfrom(sock, buf, sizeof(buf), 0, &sender_addr, &len);
+
+// Send to specific address
+sendto(sock, "response", 8, 0, &sender_addr, len);
+
+// No connection state, no ordering, no reliability
+// Application must handle these if needed
+```
+
+## Why It Matters
+
+- Every web server, database client, and chat application is built on sockets.
+- Understanding blocking vs non-blocking I/O explains why some servers handle millions of connections.
+- Socket programming is the foundation for understanding distributed systems.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/sockets"
+  questions={[
+    {q: "Why can event-driven I/O (epoll) handle more connections than thread-per-connection?", options: ["It's newer", "Each thread consumes ~1-8MB of stack memory and causes context-switching overhead — with 10K connections, that's 10-80GB of memory. epoll monitors all sockets in kernel space and notifies the single application thread only when a socket is ready, using minimal memory regardless of connection count", "It's faster at reading", "It uses UDP"], answer: 1, explanation: "Thread-per-connection: 10K threads × 8MB stack = 80GB RAM. Plus context switching overhead: saving/restoring registers, flushing TLB. At 10K threads, the OS spends more time switching than doing useful work. epoll: one thread, one call to epoll_wait(). Kernel efficiently monitors 100K+ file descriptors using red-black trees and callback lists. When data arrives on any socket, kernel adds it to ready list. Application processes only ready sockets — no wasted CPU checking idle connections. This is the C10K/C10M solution."},
+    {q: "Why does the server call both bind() and listen()?", options: ["They do the same thing", "bind() associates the socket with a specific IP and port (claiming the address), while listen() marks the socket as passive (ready to accept incoming connections) and creates a backlog queue for pending connections — both steps are needed before accept() can work", "listen() is optional", "bind() starts the connection"], answer: 1, explanation: "Without bind(): the OS assigns a random port — clients wouldn't know where to connect. Without listen(): the socket is in active mode (for connecting to others, not accepting connections). listen(fd, backlog): backlog = max pending connections in the queue. If queue is full, new connections are refused (client gets 'Connection refused'). After listen(), the socket is passive: it doesn't transfer data, it only produces new connected sockets via accept(). Each accept() returns a NEW socket for that specific client."},
+    {q: "Why don't UDP sockets use connect() and accept()?", options: ["UDP is broken", "UDP is connectionless — there's no handshake or persistent connection state. Each datagram is independent, sent to a specific address with sendto() and received from any address with recvfrom(). connect() and accept() are TCP concepts for establishing and managing persistent connections", "They can but it's optional", "UDP doesn't use ports"], answer: 1, explanation: "TCP: connection-oriented. connect() performs 3-way handshake, establishing state (sequence numbers, windows). accept() creates a new socket per client connection. Data flows in order on a persistent channel. UDP: each sendto() is independent — no handshake, no state, no ordering. The server calls recvfrom() and gets a datagram + sender address. It can sendto() any address at any time. No per-client state needed. This is why UDP is simpler but requires applications to handle reliability, ordering, and fragmentation if needed. (Note: UDP CAN use connect() — it just sets a default destination, no handshake occurs.)"}
+  ]}
+/>
+
+## What's Next
+
+Congratulations! You've completed the **Computer Networks** module and the entire CS Universal curriculum! You now have a comprehensive understanding of computer science — from digital logic and Boolean algebra all the way up to network programming and distributed communication. Keep building, keep learning.

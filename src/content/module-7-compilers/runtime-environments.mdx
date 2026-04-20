@@ -1,0 +1,143 @@
+{/* Lesson 6.7 — Runtime Environments */}
+
+<PrerequisiteBadge prerequisites={["compilers/optimization"]} />
+
+## Hook — Where Does Your Code Actually Live?
+
+When you call a function, where do local variables go? When you `malloc`, where does memory come from? The **runtime environment** manages memory layout, function calls, parameter passing, and garbage collection. It's the bridge between your compiled code and the operating system.
+
+## Memory Layout of a Process
+
+```
+High addresses
+┌─────────────────────┐
+│       Stack         │ ← grows DOWN
+│   (local vars,      │
+│    return addrs)     │
+├─────────────────────┤
+│         ↓           │
+│    (free space)      │
+│         ↑           │
+├─────────────────────┤
+│       Heap          │ ← grows UP
+│   (malloc/new)       │
+├─────────────────────┤
+│    BSS (uninitialized│
+│     global data)     │
+├─────────────────────┤
+│    Data (initialized │
+│     globals)         │
+├─────────────────────┤
+│    Text (code)       │ ← read-only
+└─────────────────────┘
+Low addresses
+```
+
+## See It Work — Activation Records (Stack Frames)
+
+Every function call creates an **activation record** on the stack:
+
+```
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+factorial(3):
+┌──────────────────┐
+│ factorial(1)     │ ← top of stack
+│  n = 1           │
+│  return addr     │
+├──────────────────┤
+│ factorial(2)     │
+│  n = 2           │
+│  return addr     │
+├──────────────────┤
+│ factorial(3)     │
+│  n = 3           │
+│  return addr     │
+├──────────────────┤
+│ main()           │ ← bottom
+└──────────────────┘
+```
+
+### What's in a Stack Frame?
+
+```
+┌──────────────────────┐ ← previous frame pointer
+│ Return address        │
+│ Saved frame pointer   │
+│ Local variables       │
+│ Temporary values      │
+│ Saved registers       │
+│ Arguments for callee  │
+└──────────────────────┘ ← stack pointer
+```
+
+## How It Actually Works — Parameter Passing
+
+```
+Call by Value:     Copy the value. Changes don't affect caller.
+                   C: void f(int x) — x is a copy
+
+Call by Reference:  Pass the address. Changes affect caller.
+                   C: void f(int *x) — *x modifies original
+                   C++: void f(int &x) — syntactic sugar for pointer
+
+Call by Name:      Re-evaluate the argument expression each time.
+                   Historical (Algol 60). Rarely used today.
+```
+
+### Calling Conventions
+
+```
+x86-64 System V (Linux/macOS):
+  First 6 integer args: RDI, RSI, RDX, RCX, R8, R9
+  First 8 float args: XMM0-XMM7
+  Return value: RAX
+  Callee-saved: RBX, RBP, R12-R15
+
+Windows x64:
+  First 4 args: RCX, RDX, R8, R9
+  Different from Unix! (ABI incompatibility)
+```
+
+### Heap Management and Garbage Collection
+
+```
+Manual (C/C++):     malloc/free, new/delete
+                    Fast but error-prone (leaks, double-free, use-after-free)
+
+Reference Counting: Count pointers to each object. Free when 0.
+                    Swift, Python (primary), Rust (Rc/Arc)
+                    Problem: circular references!
+
+Mark-and-Sweep:     Trace from roots, mark reachable, sweep unmarked.
+                    Java, Go, JavaScript
+                    Pause times (stop-the-world)
+
+Generational:       Most objects die young. Check young objects often.
+                    Java (G1GC), .NET, V8
+                    Optimized for typical allocation patterns.
+```
+
+## Why It Matters
+
+- Stack overflows, segfaults, and memory leaks all stem from runtime environment issues.
+- Understanding the stack helps you debug recursive functions and security vulnerabilities (buffer overflows).
+- Garbage collection tradeoffs explain why some languages have pauses and others don't.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="compilers/runtime-environments"
+  questions={[
+    {q: "Why does the stack grow downward while the heap grows upward?", options: ["Hardware limitation", "This layout maximizes the free space between them — they grow toward each other from opposite ends of memory, and a collision means the program is out of memory", "Historical convention only", "It doesn't matter"], answer: 1, explanation: "By placing stack at high addresses (growing down) and heap at low addresses (growing up), the free space between them is shared. If the stack grows a lot, the heap can still be small, and vice versa. A stack-heap collision means the program truly needs more memory than available. Alternative: fixed sizes for each — but then a program with a deep stack but small heap wastes heap space, and vice versa."},
+    {q: "What causes a stack overflow?", options: ["Too many variables", "Too many nested function calls (usually infinite or very deep recursion) — each call adds an activation record to the stack, and the stack has a fixed maximum size (typically 1-8 MB)", "Too much heap usage", "Too many files open"], answer: 1, explanation: "Each function call pushes an activation record (return address, locals, saved registers) onto the stack. Infinite recursion pushes frames forever. Even finite but deep recursion (e.g., factorial(1000000)) can overflow. The OS sets a stack size limit (typically 1-8 MB). Solutions: convert recursion to iteration, increase stack size (ulimit), or use tail-call optimization (compiler reuses the same frame for tail-recursive calls)."},
+    {q: "Why do generational garbage collectors outperform simple mark-and-sweep?", options: ["They're simpler", "Most objects die young (generational hypothesis) — by collecting the young generation frequently and the old generation rarely, generational GCs avoid scanning long-lived objects on every collection, dramatically reducing average pause times", "They use less memory", "They don't have pauses"], answer: 1, explanation: "Empirically, 80-90% of objects become garbage within their first collection cycle. A generational GC puts new objects in a small 'nursery.' When the nursery fills, collect it (fast — most objects are dead). Survivors promote to an older generation collected less often. This means most collections are quick (small area, mostly garbage). Full collections of all generations are rare. Java's G1GC and V8's Orinoco use this approach."}
+  ]}
+/>
+
+## What's Next
+
+Congratulations! You've completed the **Compiler Design** module. You understand how source code is tokenized, parsed, type-checked, translated to IR, optimized, and executed. Next module: <ConceptLink to="os/what-is-os" label="Operating Systems" /> — where we explore how the OS manages hardware, processes, and memory.

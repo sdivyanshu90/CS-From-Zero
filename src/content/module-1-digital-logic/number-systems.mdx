@@ -1,0 +1,197 @@
+{/* Lesson 1.6 — Number Systems */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/what-is-information"]} />
+
+## Hook — Speaking the Computer's Language
+
+When you write `42` in code, the computer sees `00101010`. When you type a web color `#FF5733`, you're using hexadecimal. When you set Unix file permissions to `755`, you're using octal. Understanding number systems isn't just academic — it's a practical skill you'll use constantly in programming, networking, and system administration.
+
+## What Are Number Systems?
+
+A **number system** (or numeral system) is a way to represent quantities using a set of symbols and positional rules. The key idea is **positional notation**: the value of each digit depends on its **position** in the number.
+
+### Decimal (Base 10) — What Humans Use
+
+You already know this: digits 0-9, each position is a power of 10.
+
+```
+  2  7  3  in decimal:
+  │  │  └── 3 × 10⁰ = 3 × 1   =   3
+  │  └───── 7 × 10¹ = 7 × 10  =  70
+  └──────── 2 × 10² = 2 × 100 = 200
+                                  ───
+                          Total = 273
+```
+
+### Binary (Base 2) — What Computers Use
+
+Digits: 0 and 1. Each position is a power of 2.
+
+```
+  1  0  1  1  0  1  in binary:
+  │  │  │  │  │  └── 1 × 2⁰ = 1 ×  1 =  1
+  │  │  │  │  └───── 0 × 2¹ = 0 ×  2 =  0
+  │  │  │  └──────── 1 × 2² = 1 ×  4 =  4
+  │  │  └─────────── 1 × 2³ = 1 ×  8 =  8
+  │  └────────────── 0 × 2⁴ = 0 × 16 =  0
+  └───────────────── 1 × 2⁵ = 1 × 32 = 32
+                                        ──
+                                Total = 45
+
+So 101101₂ = 45₁₀
+```
+
+### Octal (Base 8) — Compact Binary
+
+Digits: 0-7. Each octal digit maps to exactly 3 binary digits.
+
+```
+Octal 755:
+  7   →  111
+  5   →  101
+  5   →  101
+  
+755₈ = 111 101 101₂ = 493₁₀
+
+Used for: Unix file permissions (rwxr-xr-x = 755)
+```
+
+### Hexadecimal (Base 16) — The Programmer's Favorite
+
+Digits: 0-9 and A-F (A=10, B=11, C=12, D=13, E=14, F=15). Each hex digit maps to exactly 4 binary digits.
+
+```
+Hex:  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+Dec:  0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15
+Bin: 0000 0001 0010 0011 0100 0101 0110 0111 1000 1001 1010 1011 1100 1101 1110 1111
+
+Hex FF:
+  F → 1111
+  F → 1111
+  FF₁₆ = 11111111₂ = 255₁₀
+
+Hex 2A:
+  2 → 0010
+  A → 1010
+  2A₁₆ = 00101010₂ = 42₁₀
+```
+
+**Why hex is so useful**: An 8-bit byte ranges from 00000000 to 11111111 in binary (8 digits) but only 00 to FF in hex (2 digits). Much more compact while still being trivially convertible to binary.
+
+## See It Work — Conversions in Practice
+
+### Decimal to Binary (Repeated Division)
+
+Convert 42 to binary by repeatedly dividing by 2:
+
+```
+42 ÷ 2 = 21 remainder 0  ↑
+21 ÷ 2 = 10 remainder 1  │
+10 ÷ 2 =  5 remainder 0  │  Read remainders
+ 5 ÷ 2 =  2 remainder 1  │  bottom to top
+ 2 ÷ 2 =  1 remainder 0  │
+ 1 ÷ 2 =  0 remainder 1  │
+
+42₁₀ = 101010₂
+```
+
+### Binary to Hex (Group by 4)
+
+```
+Binary:  0010 1010
+Hex:      2    A
+
+101010₂ = 2A₁₆
+```
+
+### Common Values Worth Memorizing
+
+```
+Binary      Decimal     Hex     Significance
+00000000    0           0x00    Zero
+00000001    1           0x01    Smallest positive
+01111111    127         0x7F    Max signed 8-bit
+10000000    128         0x80    Min signed 8-bit (as -128)
+11111111    255         0xFF    Max unsigned 8-bit
+0xFFFF      65,535      —       Max unsigned 16-bit
+0xFFFFFFFF  4,294,967,295 —     Max unsigned 32-bit
+```
+
+## How It Actually Works — Binary Arithmetic
+
+### Binary Addition
+
+Works like decimal addition, but carries happen at 2 instead of 10:
+
+```
+  0 + 0 = 0
+  0 + 1 = 1
+  1 + 0 = 1
+  1 + 1 = 10 (0, carry 1)
+
+Example: 1011 + 0110 (11 + 6):
+    1 1 1      ← carries
+      1 0 1 1
+  +   0 1 1 0
+  ─────────── 
+    1 0 0 0 1  = 17 ✓
+```
+
+### Binary Subtraction (Two's Complement)
+
+Computers use **two's complement** to represent negative numbers. To negate a number: flip all bits, then add 1.
+
+```
++5 in 8-bit: 00000101
+Step 1 — flip: 11111010
+Step 2 — add 1: 11111011  ← this is -5
+
+Verify: 00000101 + 11111011 = 100000000 (overflow bit discarded) = 00000000 = 0 ✓
+
+Subtraction becomes addition:
+7 - 5 = 7 + (-5)
+  00000111 + 11111011 = 00000010 = 2 ✓
+```
+
+This is why CPUs only need adders — subtraction is just adding the two's complement.
+
+### Binary Multiplication
+
+Binary multiplication is simpler than decimal because you only multiply by 0 or 1:
+
+```
+  1 0 1 1  (11)
+× 0 1 1 0  (6)
+──────────
+  0 0 0 0  (1011 × 0)
+ 1 0 1 1   (1011 × 1, shifted left 1)
+1 0 1 1    (1011 × 1, shifted left 2)
+──────────
+1 0 0 0 0 1 0  = 66 ✓
+```
+
+Binary multiplication is just shift-and-add — which is why multiplier circuits are built from shifters and adders.
+
+## Why It Matters
+
+- **Debugging**: Memory dumps, register values, and error codes are in hex.
+- **Networking**: IP addresses and subnet masks are in binary/dotted decimal.
+- **Web development**: Colors are in hex (#RRGGBB).
+- **System administration**: File permissions are in octal.
+- **Low-level programming**: Bit manipulation requires binary fluency.
+- **Two's complement** is how every computer represents negative integers.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/number-systems"
+  questions={[
+    {q: "What is 10110₂ in decimal?", options: ["22", "26", "16", "11"], answer: 0, explanation: "10110₂ = 1×16 + 0×8 + 1×4 + 1×2 + 0×1 = 16 + 4 + 2 = 22. Each position is a power of 2 (from right: 1, 2, 4, 8, 16). Add up the positions where there's a 1."},
+    {q: "Why is hexadecimal preferred over binary for displaying byte values?", options: ["Hex is faster to compute", "Each hex digit represents exactly 4 binary digits, making it compact yet trivially convertible to binary", "Hex was invented first", "Computers internally use hex"], answer: 1, explanation: "A byte (8 bits) needs 8 binary digits but only 2 hex digits. The conversion is trivial — just group binary digits into sets of 4 and convert each group. This makes hex a perfect shorthand for binary values."},
+    {q: "In two's complement, how do you represent -1 in 8 bits?", options: ["10000001", "11111111", "00000001", "11111110"], answer: 1, explanation: "Start with +1: 00000001. Flip all bits: 11111110. Add 1: 11111111. So -1 is 11111111 in 8-bit two's complement. Notice that -1 has all bits set — this is true regardless of the bit width."}
+  ]}
+/>
+
+## What's Next
+
+We've been working with whole numbers, but computers also need to represent very large numbers, very small numbers, and fractions. Next: <ConceptLink to="digital-logic/data-representation" label="Data Representation" />.

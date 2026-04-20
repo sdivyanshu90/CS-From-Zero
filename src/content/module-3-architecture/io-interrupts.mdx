@@ -1,0 +1,174 @@
+{/* Lesson 2.8 — I/O & Interrupts */}
+
+<PrerequisiteBadge prerequisites={["architecture/memory-hierarchy"]} />
+
+## Hook — The Outside World Knocks
+
+A CPU by itself is useless — it needs to interact with keyboards, screens, storage, and networks. But these devices are millions of times slower than the CPU and need attention at unpredictable times. You can't have the CPU constantly asking "any key pressed? any key pressed? any key pressed?" — that wastes billions of cycles. Instead, devices **interrupt** the CPU: "Hey, I have data for you!" This mechanism is the foundation of all I/O in modern systems.
+
+## What Is I/O?
+
+**Input/Output (I/O)** is the communication between the CPU and external devices (peripherals). The challenge: devices operate at vastly different speeds and need different types of interaction.
+
+```
+Device            Speed              CPU cycles to wait
+──────            ─────              ──────────────────
+Register          0.3 ns             1 cycle
+L1 Cache          1.2 ns             4 cycles
+RAM               100 ns             300 cycles
+SSD               25 μs              75,000 cycles
+HDD               5 ms               15,000,000 cycles
+Network (LAN)     0.5 ms             1,500,000 cycles
+Keyboard          100 ms             300,000,000 cycles
+```
+
+### I/O Methods
+
+**1. Programmed I/O (Polling)** — CPU repeatedly checks device status
+
+```
+// Pseudocode:
+while (device.status != READY) {
+    // busy wait... wasting CPU cycles
+}
+data = device.data_register;
+```
+
+Simple but wasteful. The CPU does nothing useful while waiting. Acceptable only for very fast devices or embedded systems with nothing else to do.
+
+**2. Interrupt-Driven I/O** — Device signals CPU when ready
+
+```
+1. CPU sends command to device
+2. CPU continues executing other instructions
+3. Device completes operation
+4. Device sends INTERRUPT signal to CPU
+5. CPU pauses current work, runs interrupt handler
+6. Interrupt handler processes the I/O data
+7. CPU resumes previous work
+```
+
+Much more efficient — the CPU does useful work while waiting.
+
+**3. DMA (Direct Memory Access)** — Device transfers data directly to/from RAM
+
+```
+Without DMA (interrupt per byte):
+  CPU → Device: "send byte 1"
+  Interrupt → CPU copies byte 1 to RAM
+  CPU → Device: "send byte 2"
+  Interrupt → CPU copies byte 2 to RAM
+  ... (1000 interrupts for 1000 bytes!)
+
+With DMA:
+  CPU → DMA Controller: "transfer 1000 bytes from device to RAM address 0x5000"
+  DMA controller handles all 1000 byte transfers
+  ONE interrupt when complete: "done!"
+  CPU was free to do other work the entire time
+```
+
+DMA is essential for high-bandwidth devices: disk drives, network cards, GPUs.
+
+## See It Work — Interrupt Handling in Detail
+
+### What Happens When an Interrupt Fires
+
+```
+1. Device asserts interrupt line (hardware signal)
+2. CPU finishes current instruction
+3. CPU saves state:
+   - Push PC (return address) to stack
+   - Push FLAGS/status register to stack
+   - (Optionally save other registers)
+4. CPU disables further interrupts (prevents nested interrupts)
+5. CPU looks up interrupt handler address in IVT (Interrupt Vector Table)
+6. CPU jumps to interrupt handler (ISR — Interrupt Service Routine)
+7. ISR executes:
+   - Read data from device
+   - Process data
+   - Acknowledge interrupt to device
+8. ISR executes IRET (Interrupt Return):
+   - Restore FLAGS
+   - Restore PC
+   - Re-enable interrupts
+9. CPU resumes exactly where it left off
+```
+
+### The Interrupt Vector Table (IVT)
+
+```
+Vector #    Address      Handler For
+────────    ────────     ───────────
+0           0x0000       Division by zero
+1           0x0004       Debug/single step
+2           0x0008       NMI (Non-Maskable Interrupt)
+...
+8           0x0020       Timer (clock tick)
+9           0x0024       Keyboard
+10          0x0028       Cascade (second PIC)
+14          0x0038       Hard disk
+...
+32-255      0x0080+      Software interrupts, device IRQs
+```
+
+### Interrupt Priority
+
+When multiple devices interrupt simultaneously, a **priority scheme** decides which gets served first:
+
+```
+Highest Priority:
+  ├── NMI (Non-Maskable) — hardware failures, critical errors
+  ├── Timer — system clock tick
+  ├── Disk I/O — fast, data might be lost
+  ├── Network — packets arrive continuously
+  ├── Keyboard — human-speed, can wait a bit
+  └── Mouse
+Lowest Priority
+```
+
+The **Programmable Interrupt Controller (PIC)** or modern **APIC** (Advanced PIC) manages priorities and routes interrupts to the correct CPU core.
+
+## How It Actually Works — Memory-Mapped I/O
+
+Instead of special I/O instructions, most modern systems use **memory-mapped I/O**: device registers appear as regular memory addresses.
+
+```
+Memory Map:
+0x00000000 - 0x3FFFFFFF: RAM (1 GB)
+0x40000000 - 0x400000FF: UART serial port registers
+0x40001000 - 0x400010FF: Timer registers
+0x40002000 - 0x400020FF: GPIO pins
+0x50000000 - 0x5FFFFFFF: GPU framebuffer
+
+// To send a character out the serial port:
+*(volatile uint32_t*)0x40000000 = 'A';  // write to UART data register
+
+// To read a character:
+char c = *(volatile uint32_t*)0x40000000;
+```
+
+**Advantages**: No special I/O instructions needed. Regular LOAD/STORE work for I/O. Devices can be accessed from C/C++ directly.
+
+**The `volatile` keyword**: Tells the compiler "don't optimize this — the value can change unexpectedly" (because the hardware device might change it).
+
+## Why It Matters
+
+- Every keystroke, mouse click, network packet, and disk read involves interrupts.
+- Without DMA, your CPU would spend most of its time copying data instead of computing.
+- Understanding I/O helps you debug driver issues, optimize system performance, and write embedded systems code.
+- Modern CPUs can handle millions of interrupts per second — this efficiency is what makes interactive computing feel instant.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="architecture/io-interrupts"
+  questions={[
+    {q: "Why is interrupt-driven I/O preferred over polling?", options: ["It's simpler to implement", "The CPU can execute other instructions while waiting for the device, instead of wasting cycles in a busy-wait loop", "It uses less hardware", "Polling doesn't work"], answer: 1, explanation: "With polling, the CPU wastes cycles repeatedly checking 'is the device ready?' When a keyboard takes 100ms to produce input, polling wastes ~300 million CPU cycles. With interrupts, the CPU runs useful instructions and only switches to handle the device when it actually has data — near-zero wasted cycles."},
+    {q: "What is the role of DMA in I/O?", options: ["It replaces the CPU", "It allows devices to transfer large blocks of data directly to/from RAM without CPU involvement, freeing the CPU for computation", "It speeds up the CPU", "It stores interrupts"], answer: 1, explanation: "Without DMA, the CPU must handle every byte transfer: receive interrupt, read byte from device, write byte to RAM — thousands of times for a large transfer. DMA offloads this: the CPU tells the DMA controller 'transfer N bytes from device to address X', and the DMA controller handles it all. The CPU gets just ONE interrupt when the entire transfer is done."},
+    {q: "What happens to the CPU's state when an interrupt occurs?", options: ["It's lost", "The CPU saves the current PC and status flags to the stack, then jumps to the interrupt handler; it restores state when the handler returns", "Nothing changes", "The CPU reboots"], answer: 1, explanation: "The interrupt must be transparent — the interrupted program should never know it was interrupted. The CPU pushes the Program Counter (return address) and FLAGS register onto the stack. The ISR may save additional registers. When the ISR executes IRET, everything is restored and the original program continues exactly where it left off."}
+  ]}
+/>
+
+## What's Next
+
+Congratulations! You've completed the **Computer Organization & Architecture** module. You now understand how CPUs are built, how they execute instructions, how pipelines work, and how they interact with memory and devices. Next module: <ConceptLink to="prog-ds/variables-types" label="Programming & Data Structures" /> — where we'll learn how software is built on top of this hardware foundation.

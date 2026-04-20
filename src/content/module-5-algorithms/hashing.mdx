@@ -1,0 +1,128 @@
+{/* Lesson 4.11 — Hashing Algorithms */}
+
+<PrerequisiteBadge prerequisites={["algorithms/mst"]} />
+
+## Hook — Beyond Hash Tables
+
+You learned hash tables in the data structures module. Now let's go deeper: How do we design good hash functions? What is universal hashing? How does hashing power algorithms beyond key-value lookup — like Rabin-Karp string matching and consistent hashing in distributed systems?
+
+## Hash Function Design
+
+A good hash function must:
+1. **Distribute uniformly** — minimize collisions
+2. **Be deterministic** — same input always gives same output
+3. **Be fast** — O(1) to compute
+4. **Avalanche** — small input change causes large output change
+
+### Division Method
+
+```
+h(k) = k mod m
+
+Choose m = prime not close to a power of 2.
+  m = 7:   h(14)=0, h(15)=1, h(16)=2 — good distribution
+  m = 8:   h(14)=6, h(15)=7, h(16)=0 — only looks at last 3 bits!
+```
+
+### Multiplication Method
+
+```
+h(k) = floor(m × (k × A mod 1))
+
+A = (√5 - 1)/2 ≈ 0.618... (golden ratio — proven good distribution)
+Works well regardless of m (m doesn't need to be prime).
+```
+
+### String Hashing (Polynomial Rolling Hash)
+
+```
+h("cat") = ('c' × p² + 'a' × p¹ + 't' × p⁰) mod m
+         = (99 × 961 + 97 × 31 + 116) mod m
+
+p = 31 (common choice for lowercase letters)
+m = 10⁹ + 7 (large prime)
+```
+
+## See It Work — Universal Hashing
+
+A **universal hash family** is a set of hash functions where for any two distinct keys, the probability of collision is at most 1/m:
+
+```
+Family: h_a,b(k) = ((a × k + b) mod p) mod m
+  where p is prime > universe, a ∈ [1, p-1], b ∈ [0, p-1]
+
+Pick a random function from this family.
+Guarantee: For any two keys x ≠ y, Pr[h(x) = h(y)] ≤ 1/m
+
+This prevents adversarial inputs from causing worst-case collisions!
+```
+
+## How It Actually Works — Hash-Based Algorithms
+
+### Rabin-Karp String Matching — O(n + m) expected
+
+Find pattern P in text T using rolling hash:
+
+```
+Text:    "abcdeabc"
+Pattern: "abc" (hash = h("abc") = 42)
+
+Slide window and compare hashes:
+  h("abc") = 42 → match hash! verify → MATCH at position 0
+  h("bcd") = 57 → no match
+  h("cde") = 73 → no match
+  h("dea") = 89 → no match
+  h("eab") = 31 → no match
+  h("abc") = 42 → match hash! verify → MATCH at position 5
+
+Rolling hash update: O(1) per position
+  h("bcd") = (h("abc") - 'a' × p²) × p + 'd'
+```
+
+### Bloom Filters
+
+A space-efficient probabilistic set:
+
+```
+Insert: Hash element with k hash functions, set those k bits.
+Query:  Check k bits. All set → "probably yes". Any unset → "definitely no".
+
+False positives possible. False negatives impossible.
+Space: ~10 bits per element for 1% false positive rate.
+
+Used in: spell checkers, network routers, databases (avoid disk reads).
+```
+
+### Consistent Hashing (Distributed Systems)
+
+```
+Traditional: server = hash(key) % num_servers
+  Problem: Adding/removing a server reshuffles ALL keys!
+
+Consistent hashing: Arrange servers on a ring (0 to 2³²).
+  hash(key) → walk clockwise to nearest server.
+  Adding a server only moves keys from ONE neighbor.
+
+Used by: Amazon DynamoDB, Apache Cassandra, CDNs.
+```
+
+## Why It Matters
+
+- Hash function quality determines hash table performance — bad functions cause O(n) degradation.
+- Universal hashing provides provable guarantees against adversarial inputs.
+- Hash-based algorithms (Rabin-Karp, Bloom filters, consistent hashing) are used in systems at massive scale.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/hashing"
+  questions={[
+    {q: "Why should hash table size m be a prime number (for division method)?", options: ["Primes are faster", "A prime m ensures all bits of the key influence the hash value; powers of 2 only use the lowest bits, causing patterns in keys to create systematic collisions", "Primes use less memory", "It's a convention"], answer: 1, explanation: "If m = 2^k, then h(key) = key mod m only depends on the last k bits of the key. If keys have patterns in their low bits (e.g., all even), collisions cluster. A prime m mixes all bits of the key into the result: key mod prime depends on the key's full value, not just certain bits. This provides better distribution for real-world key patterns."},
+    {q: "What is the advantage of universal hashing over a fixed hash function?", options: ["It's faster", "By randomly selecting a hash function from a family, no adversary can craft inputs that always cause worst-case collisions — guaranteeing expected O(1) operations for any input distribution", "It uses less memory", "It handles strings better"], answer: 1, explanation: "A fixed hash function h has specific inputs that cause many collisions (adversarial inputs). Universal hashing picks h randomly from a family at runtime. An adversary who doesn't know which h was chosen can't craft worst-case inputs. For any two distinct keys, collision probability ≤ 1/m. This gives expected O(1) performance regardless of the input — a provable guarantee."},
+    {q: "Why is consistent hashing used in distributed systems?", options: ["It's more secure", "When servers are added/removed, only 1/n of keys need to be remapped (instead of all keys), minimizing disruption and data movement", "It's faster than regular hashing", "It handles larger keys"], answer: 1, explanation: "With hash(key) % n, changing n (adding/removing a server) changes the mapping for nearly every key — catastrophic data movement. Consistent hashing maps both keys and servers to positions on a ring. Adding a server only 'steals' keys from its clockwise neighbor — about 1/n of all keys. This minimal disruption is critical for systems handling millions of requests per second."}
+  ]}
+/>
+
+## What's Next
+
+Congratulations! You've completed the **Algorithms** module. You now understand complexity analysis, sorting, searching, divide-and-conquer, dynamic programming, greedy algorithms, graph traversals, shortest paths, MSTs, and hashing. Next module: <ConceptLink to="theory/languages-grammars" label="Theory of Computation" /> — where we explore the theoretical limits of what computers can and cannot do.

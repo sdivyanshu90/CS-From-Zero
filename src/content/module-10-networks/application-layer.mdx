@@ -1,0 +1,112 @@
+{/* Lesson 9.8 — Application Layer */}
+
+<PrerequisiteBadge prerequisites={["networks/flow-congestion"]} />
+
+## Hook — Protocols You Use Every Day
+
+Every time you browse the web, send email, or stream video, application layer protocols make it happen. **HTTP** fetches web pages, **DNS** translates names to addresses, **SMTP** delivers email. These are the protocols that users interact with, built on top of TCP and UDP.
+
+## DNS — The Internet's Phone Book
+
+```
+You type: www.google.com
+Browser needs: 142.250.190.14
+
+DNS Resolution (iterative):
+  1. Browser → Local DNS resolver: "Who is www.google.com?"
+  2. Resolver → Root server (.): "Who handles .com?"
+  3. Resolver → .com TLD server: "Who handles google.com?"
+  4. Resolver → google.com authoritative: "www = 142.250.190.14"
+  5. Resolver caches result (TTL = 300 seconds)
+  6. Returns IP to browser.
+
+Record Types:
+  A      IPv4 address       google.com → 142.250.190.14
+  AAAA   IPv6 address       google.com → 2607:f8b0::200e
+  CNAME  Alias              www.google.com → google.com
+  MX     Mail server        google.com → smtp.google.com
+  NS     Name server        google.com → ns1.google.com
+  TXT    Arbitrary text      SPF, DKIM (email auth)
+```
+
+## HTTP — The Web's Protocol
+
+```
+Request:
+  GET /index.html HTTP/1.1
+  Host: www.example.com
+  User-Agent: Mozilla/5.0
+  Accept: text/html
+
+Response:
+  HTTP/1.1 200 OK
+  Content-Type: text/html
+  Content-Length: 1234
+  
+  <html>...</html>
+
+Methods: GET (read), POST (create), PUT (update), DELETE (remove)
+Status: 200 OK, 301 Redirect, 404 Not Found, 500 Server Error
+```
+
+### HTTP Evolution
+
+```
+HTTP/1.0: One request per TCP connection. Slow.
+HTTP/1.1: Keep-alive (reuse connection). Pipelining. Still head-of-line blocking.
+HTTP/2:   Multiplexing (multiple requests over one connection).
+          Binary framing. Header compression. Server push.
+HTTP/3:   Built on QUIC (UDP-based). No TCP head-of-line blocking.
+          Faster connection setup (0-RTT). Built-in encryption.
+```
+
+## See It Work — HTTPS & TLS
+
+```
+TLS (Transport Layer Security) = encryption for HTTP.
+
+TLS Handshake:
+  1. Client Hello: supported ciphers, random number
+  2. Server Hello: chosen cipher, certificate (public key)
+  3. Client verifies certificate (trusted CA?)
+  4. Key exchange (Diffie-Hellman): derive shared secret
+  5. Encrypted communication begins
+
+Certificate Chain:
+  Server cert → signed by Intermediate CA → signed by Root CA
+  Root CAs are trusted by your OS/browser (~100 root CAs).
+
+TLS 1.3: 1-RTT handshake (vs 2-RTT in TLS 1.2). Faster + more secure.
+```
+
+### Other Application Protocols
+
+```
+SMTP: Send email (port 25/587)
+IMAP: Read email (port 993)
+SSH:  Secure shell (port 22)
+FTP:  File transfer (port 21) — mostly replaced by SFTP/SCP
+DHCP: Automatic IP assignment (port 67/68)
+NTP:  Time synchronization (port 123)
+```
+
+## Why It Matters
+
+- HTTP is the backbone of the web — understanding it is essential for any web developer.
+- DNS is a critical piece of internet infrastructure — DNS failures take down entire services.
+- TLS/HTTPS is mandatory for security — understanding it prevents misconfigurations.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/application-layer"
+  questions={[
+    {q: "Why is DNS caching important for internet performance?", options: ["It saves disk space", "Without caching, every web request would require multiple DNS queries to root, TLD, and authoritative servers — adding hundreds of milliseconds of latency. Caching at multiple levels (browser, OS, resolver, ISP) ensures most DNS lookups are answered locally in microseconds", "It prevents hacking", "It's required by HTTP"], answer: 1, explanation: "Full DNS resolution: 4 queries × ~50ms each = 200ms before the browser can even start the TCP connection. With caching: your browser caches for ~60 seconds, OS resolver for minutes, ISP resolver for TTL duration (often 300 seconds). After the first visit to google.com, subsequent requests use the cached IP — 0ms DNS delay. ~80% of DNS queries are answered from cache. This is also why DNS changes (like changing servers) take time to propagate — old cached records must expire."},
+    {q: "What problem does HTTP/2 multiplexing solve?", options: ["It's faster at encryption", "HTTP/1.1 processes requests sequentially on each connection — if one response is slow, all subsequent responses are delayed (head-of-line blocking). HTTP/2 multiplexes multiple request/response streams over a single TCP connection, so a slow response doesn't block others", "It reduces bandwidth", "It replaces DNS"], answer: 1, explanation: "HTTP/1.1: browser needs 100 resources. Opens 6 parallel connections (browser limit). Each connection handles requests sequentially. If one CSS file is slow, all queued requests on that connection wait. HTTP/2: one connection, 100 streams. Each stream is independent — frames from different streams interleave. Slow CSS? Other streams continue receiving data. Result: significantly faster page loads, fewer TCP connections (less overhead). HTTP/3 goes further: even if a TCP packet is lost, only the affected stream is delayed (QUIC eliminates TCP-level head-of-line blocking)."},
+    {q: "Why can't you just use HTTP without TLS (HTTPS)?", options: ["HTTP is slower", "Without TLS, all data (passwords, credit cards, personal data) travels in plaintext — any router, ISP, or attacker on the network path can read and modify it (man-in-the-middle attack). HTTPS encrypts all data and verifies server identity through certificates", "TLS is optional", "HTTP doesn't support forms"], answer: 1, explanation: "On a coffee shop WiFi with plain HTTP: an attacker can see every page you visit, read every form you submit (including passwords), inject malicious JavaScript into pages, and redirect you to fake sites. HTTPS prevents all of this: (1) encryption — data is unreadable to intermediaries, (2) integrity — data can't be modified in transit, (3) authentication — the certificate proves you're talking to the real server, not an imposter. Since 2018, browsers mark HTTP sites as 'Not Secure.' Let's Encrypt provides free certificates. There's no good reason to use plain HTTP anymore."}
+  ]}
+/>
+
+## What's Next
+
+You've learned protocols, but how do programs actually communicate over the network? Next: <ConceptLink to="networks/sockets" label="Socket Programming" /> — writing networked applications.

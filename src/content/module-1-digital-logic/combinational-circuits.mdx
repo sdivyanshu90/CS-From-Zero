@@ -1,0 +1,213 @@
+{/* Lesson 1.4 — Combinational Circuits */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/logic-gates"]} />
+
+## Hook — Gates Working Together
+
+A single AND gate can check if two things are both true. But what if you need to add two numbers? Or select one of four inputs? Or check if a password matches? These tasks require multiple gates connected together — **combinational circuits**. The output depends *only* on the current inputs, with no memory of past inputs.
+
+## What Is a Combinational Circuit?
+
+A **combinational circuit** is a network of logic gates where:
+- The output is determined **entirely** by the current inputs.
+- There is **no feedback** (no output feeds back into an input).
+- There is **no memory** — the circuit has no state.
+
+Given the same inputs, a combinational circuit *always* produces the same outputs. This makes them predictable and easy to reason about.
+
+### Combinational vs. Sequential
+
+| Property | Combinational | Sequential (next lesson) |
+|----------|--------------|------------------------|
+| Memory | No | Yes (stores state) |
+| Output depends on | Current inputs only | Current inputs + stored state |
+| Feedback loops | No | Yes |
+| Examples | Adder, MUX, decoder | Flip-flop, register, counter |
+
+## See It Work — Essential Combinational Circuits
+
+### 1. Half Adder — Adding Two Bits
+
+The simplest addition circuit adds two single-bit numbers:
+
+```
+Inputs: A, B (each 0 or 1)
+Outputs: Sum, Carry
+
+A | B | Sum | Carry
+--|---|-----|------
+0 | 0 |  0  |  0    (0 + 0 = 00)
+0 | 1 |  1  |  0    (0 + 1 = 01)
+1 | 0 |  1  |  0    (1 + 0 = 01)
+1 | 1 |  0  |  1    (1 + 1 = 10, carry the 1)
+
+Sum = A XOR B
+Carry = A AND B
+```
+
+The half adder is called "half" because it doesn't handle a carry-in from a previous addition.
+
+### 2. Full Adder — Adding Three Bits
+
+A **full adder** adds two bits plus a carry-in from a previous stage:
+
+```
+Inputs: A, B, Cin (carry in)
+Outputs: Sum, Cout (carry out)
+
+A | B | Cin | Sum | Cout
+--|---|-----|-----|-----
+0 | 0 |  0  |  0  |  0
+0 | 0 |  1  |  1  |  0
+0 | 1 |  0  |  1  |  0
+0 | 1 |  1  |  0  |  1
+1 | 0 |  0  |  1  |  0
+1 | 0 |  1  |  0  |  1
+1 | 1 |  0  |  0  |  1
+1 | 1 |  1  |  1  |  1
+
+Sum  = A XOR B XOR Cin
+Cout = (A AND B) OR (Cin AND (A XOR B))
+```
+
+### 3. Ripple-Carry Adder — Adding Multi-Bit Numbers
+
+Chain full adders to add multi-bit numbers. Here's a 4-bit adder:
+
+```
+         A3 B3        A2 B2        A1 B1        A0 B0
+          │  │          │  │          │  │          │  │
+     ┌────┴──┴────┐┌────┴──┴────┐┌────┴──┴────┐┌────┴──┴────┐
+Cout─┤ Full Adder ├┤ Full Adder ├┤ Full Adder ├┤ Full Adder ├─ Cin=0
+     └─────┬──────┘└─────┬──────┘└─────┬──────┘└─────┬──────┘
+           S3             S2             S1             S0
+
+Adding 0101 (5) + 0011 (3):
+  Stage 0: 1+1+0 = Sum=0, Carry=1
+  Stage 1: 0+1+1 = Sum=0, Carry=1
+  Stage 2: 1+0+1 = Sum=0, Carry=1
+  Stage 3: 0+0+1 = Sum=1, Carry=0
+  Result: 1000 (8) ✓
+```
+
+The "ripple" name comes from how the carry ripples through each stage. For an n-bit adder, the worst case requires the carry to propagate through all n stages, making it slow for large numbers.
+
+### 4. Multiplexer (MUX) — The Data Selector
+
+A **multiplexer** selects one of many inputs to pass to the output, controlled by select lines:
+
+```
+4-to-1 MUX (4 inputs, 2 select lines, 1 output):
+
+Inputs:  I0, I1, I2, I3
+Select:  S1, S0
+Output:  Y
+
+S1 | S0 | Output
+---|-----|-------
+ 0 |  0 |  I0     (select input 0)
+ 0 |  1 |  I1     (select input 1)
+ 1 |  0 |  I2     (select input 2)
+ 1 |  1 |  I3     (select input 3)
+
+Formula: Y = S̅1·S̅0·I0 + S̅1·S0·I1 + S1·S̅0·I2 + S1·S0·I3
+```
+
+MUXes are everywhere in CPUs — they select which register to read, which ALU result to use, which instruction to execute next.
+
+### 5. Decoder — Activating One of Many
+
+A **decoder** activates exactly one output based on the binary input:
+
+```
+2-to-4 Decoder:
+
+Input: A1, A0
+Outputs: D0, D1, D2, D3
+
+A1 | A0 | D0 | D1 | D2 | D3
+---|-----|----|----|----|----|
+ 0 |  0 |  1 |  0 |  0 |  0
+ 0 |  1 |  0 |  1 |  0 |  0
+ 1 |  0 |  0 |  0 |  1 |  0
+ 1 |  1 |  0 |  0 |  0 |  1
+```
+
+Decoders are used in memory addressing — given an n-bit address, activate exactly one memory location.
+
+### 6. Encoder — The Reverse of Decoder
+
+An **encoder** converts a one-hot input (exactly one line active) to a binary code:
+
+```
+4-to-2 Encoder:
+
+D0 | D1 | D2 | D3 | A1 | A0
+---|-----|----|----|----|----|
+ 1 |  0 |  0 |  0 |  0 |  0
+ 0 |  1 |  0 |  0 |  0 |  1
+ 0 |  0 |  1 |  0 |  1 |  0
+ 0 |  0 |  0 |  1 |  1 |  1
+```
+
+## How It Actually Works — Design Methodology
+
+### From Truth Table to Circuit
+
+The systematic process for designing any combinational circuit:
+
+**Step 1**: Write the truth table (what outputs do you want for each input combination?)
+
+**Step 2**: Write the Boolean expression in **Sum of Products (SOP)** form — one AND term for each row where the output is 1, then OR them together.
+
+**Step 3**: Simplify using Boolean algebra (or Karnaugh maps — covered in a later lesson).
+
+**Step 4**: Draw the gate-level circuit.
+
+### Example: Majority Circuit
+
+Design a circuit that outputs 1 when two or more of three inputs are 1:
+
+```
+Step 1 — Truth Table:
+A | B | C | F
+--|---|---|---
+0 | 0 | 0 | 0
+0 | 0 | 1 | 0
+0 | 1 | 0 | 0
+0 | 1 | 1 | 1   ← two inputs high
+1 | 0 | 0 | 0
+1 | 0 | 1 | 1   ← two inputs high
+1 | 1 | 0 | 1   ← two inputs high
+1 | 1 | 1 | 1   ← three inputs high
+
+Step 2 — SOP (rows where F=1):
+F = A̅·B·C + A·B̅·C + A·B·C̅ + A·B·C
+
+Step 3 — Simplify:
+F = A·B + A·C + B·C   (majority function)
+
+Step 4 — Circuit: 3 AND gates + 1 three-input OR gate = 4 gates total
+```
+
+## Why It Matters
+
+- **Adders** are inside every CPU's ALU (Arithmetic Logic Unit).
+- **MUXes** control data flow throughout processors.
+- **Decoders** address memory and I/O devices.
+- Understanding combinational circuits is understanding how computers compute. Every arithmetic operation, every data routing decision, every comparison is a combinational circuit.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/combinational-circuits"
+  questions={[
+    {q: "Why is a half adder called 'half'?", options: ["It only adds half the bits", "It can only add numbers up to 5", "It doesn't accept a carry input from a previous stage, so it can't be chained for multi-bit addition", "It uses half the number of gates"], answer: 2, explanation: "A half adder adds two single bits but has no carry input. To add multi-bit numbers, you need a full adder which also accepts a carry-in. A half adder can only be used for the least-significant bit (where there's no carry to bring in)."},
+    {q: "What does a 4-to-1 multiplexer do?", options: ["Adds four numbers", "Selects one of four input lines to pass to the output, based on two select control lines", "Divides a signal into four parts", "Stores four bits"], answer: 1, explanation: "A 4-to-1 MUX has 4 data inputs, 2 select lines, and 1 output. The 2 select bits determine which of the 4 inputs is connected to the output. It's like a switchboard that routes one selected signal to the output."},
+    {q: "What is the Sum of Products (SOP) form?", options: ["Adding all outputs together", "A systematic way to write a Boolean expression: one AND term per truth table row with output 1, all ORed together", "A multiplication technique", "A gate counting method"], answer: 1, explanation: "SOP form creates one AND term (product) for each row where the output is 1, using the literal or complement of each variable. These AND terms are then ORed together (summed). This guarantees a correct expression for any truth table, which can then be simplified."}
+  ]}
+/>
+
+## What's Next
+
+Combinational circuits have no memory — they forget everything the instant inputs change. But computers need to *remember* things: what instruction they're on, what data they've stored, what state they're in. That requires **sequential circuits** with feedback and storage. Next: <ConceptLink to="digital-logic/sequential-circuits" label="Sequential Circuits" />.

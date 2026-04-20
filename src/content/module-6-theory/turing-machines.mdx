@@ -1,0 +1,110 @@
+{/* Lesson 5.5 — Turing Machines */}
+
+<PrerequisiteBadge prerequisites={["theory/cfg-pda"]} />
+
+## Hook — The Ultimate Computer
+
+In 1936, Alan Turing imagined a simple machine: an infinite tape, a read/write head, and a finite set of rules. This thought experiment defined what it means to "compute" and remains the foundation of all computer science. Every algorithm ever written, every program ever executed, can be simulated by a Turing machine.
+
+## What Is a Turing Machine?
+
+A TM is a 7-tuple (Q, Σ, Γ, δ, q₀, q_accept, q_reject):
+
+```
+Q = finite set of states
+Σ = input alphabet (no blank symbol)
+Γ = tape alphabet (Σ ∪ \{blank\})
+δ = transition function: Q × Γ → Q × Γ × \{L, R\}
+q₀ = start state
+q_accept = accept state
+q_reject = reject state
+```
+
+### Example: Recognize \{0ⁿ1ⁿ | n ≥ 1\}
+
+```
+Strategy: Cross off one 0 and one 1 repeatedly.
+
+Tape: [0 0 1 1 _]
+
+Step 1: At leftmost 0, replace with X, move right to find a 1
+        [X 0 1 1 _]
+            →→→
+Step 2: Replace that 1 with X, move left back to find next 0
+        [X 0 1 X _]
+          ←←←
+Step 3: Find next 0, replace with X, find next 1...
+        [X X 1 X _] → [X X X X _]
+
+Step 4: All crossed off, no unmatched symbols → ACCEPT
+
+If we run out of 1s with 0s remaining (or vice versa) → REJECT
+```
+
+## See It Work — TM vs DFA vs PDA
+
+```
+Machine    Memory         Languages recognized
+───────    ──────         ────────────────────
+DFA        None (states)  Regular
+PDA        Stack          Context-free
+TM         Infinite tape  Recursively enumerable
+
+TM with guaranteed halt → Decidable languages
+TM without halt guarantee → Recursively enumerable
+```
+
+### Multi-tape and Nondeterministic TMs
+
+- **Multi-tape TM**: Multiple tapes with independent heads. More convenient but NOT more powerful — can be simulated by single-tape TM.
+- **Nondeterministic TM**: Can "guess" the right path. Also NOT more powerful — can be simulated by deterministic TM (exponential slowdown).
+
+## How It Actually Works — The Church-Turing Thesis
+
+```
+"Any function that can be computed by any mechanical process
+ can be computed by a Turing machine."
+                                    — Church-Turing Thesis
+
+This is NOT a theorem (can't be proven) — it's a hypothesis.
+But no one has ever found a counterexample.
+
+Equivalently powerful models:
+  - Lambda calculus (Church, 1936)
+  - Turing machines (Turing, 1936)
+  - Post correspondence systems
+  - Modern programming languages (C, Python, Java)
+  - Your laptop (with unlimited memory)
+```
+
+### Universal Turing Machine
+
+A single TM that can simulate ANY other TM:
+```
+Input: ⟨M, w⟩  (description of TM M and input w)
+Output: Simulates M on w
+
+This is the theoretical basis of stored-program computers!
+Your OS is essentially a universal Turing machine.
+```
+
+## Why It Matters
+
+- Turing machines define the boundary between computable and uncomputable.
+- The Church-Turing thesis means all programming languages are equivalent in power.
+- The universal TM concept led directly to the stored-program computer (von Neumann architecture).
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="theory/turing-machines"
+  questions={[
+    {q: "What makes a Turing machine more powerful than a PDA?", options: ["It's faster", "A TM has an infinite read/write tape allowing random access to unbounded memory, while a PDA only has a stack (LIFO access) — the tape lets TMs solve problems requiring arbitrary memory access patterns", "It has more states", "It uses a better alphabet"], answer: 1, explanation: "A PDA's stack is LIFO: you can only access the top. This limits it to nested/recursive structures. A TM's tape allows reading and writing anywhere — move left or right freely. This enables algorithms that need to compare distant parts of input, maintain multiple counters, or use memory in non-stack patterns. The tape's random access is the key to universality."},
+    {q: "What is the Church-Turing thesis?", options: ["A proven theorem", "An unproven but universally accepted hypothesis stating that any function computable by any mechanical process can be computed by a Turing machine — equivalently, Turing machines capture the intuitive notion of 'algorithm'", "A programming technique", "A type of Turing machine"], answer: 1, explanation: "The Church-Turing thesis can't be proven because 'any mechanical process' is an informal concept. But every formalization of computation (lambda calculus, recursive functions, RAM machines, quantum computers for decision problems) has been proven equivalent to Turing machines. No one has ever found a computational model that solves problems a TM cannot. This gives us confidence that TMs capture the fundamental limits of computation."},
+    {q: "What is a Universal Turing Machine and why is it important?", options: ["A very large TM", "A single TM U that takes as input the description of any TM M and input w, then simulates M on w — this is the theoretical foundation of programmable computers and operating systems", "A TM with infinite states", "The fastest TM"], answer: 1, explanation: "Before the universal TM concept, each 'computer' was a single-purpose machine. Turing showed one machine U can run ANY algorithm: just provide the algorithm's description as data. This is exactly what your computer does — it's hardware that runs arbitrary software. The universal TM directly inspired von Neumann's stored-program architecture, where programs and data share the same memory."}
+  ]}
+/>
+
+## What's Next
+
+Some problems can't be solved by ANY Turing machine. The **halting problem** and **decidability** reveal the fundamental limits of computation. Next: <ConceptLink to="theory/decidability" label="Decidability" />.

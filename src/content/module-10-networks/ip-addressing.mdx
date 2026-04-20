@@ -1,0 +1,101 @@
+{/* Lesson 9.4 — IP Addressing */}
+
+<PrerequisiteBadge prerequisites={["networks/mac-ethernet"]} />
+
+## Hook — The Internet's Address System
+
+Every device on the internet has an IP address — a logical address used to route packets across networks. Unlike MAC addresses (local and fixed), IP addresses are hierarchical and enable the global routing system that connects billions of devices.
+
+## IPv4 Addresses
+
+```
+32 bits, written as 4 octets: 192.168.1.100
+Binary: 11000000.10101000.00000001.01100100
+
+Total addresses: 2³² = ~4.3 billion (not enough!)
+
+Classes (historical, now replaced by CIDR):
+  Class A: 0.0.0.0 – 127.255.255.255    /8   (16M hosts each)
+  Class B: 128.0.0.0 – 191.255.255.255  /16  (65K hosts each)
+  Class C: 192.0.0.0 – 223.255.255.255  /24  (254 hosts each)
+  Class D: 224.0.0.0 – 239.255.255.255  Multicast
+  Class E: 240.0.0.0 – 255.255.255.255  Reserved
+```
+
+### Subnetting
+
+```
+Network address + Host address:
+  192.168.1.100/24
+  └───────┬───┘ └┘
+  Network part  Host part
+
+Subnet Mask: 255.255.255.0 = /24
+  IP:   11000000.10101000.00000001.01100100
+  Mask: 11111111.11111111.11111111.00000000
+  AND:  11000000.10101000.00000001.00000000 = 192.168.1.0 (network)
+
+/24 → 256 addresses, 254 usable hosts
+  .0 = network address, .255 = broadcast
+
+Splitting a /24 into two /25s:
+  192.168.1.0/25  → hosts .1 to .126  (126 hosts)
+  192.168.1.128/25 → hosts .129 to .254 (126 hosts)
+```
+
+### Private vs Public Addresses
+
+```
+Private (not routable on internet):
+  10.0.0.0/8        (16M addresses)
+  172.16.0.0/12     (1M addresses)
+  192.168.0.0/16    (65K addresses)
+
+Your home network uses private IPs.
+Your router uses NAT to share one public IP.
+
+NAT (Network Address Translation):
+  Internal: 192.168.1.100:5000 → Router → External: 203.0.113.1:40000
+  Router rewrites source IP/port for outgoing packets.
+  Router maintains translation table for return traffic.
+```
+
+## See It Work — IPv6
+
+```
+128 bits: 2¹²⁸ = 340 undecillion addresses
+  (enough for every atom on Earth's surface)
+
+Format: 2001:0db8:85a3:0000:0000:8a2e:0370:7334
+Short:  2001:db8:85a3::8a2e:370:7334
+
+Why IPv6?
+  - IPv4 exhausted (~4.3B addresses for 8B+ people + IoT)
+  - No NAT needed (every device gets a public address)
+  - Built-in IPsec (encryption)
+  - Simplified header (faster routing)
+
+Adoption: ~40% of internet traffic (2024), growing slowly.
+Dual-stack: Most devices run both IPv4 and IPv6.
+```
+
+## Why It Matters
+
+- IP addressing is fundamental to how the internet works — every connection uses it.
+- Subnetting skills are essential for network administration and cloud infrastructure.
+- Understanding NAT explains why you can't easily host a server at home and how VPNs work.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/ip-addressing"
+  questions={[
+    {q: "Why was CIDR created to replace classful addressing?", options: ["It's newer", "Classful addressing wasted addresses — a Class B network (/16) gave 65K addresses even if you only needed 500. CIDR allows any prefix length (/21, /23, etc.), enabling precise allocation and reducing routing table size through aggregation", "It's faster", "It's required by IPv6"], answer: 1, explanation: "Pre-CIDR: an organization needing 1,000 addresses would get a Class B (65,536 addresses) — wasting 64,536. Or two Class Cs (512 addresses) — not enough! CIDR allows /22 (1,024 addresses) — exactly right. CIDR also enables route aggregation: instead of announcing 256 separate /24 routes, announce one /16. This keeps the global routing table manageable (~900K routes in 2024 vs. millions without aggregation)."},
+    {q: "How does NAT allow millions of devices to share one public IP?", options: ["It compresses packets", "NAT rewrites the source IP and port of outgoing packets to the router's public IP with a unique port number, then maintains a translation table to route responses back to the correct internal device — each connection uses a different port", "It uses IPv6", "It splits the IP"], answer: 1, explanation: "Device 192.168.1.100:5000 sends a packet. Router rewrites: source becomes 203.0.113.1:40001. Device 192.168.1.101:5000 → 203.0.113.1:40002. Different port = different device. Translation table: (40001 → 192.168.1.100:5000, 40002 → 192.168.1.101:5000). With 65,535 available ports, one public IP supports ~65K concurrent connections. Limitation: NAT breaks end-to-end connectivity (incoming connections need port forwarding). This is why peer-to-peer apps need NAT traversal techniques (STUN/TURN)."},
+    {q: "Why hasn't IPv6 fully replaced IPv4?", options: ["IPv6 is slower", "IPv6 is not backward-compatible with IPv4 — every device, router, ISP, and application must be upgraded. The cost and complexity of global migration, combined with NAT extending IPv4's life, has slowed adoption despite IPv4 address exhaustion", "IPv6 has fewer features", "IPv4 is more secure"], answer: 1, explanation: "IPv6 packets can't travel over IPv4-only networks (different header format). Migration requires: (1) ISPs must support IPv6 routing, (2) servers must have IPv6 addresses, (3) applications must handle IPv6, (4) firewalls/monitoring tools must understand IPv6. NAT made IPv4 'work' despite address exhaustion — reducing urgency. Dual-stack (running both) is the transition strategy, but it doubles complexity. Full migration will take decades. Major content providers (Google, Facebook) and mobile networks lead IPv6 adoption."}
+  ]}
+/>
+
+## What's Next
+
+How do routers decide where to send packets? Next: <ConceptLink to="networks/routing" label="Routing" />.

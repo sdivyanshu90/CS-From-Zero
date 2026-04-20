@@ -1,0 +1,166 @@
+{/* Lesson 2.1 — From Gates to CPU */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/sequential-circuits"]} />
+
+## Hook — The Big Picture
+
+You know how individual logic gates work. You know how to combine them into adders, multiplexers, and flip-flops. But how do billions of these tiny components come together to form a **CPU** — a device that can run any program, play any game, or browse any website? This lesson connects the dots from transistors to a working processor.
+
+## What Is Computer Architecture?
+
+**Computer architecture** is the design of a computer system — how its components are organized, how they communicate, and how they execute instructions. It sits between the physical hardware (gates, wires) and the software (programs, operating systems).
+
+```
+Software Level:    Applications → OS → Compiler → Assembly
+                                                     ↓
+Architecture Level: ISA (Instruction Set Architecture)
+                                                     ↓
+Hardware Level:    Microarchitecture → Logic Gates → Transistors → Physics
+```
+
+### The von Neumann Architecture
+
+Nearly every modern computer follows the **von Neumann architecture** (proposed by John von Neumann in 1945):
+
+```
+┌────────────────────────────────────────────────────┐
+│                    CPU                              │
+│  ┌──────────┐  ┌──────────────────┐                │
+│  │ Control  │  │       ALU        │                │
+│  │  Unit    │  │ (Arithmetic &    │                │
+│  │  (CU)    │  │  Logic Unit)     │                │
+│  └────┬─────┘  └────────┬─────────┘                │
+│       │                 │                          │
+│  ┌────┴─────────────────┴─────────┐                │
+│  │        Registers               │                │
+│  └────────────┬───────────────────┘                │
+└───────────────┼────────────────────────────────────┘
+                │ System Bus (Address + Data + Control)
+┌───────────────┼────────────────────────────────────┐
+│          ┌────┴────┐          ┌──────────┐         │
+│          │ Memory  │          │  I/O     │         │
+│          │ (RAM)   │          │ Devices  │         │
+│          └─────────┘          └──────────┘         │
+└────────────────────────────────────────────────────┘
+```
+
+The key components:
+
+1. **Control Unit (CU)**: Fetches instructions from memory, decodes them, and orchestrates execution. It's the "brain of the brain."
+2. **ALU (Arithmetic Logic Unit)**: Performs arithmetic (add, subtract, multiply) and logic (AND, OR, NOT, compare) operations.
+3. **Registers**: Tiny, ultra-fast storage inside the CPU — typically 8-64 registers, each 32 or 64 bits.
+4. **Memory (RAM)**: Stores both **data** and **instructions** (this is the von Neumann insight — programs and data share the same memory).
+5. **System Bus**: Wires connecting CPU, memory, and I/O devices.
+
+### The Stored-Program Concept
+
+The revolutionary idea: **programs are data**. Instructions are stored in the same memory as the data they operate on. This means:
+- You can load different programs without rewiring the hardware.
+- Programs can modify themselves (though this is rarely done today).
+- The computer is **general-purpose** — one machine can do anything.
+
+Before this, computers were wired for specific tasks. Changing the program meant physically rearranging cables and switches.
+
+## See It Work — The Fetch-Decode-Execute Cycle
+
+Every CPU continuously runs this cycle:
+
+```
+┌─────────┐
+│ 1.FETCH │ ← Read the next instruction from memory
+└────┬────┘
+     ▼
+┌──────────┐
+│ 2.DECODE │ ← Figure out what the instruction means
+└────┬─────┘
+     ▼
+┌───────────┐
+│ 3.EXECUTE │ ← Perform the operation (ALU, memory access, etc.)
+└────┬──────┘
+     ▼
+┌──────────────┐
+│ 4.WRITE BACK │ ← Store the result in a register or memory
+└──────┬───────┘
+       │
+       └──→ Back to FETCH (repeat forever)
+```
+
+### Detailed Example
+
+Let's trace `ADD R1, R2, R3` (add R2 and R3, store result in R1):
+
+```
+FETCH:
+  1. PC (Program Counter) holds address 0x100
+  2. CPU sends address 0x100 to memory via address bus
+  3. Memory returns the instruction bytes
+  4. Instruction stored in IR (Instruction Register)
+  5. PC incremented to 0x104 (next instruction)
+
+DECODE:
+  1. Control Unit examines the instruction in IR
+  2. Identifies opcode: ADD
+  3. Identifies operands: R1 (destination), R2, R3 (sources)
+  4. Sends control signals to route R2 and R3 to ALU inputs
+
+EXECUTE:
+  1. ALU receives values from R2 and R3
+  2. ALU performs addition
+  3. ALU outputs result and status flags (zero, carry, overflow)
+
+WRITE BACK:
+  1. Result from ALU is written to R1
+  2. Flags register updated
+  3. Cycle repeats for next instruction
+```
+
+## How It Actually Works — Key Registers
+
+```
+Register          Purpose
+─────────         ──────────────────────────────────
+PC (Program       Points to the NEXT instruction to fetch.
+ Counter)         Incremented after each fetch.
+                  Changed by jumps and branches.
+
+IR (Instruction   Holds the CURRENT instruction being executed.
+ Register)        Loaded during the fetch phase.
+
+MAR (Memory       Holds the address to read/write in memory.
+ Address Reg.)    CPU places address here before memory access.
+
+MDR (Memory       Holds the data read from or to be written to
+ Data Reg.)       memory. Acts as a buffer between CPU and RAM.
+
+ACC (Accumulator) General-purpose register for arithmetic results.
+                  Some architectures have many general registers
+                  instead.
+
+SP (Stack         Points to the top of the stack in memory.
+ Pointer)         Used for function calls and local variables.
+
+FLAGS/Status      Stores condition bits after ALU operations:
+ Register         Zero (Z), Carry (C), Negative (N), Overflow (V)
+```
+
+## Why It Matters
+
+- The fetch-decode-execute cycle is happening **billions of times per second** in your CPU right now.
+- The von Neumann architecture's simplicity is why one machine can run any program.
+- Understanding this cycle helps you understand why some code is fast and some is slow.
+- Modern CPUs add layers of optimization (pipelining, caching, out-of-order execution) on top of this basic model, which we'll explore in upcoming lessons.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="architecture/gates-to-cpu"
+  questions={[
+    {q: "What is the 'stored-program concept' in von Neumann architecture?", options: ["Programs are stored on hard drives", "Programs and data are stored in the same memory, making the computer general-purpose", "Programs are burned into the CPU", "Each program needs its own computer"], answer: 1, explanation: "The stored-program concept means instructions (programs) are stored in main memory alongside data. This was revolutionary — it meant one machine could run any program by simply loading different instructions into memory, rather than physically rewiring the computer."},
+    {q: "What happens during the DECODE phase of the fetch-decode-execute cycle?", options: ["The instruction is read from memory", "The control unit examines the instruction to determine what operation to perform and which operands to use", "The ALU performs a calculation", "The result is stored in a register"], answer: 1, explanation: "During DECODE, the control unit analyzes the instruction in the IR (Instruction Register) to identify the opcode (what operation) and operands (which registers/memory locations). It then generates the control signals needed to route data and activate the correct ALU operation."},
+    {q: "Why are registers faster than RAM?", options: ["They hold smaller numbers", "Registers are physically inside the CPU, built from flip-flops with zero memory-access latency, while RAM is external and requires bus communication", "They use better transistors", "They cost more"], answer: 1, explanation: "Registers are built directly into the CPU using flip-flops (the fastest type of storage). Accessing a register takes about 1 clock cycle. RAM is on a separate chip connected via buses, requiring 50-200+ clock cycles to access. This massive speed difference is why CPUs have a hierarchy of storage from registers down to main memory."}
+  ]}
+/>
+
+## What's Next
+
+Now that you see the big picture of a CPU, let's zoom in on how it understands instructions. Every CPU has a defined **Instruction Set Architecture (ISA)** — its "language." Next: <ConceptLink to="architecture/isa" label="Instruction Set Architecture" />.

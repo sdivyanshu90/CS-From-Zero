@@ -1,0 +1,169 @@
+{/* Lesson 3.9 — Trees */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/linked-lists"]} />
+
+## Hook — Hierarchy Everywhere
+
+Your file system is a tree. An HTML document is a tree. A company's org chart is a tree. A family tree is (unsurprisingly) a tree. Trees capture **hierarchical relationships** — where each element has a parent and zero or more children. They're the most versatile data structure in computer science.
+
+## What Is a Tree?
+
+A **tree** is a hierarchical data structure consisting of **nodes** connected by **edges**, with these properties:
+- One node is the **root** (no parent)
+- Every other node has exactly **one parent**
+- There are **no cycles** (no way to follow edges back to the same node)
+
+```
+         A          ← root (level 0)
+        / \
+       B   C        ← level 1
+      /|    \
+     D E     F      ← level 2 (D, E, F are leaves)
+
+Terminology:
+- Root: A (top node)
+- Parent of B: A
+- Children of A: B, C
+- Siblings: B and C (same parent)
+- Leaf: node with no children (D, E, F)
+- Depth of E: 2 (edges from root to E)
+- Height of tree: 2 (edges from root to deepest leaf)
+- Subtree: any node and all its descendants
+```
+
+```c
+typedef struct TreeNode {
+    int data;
+    struct TreeNode *left;
+    struct TreeNode *right;  // for binary tree
+} TreeNode;
+```
+
+### Binary Trees
+
+A **binary tree** is a tree where each node has **at most two children** (left and right):
+
+```
+       10
+      /  \
+     5    15
+    / \     \
+   3   7    20
+```
+
+**Types of binary trees:**
+
+```
+Full Binary Tree:      Every node has 0 or 2 children.
+Complete Binary Tree:  All levels full except possibly the last,
+                       which is filled left-to-right.
+Perfect Binary Tree:   All leaves at the same level, every
+                       internal node has 2 children.
+Balanced Binary Tree:  Height of left and right subtrees differ
+                       by at most 1 for every node.
+```
+
+## See It Work — Tree Traversals
+
+There are four standard ways to visit every node:
+
+### Depth-First Traversals
+
+**Inorder (Left, Root, Right)** — visits nodes in sorted order for BSTs:
+```
+       4
+      / \
+     2   6
+    / \ / \
+   1  3 5  7
+
+Inorder: 1, 2, 3, 4, 5, 6, 7 (sorted!)
+```
+
+**Preorder (Root, Left, Right)** — visits root before children:
+```
+Preorder: 4, 2, 1, 3, 6, 5, 7
+Use case: Copying a tree, serialization
+```
+
+**Postorder (Left, Right, Root)** — visits root after children:
+```
+Postorder: 1, 3, 2, 5, 7, 6, 4
+Use case: Deleting a tree (delete children before parent), expression evaluation
+```
+
+```c
+void inorder(TreeNode *node) {
+    if (node == NULL) return;
+    inorder(node->left);
+    printf("%d ", node->data);
+    inorder(node->right);
+}
+
+void preorder(TreeNode *node) {
+    if (node == NULL) return;
+    printf("%d ", node->data);
+    preorder(node->left);
+    preorder(node->right);
+}
+
+void postorder(TreeNode *node) {
+    if (node == NULL) return;
+    postorder(node->left);
+    postorder(node->right);
+    printf("%d ", node->data);
+}
+```
+
+### Breadth-First Traversal (Level Order)
+
+Visit level by level using a queue:
+```
+Level order: 4, 2, 6, 1, 3, 5, 7
+Use case: Level-by-level processing, finding shortest path
+```
+
+## How It Actually Works — Tree Properties
+
+### Height and Node Count
+
+```
+For a perfect binary tree:
+Level 0: 1 node    (2⁰)
+Level 1: 2 nodes   (2¹)
+Level 2: 4 nodes   (2²)
+Level h: 2ʰ nodes
+
+Total nodes in perfect tree of height h:
+  N = 2⁰ + 2¹ + ... + 2ʰ = 2^(h+1) - 1
+
+Height of a balanced tree with N nodes:
+  h = O(log N)
+
+This logarithmic height is WHY balanced trees are efficient:
+  1,000 nodes → height ≈ 10
+  1,000,000 nodes → height ≈ 20
+  1,000,000,000 nodes → height ≈ 30
+```
+
+## Why It Matters
+
+- Trees are the natural structure for hierarchical data (file systems, XML/HTML, databases).
+- Tree traversals are fundamental algorithms used everywhere.
+- The logarithmic height of balanced trees makes operations efficient — O(log n) instead of O(n).
+- Trees are the foundation for BSTs, heaps, B-trees, tries, and many more advanced structures.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/trees"
+  questions={[
+    {q: "What is the height of a balanced binary tree with 1,000,000 nodes?", options: ["1,000,000", "1,000", "About 20 (log₂ of 1,000,000 ≈ 20)", "100"], answer: 2, explanation: "A balanced binary tree has height O(log₂ N). log₂(1,000,000) ≈ 19.9 ≈ 20. This means you can find any element in a million-node balanced tree by examining only about 20 nodes — this logarithmic scaling is the key to tree efficiency."},
+    {q: "Which traversal visits a BST's nodes in sorted order?", options: ["Preorder", "Postorder", "Inorder (Left, Root, Right) — in a BST, all left descendants are smaller and all right descendants are larger, so visiting left-root-right yields sorted order", "Level order"], answer: 2, explanation: "In a BST, left child < parent < right child. Inorder traversal visits left subtree first (all smaller values), then root, then right subtree (all larger values). This naturally produces a sorted sequence. This property is unique to inorder traversal on BSTs."},
+    {q: "Why must tree deletion use postorder traversal?", options: ["It's faster", "Children must be deleted before their parent — postorder visits children first, ensuring no parent is deleted while it still has children", "It uses less memory", "It's alphabetical"], answer: 1, explanation: "If you delete a parent before its children, you lose the pointers to the children, causing a memory leak. Postorder traversal processes left subtree, then right subtree, then root — guaranteeing that by the time you delete any node, all its descendants are already freed."}
+  ]}
+/>
+
+## What's Next
+
+Regular trees don't have rules about where values go. **Binary Search Trees** add an ordering rule that makes searching logarithmically fast. Next: <ConceptLink to="prog-ds/binary-search-trees" label="Binary Search Trees" />.

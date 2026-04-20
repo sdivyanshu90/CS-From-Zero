@@ -1,0 +1,137 @@
+{/* Lesson 7.4 — Concurrency & Synchronization */}
+
+<PrerequisiteBadge prerequisites={["os/cpu-scheduling"]} />
+
+## Hook — When Threads Collide
+
+Two threads increment a shared counter: both read 5, both write 6. The counter should be 7, but it's 6. This **race condition** is the fundamental problem of concurrent programming. **Synchronization** primitives — mutexes, semaphores, condition variables — ensure threads cooperate correctly.
+
+## The Critical Section Problem
+
+```
+Thread A:              Thread B:
+  read counter (5)       read counter (5)
+  add 1                  add 1
+  write counter (6)      write counter (6)
+
+Expected: 7    Actual: 6 — LOST UPDATE!
+
+The increment isn't atomic: read-modify-write is 3 steps.
+A context switch between any steps causes a race condition.
+```
+
+### Requirements for a Correct Solution
+
+```
+1. Mutual Exclusion: Only one thread in the critical section at a time.
+2. Progress: If no one is in the CS, a waiting thread can enter.
+3. Bounded Waiting: No thread waits forever (no starvation).
+```
+
+## See It Work — Synchronization Primitives
+
+### Mutex (Mutual Exclusion Lock)
+
+```c
+pthread_mutex_t lock;
+
+void increment() {
+    pthread_mutex_lock(&lock);    // ACQUIRE — blocks if locked
+    counter++;                     // Critical section — safe!
+    pthread_mutex_unlock(&lock);  // RELEASE — wake waiting threads
+}
+```
+
+### Semaphore
+
+```c
+sem_t sem;
+sem_init(&sem, 0, 3);  // Allow up to 3 concurrent accesses
+
+void access_resource() {
+    sem_wait(&sem);     // Decrement. If 0, block.
+    use_resource();     // Up to 3 threads can be here
+    sem_post(&sem);     // Increment. Wake a waiter.
+}
+
+// Mutex = semaphore with initial value 1 (binary semaphore)
+```
+
+### Condition Variable
+
+```c
+pthread_mutex_t lock;
+pthread_cond_t not_empty;
+int items = 0;
+
+// Producer
+pthread_mutex_lock(&lock);
+items++;
+pthread_cond_signal(&not_empty);  // Wake one waiter
+pthread_mutex_unlock(&lock);
+
+// Consumer
+pthread_mutex_lock(&lock);
+while (items == 0)                // MUST use while, not if!
+    pthread_cond_wait(&not_empty, &lock);  // Release lock + sleep
+items--;
+pthread_mutex_unlock(&lock);
+```
+
+## How It Actually Works — Classic Problems
+
+### Producer-Consumer (Bounded Buffer)
+
+```
+Producer → [buffer of size N] → Consumer
+
+Semaphores: empty=N, full=0, mutex=1
+
+Producer:                    Consumer:
+  wait(empty)                  wait(full)
+  wait(mutex)                  wait(mutex)
+  add item to buffer           remove item from buffer
+  signal(mutex)                signal(mutex)
+  signal(full)                 signal(empty)
+```
+
+### Readers-Writers
+
+```
+Multiple readers can read simultaneously.
+Writers need exclusive access.
+
+Reader:                    Writer:
+  wait(reader_lock)          wait(write_lock)
+  read_count++               write data
+  if (read_count == 1)       signal(write_lock)
+    wait(write_lock)
+  signal(reader_lock)
+  ... read ...
+  wait(reader_lock)
+  read_count--
+  if (read_count == 0)
+    signal(write_lock)
+  signal(reader_lock)
+```
+
+## Why It Matters
+
+- Race conditions cause some of the hardest bugs: intermittent, non-reproducible, data-corrupting.
+- Every multi-threaded server, database, and operating system uses these primitives.
+- Understanding synchronization is essential for writing correct concurrent code.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/concurrency"
+  questions={[
+    {q: "Why must condition variable checks use 'while' instead of 'if'?", options: ["Style preference", "Spurious wakeups can occur (OS may wake a thread without a signal), and multiple threads may race for the condition — after waking, the condition might no longer be true, so the thread must re-check", "While is faster", "If doesn't work with pthreads"], answer: 1, explanation: "Two reasons: (1) Spurious wakeups: POSIX allows pthread_cond_wait to return without a signal. (2) Stolen wakeups: thread A signals, threads B and C both wake up, but only one item is available. Thread B takes it; thread C must re-check and find items==0, going back to sleep. Using 'if' would let C proceed with items==-1 — a bug. 'while' handles both cases correctly."},
+    {q: "What is the difference between a mutex and a binary semaphore?", options: ["They're identical", "A mutex has ownership — only the thread that locked it can unlock it, enabling priority inheritance and recursive locking. A binary semaphore has no ownership — any thread can signal it", "Mutex is faster", "Semaphore is newer"], answer: 1, explanation: "Mutex ownership means: (1) Only the holder can unlock it (prevents bugs). (2) Priority inheritance: if a high-priority thread waits on a mutex held by a low-priority thread, the low-priority thread temporarily gets high priority (prevents priority inversion). (3) Recursive locking: the owner can lock again without deadlocking. Binary semaphores lack all these features — they're just a counter (0 or 1)."},
+    {q: "Why are race conditions so hard to debug?", options: ["Bad tools", "Race conditions depend on exact timing of thread scheduling, which is non-deterministic — the bug may appear once in a million runs, and adding debug output changes timing enough to hide it (Heisenbug effect)", "They're simple bugs", "They only happen in production"], answer: 1, explanation: "Race conditions require a specific interleaving of thread executions to trigger. Most interleavings work fine; only a few (maybe 1 in 10^6) expose the bug. Adding print statements or breakpoints changes timing, often hiding the bug. Reproducing requires the exact same scheduling. Tools like ThreadSanitizer (TSan) and Valgrind's Helgrind can detect races statically/dynamically, but they add overhead and may miss some."}
+  ]}
+/>
+
+## What's Next
+
+When synchronization goes wrong, threads can get stuck waiting for each other forever. Next: <ConceptLink to="os/deadlock" label="Deadlock" />.

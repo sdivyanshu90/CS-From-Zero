@@ -1,0 +1,102 @@
+{/* Lesson 8.1 — Why Databases? */}
+
+<PrerequisiteBadge prerequisites={["os/system-calls"]} />
+
+## Hook — Why Not Just Use Files?
+
+You could store all your data in text files. But what happens when two users edit the same file simultaneously? What if the power fails mid-write? What if you need to find one record among millions? **Databases** solve these problems with concurrency, durability, and efficient querying — the backbone of every modern application.
+
+## The Problems with Files
+
+```
+Problem 1: Data Redundancy
+  Student name stored in enrollment file, grade file, contact file...
+  Update name in one → inconsistent data everywhere.
+
+Problem 2: No Concurrency Control
+  Two users update the same file → one overwrites the other.
+  No isolation between operations.
+
+Problem 3: No Atomicity
+  Transfer $100: debit account A, credit account B.
+  Crash after debit → $100 vanishes!
+
+Problem 4: No Query Language
+  "Find all students with GPA > 3.5 who enrolled after 2020"
+  → Write custom parsing code every time.
+```
+
+## What Is a DBMS?
+
+```
+Application → SQL Query → DBMS → Stored Data
+                          │
+                ┌─────────┴──────────┐
+                │  Query Processor    │
+                │  Transaction Mgr   │
+                │  Buffer Manager    │
+                │  Storage Manager   │
+                │  Recovery Manager  │
+                └────────────────────┘
+
+A DBMS provides:
+  1. Data Definition:  CREATE TABLE, schemas
+  2. Data Manipulation: INSERT, SELECT, UPDATE, DELETE
+  3. Data Control:     GRANT, REVOKE (access control)
+  4. Transaction Mgmt: ACID properties
+  5. Concurrency:      Multiple users simultaneously
+  6. Recovery:         Survive crashes without data loss
+```
+
+## See It Work — ACID Properties
+
+```
+Atomicity:    All or nothing. Transfer either fully completes
+              or fully rolls back. Never half-done.
+
+Consistency:  Database moves from one valid state to another.
+              Constraints (foreign keys, checks) always hold.
+
+Isolation:    Concurrent transactions don't interfere.
+              Each sees a consistent snapshot.
+
+Durability:   Once committed, data survives any failure
+              (power loss, crashes). Written to disk + log.
+```
+
+## How It Actually Works — Architecture
+
+```
+                    ┌──────────────┐
+  SQL Query ───────→│ Parser       │ Parse SQL into tree
+                    │ Optimizer    │ Choose best execution plan
+                    │ Executor     │ Execute the plan
+                    ├──────────────┤
+                    │ Buffer Pool  │ Cache disk pages in RAM
+                    │ Lock Manager │ Concurrency control
+                    │ Log Manager  │ Write-ahead log for recovery
+                    ├──────────────┤
+                    │ Disk Storage │ Data files, index files, logs
+                    └──────────────┘
+```
+
+## Why It Matters
+
+- Every application you use (social media, banking, email) is backed by a database.
+- Understanding DBMS design explains why queries are fast or slow, and how data stays safe.
+- Database skills (SQL, schema design, optimization) are among the most valuable in tech.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/why-databases"
+  questions={[
+    {q: "Why is atomicity critical for financial transactions?", options: ["It makes them faster", "Without atomicity, a crash during a transfer (after debiting but before crediting) would lose money — atomicity guarantees the entire transaction either completes fully or is rolled back entirely, so the database is never in an inconsistent half-done state", "It's required by law", "It prevents hacking"], answer: 1, explanation: "Consider: transfer $100 from A to B. Step 1: A = A - 100. Step 2: B = B + 100. Without atomicity, if the system crashes after step 1: A lost $100 but B didn't gain it — money vanished! With atomicity (using write-ahead logging), either both steps complete or neither does. The DBMS writes intentions to a log BEFORE making changes. On crash recovery, it replays or undoes the log to restore consistency."},
+    {q: "What advantage does a DBMS have over flat files for concurrent access?", options: ["It's faster", "A DBMS provides isolation through locking and MVCC — multiple users can read and write simultaneously without seeing partial updates or corrupting each other's work, which flat files cannot guarantee", "It uses less disk space", "It's simpler"], answer: 1, explanation: "With flat files, two processes writing simultaneously can interleave bytes, corrupting data. Even with file locks, you get coarse-grained locking (lock entire file). A DBMS provides row-level or page-level locking, and MVCC (Multi-Version Concurrency Control) lets readers and writers proceed concurrently without blocking each other. PostgreSQL readers never block writers and vice versa — impossible with file-based storage."},
+    {q: "What is the role of the query optimizer?", options: ["It writes SQL for you", "The optimizer examines multiple possible execution plans for a query (different join orders, index usage, scan methods) and chooses the plan with the lowest estimated cost — this can make queries thousands of times faster", "It compresses data", "It checks SQL syntax"], answer: 1, explanation: "For a query joining 5 tables, there are 5! = 120 possible join orders, each with multiple algorithm choices (nested loop, hash join, merge join). The optimizer estimates cost (disk I/O, CPU) for each plan using table statistics (row counts, value distributions). A good plan might take 10ms; a bad plan for the same query might take 10 minutes. The optimizer is why you write declarative SQL ('what' you want) and the DBMS figures out 'how' to get it efficiently."}
+  ]}
+/>
+
+## What's Next
+
+Before writing SQL, you need to understand how data is modeled. Next: <ConceptLink to="dbms/er-model" label="ER Model" /> — designing databases with Entity-Relationship diagrams.

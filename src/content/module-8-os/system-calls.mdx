@@ -1,0 +1,114 @@
+{/* Lesson 7.10 — System Calls */}
+
+<PrerequisiteBadge prerequisites={["os/io-scheduling"]} />
+
+## Hook — The Kernel's API
+
+Every time your program opens a file, allocates memory, or sends a network packet, it makes a **system call** — a controlled request to the kernel. System calls are the boundary between your code and the operating system, and understanding them is understanding how software truly interacts with hardware.
+
+## What Is a System Call?
+
+```
+User program:          Kernel:
+printf("hello")
+  → write(1, "hello", 5)
+    → syscall instruction     → validate args
+      (switch to ring 0)      → find fd 1 (stdout)
+                               → write to terminal driver
+      ← return to ring 3     ← return bytes written (5)
+```
+
+### The System Call Journey
+
+```
+1. Program calls wrapper function: write(fd, buf, count)
+2. Wrapper puts syscall number in register (e.g., RAX = 1 for write)
+3. Arguments in registers: RDI=fd, RSI=buf, RDX=count
+4. Execute 'syscall' instruction → CPU switches to kernel mode
+5. Kernel looks up handler in syscall table[RAX]
+6. Handler validates args, performs operation
+7. Returns result in RAX (or negative errno on error)
+8. 'sysret' instruction → back to user mode
+```
+
+## See It Work — Essential System Calls
+
+```
+Category        Calls                    Purpose
+────────        ─────                    ───────
+Process         fork, exec, wait, exit   Create, run, manage processes
+File            open, read, write, close File I/O
+                lseek, stat, chmod
+Directory       mkdir, rmdir, readdir    Directory operations
+Memory          mmap, munmap, brk        Memory management
+Network         socket, bind, listen     Network communication
+                accept, connect,
+                send, recv
+Signal          signal, kill, sigaction   Asynchronous notification
+IPC             pipe, shmget, msgget     Inter-process communication
+```
+
+### strace — Watching System Calls
+
+```bash
+$ strace ls
+execve("/bin/ls", ["ls"], ...) = 0
+openat(AT_FDCWD, ".", O_RDONLY) = 3
+getdents64(3, ...) = 480
+write(1, "file1.txt\nfile2.txt\n", 20) = 20
+close(3) = 0
+exit_group(0) = ?
+
+# Every interaction with the OS is visible!
+# Incredibly useful for debugging
+```
+
+## How It Actually Works — User vs Kernel
+
+```
+Library function (user space):     System call (kernel space):
+─────────────────────────────      ──────────────────────────
+printf() → formats string         write() → kernel validates,
+  → calls write()                   writes to device
+malloc() → manages heap           brk()/mmap() → kernel maps
+  → calls brk() or mmap()          physical pages
+fopen() → creates FILE struct     open() → kernel creates fd,
+  → calls open()                    checks permissions
+
+C library (glibc/musl) wraps syscalls with buffering,
+error handling, and convenience features.
+```
+
+### Why Not Just Call the Kernel Directly?
+
+```
+1. Portability: Library functions are standardized (POSIX).
+   Syscall numbers/conventions differ between Linux, macOS, BSDs.
+
+2. Buffering: printf/fwrite buffer in user space.
+   Calling write() for every character = massive overhead.
+
+3. Abstraction: malloc manages a heap with free lists.
+   Calling mmap for every allocation = wasteful (min 4KB page).
+```
+
+## Why It Matters
+
+- System calls are the ONLY way user programs interact with the OS kernel.
+- Every performance-sensitive application must minimize syscalls (batch I/O, buffer data).
+- strace is one of the most powerful debugging tools — it shows exactly what your program asks the OS to do.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/system-calls"
+  questions={[
+    {q: "Why is a system call slower than a regular function call?", options: ["The kernel is slow", "System calls require a CPU privilege transition (user→kernel mode), which involves saving/restoring registers, switching stacks, flushing pipeline state, and validating arguments — overhead of ~100-1000 nanoseconds vs ~1ns for a function call", "System calls do more work", "The OS adds delays intentionally"], answer: 1, explanation: "A regular function call: push return address, jump. ~1 nanosecond. A system call: (1) save all user registers, (2) switch to kernel stack, (3) change privilege level (ring 3→0), (4) look up handler in syscall table, (5) validate arguments (security!), (6) execute, (7) restore registers, (8) switch back to user mode. That's 100-1000ns. This is why buffered I/O exists — printf accumulates output and calls write() once instead of per-character."},
+    {q: "Why is strace so useful for debugging?", options: ["It's faster than gdb", "strace shows every system call a program makes — revealing file access patterns, network connections, memory allocations, and errors without needing source code or recompilation", "It fixes bugs automatically", "It only works on Linux"], answer: 1, explanation: "strace intercepts all syscalls using ptrace. You can see: which files a program opens (and if it fails — permission denied? file not found?), what data it reads/writes, what network connections it makes, how much memory it allocates. No source code needed — works on any binary. Common use: 'my program hangs' → strace shows it's stuck on read() from a socket (server not responding). Invaluable for debugging."},
+    {q: "Why does printf buffer output in user space?", options: ["To save memory", "Calling the write() system call for every character would require a user→kernel transition each time (~1000ns), destroying performance. Buffering accumulates output and writes it in one syscall, amortizing the transition cost across many characters", "The kernel requires it", "It prevents data loss"], answer: 1, explanation: "Printing 'hello world' character by character: 11 system calls × ~1000ns = 11μs. Buffered: 1 system call with 11 bytes = ~1μs. 11× faster. For programs printing thousands of lines, the difference is enormous. stdio buffers are typically 8KB — flushed when full, on newline (line buffering for terminals), or on fflush(). This is why redirected output sometimes appears in different order than terminal output (different flush triggers)."}
+  ]}
+/>
+
+## What's Next
+
+Congratulations! You've completed the **Operating Systems** module. You understand processes, scheduling, synchronization, deadlocks, IPC, virtual memory, file systems, I/O scheduling, and system calls. Next module: <ConceptLink to="dbms/what-is-dbms" label="Database Management Systems" /> — where we explore how data is stored, queried, and protected at scale.

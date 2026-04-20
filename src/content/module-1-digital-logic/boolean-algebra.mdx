@@ -1,0 +1,187 @@
+{/* Lesson 1.2 — Boolean Algebra */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/what-is-information"]} />
+
+## Hook — The Math Behind Every Computer Decision
+
+Every time your phone checks "is the battery low AND is power saver off?", every time a website checks "is the user logged in OR is this page public?", every time a game checks "is the player NOT invincible?" — it's using **Boolean algebra**. This is the mathematical system that governs all digital logic. It was invented in 1854 by George Boole, over 80 years before the first electronic computer.
+
+## What Is Boolean Algebra?
+
+**Boolean algebra** is a branch of mathematics where variables can only have two values: **true** (1) or **false** (0). Instead of addition and multiplication on numbers, Boolean algebra has three fundamental operations:
+
+### The Three Core Operations
+
+**1. AND (conjunction) — written as A · B or A ∧ B**
+
+AND outputs 1 **only** when **both** inputs are 1. Think of it as a strict requirement — both conditions must be true.
+
+```
+A · B = 1 only when A = 1 AND B = 1
+
+Truth Table:
+A | B | A AND B
+--|---|--------
+0 | 0 |   0
+0 | 1 |   0
+1 | 0 |   0
+1 | 1 |   1
+```
+
+**Real-world analogy**: Two switches in series. Current flows only if **both** switches are on.
+
+**2. OR (disjunction) — written as A + B or A ∨ B**
+
+OR outputs 1 when **at least one** input is 1. It's the inclusive "or" — either, or both.
+
+```
+A + B = 1 when A = 1 OR B = 1 (or both)
+
+Truth Table:
+A | B | A OR B
+--|---|-------
+0 | 0 |   0
+0 | 1 |   1
+1 | 0 |   1
+1 | 1 |   1
+```
+
+**Real-world analogy**: Two switches in parallel. Current flows if **either** switch is on.
+
+**3. NOT (negation) — written as A̅ or ¬A or A'**
+
+NOT flips the value. 0 becomes 1, 1 becomes 0.
+
+```
+NOT A:
+A | NOT A
+--|------
+0 |   1
+1 |   0
+```
+
+**Real-world analogy**: A normally-closed switch. When you press it, it turns off.
+
+## See It Work — Building Complex Expressions
+
+With just AND, OR, and NOT, we can express any logical condition. Let's build some real expressions:
+
+### Example 1: Alarm System
+
+An alarm should trigger if: the system is armed AND (a door is open OR a window is open).
+
+```
+ALARM = ARMED · (DOOR + WINDOW)
+
+Test cases:
+ARMED=0, DOOR=1, WINDOW=0 → 0·(1+0) = 0·1 = 0  (no alarm — not armed)
+ARMED=1, DOOR=0, WINDOW=0 → 1·(0+0) = 1·0 = 0  (no alarm — nothing open)
+ARMED=1, DOOR=1, WINDOW=0 → 1·(1+0) = 1·1 = 1  (ALARM!)
+ARMED=1, DOOR=0, WINDOW=1 → 1·(0+1) = 1·1 = 1  (ALARM!)
+```
+
+### Example 2: XOR (Exclusive OR)
+
+Sometimes we need "one or the other, but not both." This is called XOR:
+
+```
+A XOR B = A·B̅ + A̅·B
+
+A | B | A XOR B
+--|---|--------
+0 | 0 |   0
+0 | 1 |   1
+1 | 0 |   1
+1 | 1 |   0     ← differs from regular OR
+```
+
+XOR is essential in computing — it's used in addition circuits, error detection, and encryption.
+
+## How It Actually Works — The Laws of Boolean Algebra
+
+Boolean algebra has laws that let us simplify complex expressions, just as regular algebra has laws for simplifying numerical expressions.
+
+### Fundamental Laws
+
+```
+Identity:       A + 0 = A          A · 1 = A
+Null:           A + 1 = 1          A · 0 = 0
+Idempotent:     A + A = A          A · A = A
+Complement:     A + A̅ = 1          A · A̅ = 0
+Involution:     (A̅)̅ = A             (double NOT cancels out)
+```
+
+### Commutative, Associative, Distributive
+
+```
+Commutative:    A + B = B + A          A · B = B · A
+Associative:    (A+B)+C = A+(B+C)      (A·B)·C = A·(B·C)
+Distributive:   A·(B+C) = A·B + A·C   A+(B·C) = (A+B)·(A+C)
+```
+
+Notice the second distributive law! In regular algebra, A+(B×C) ≠ (A+B)×(A+C). But in Boolean algebra, **both** forms of distribution work. This is unique and very useful.
+
+### De Morgan's Laws — The Most Important Simplification Tool
+
+**De Morgan's Laws** let you convert between AND and OR by flipping everything:
+
+```
+Law 1:  (A · B)̅ = A̅ + B̅     "NOT (A AND B) = (NOT A) OR (NOT B)"
+Law 2:  (A + B)̅ = A̅ · B̅     "NOT (A OR B) = (NOT A) AND (NOT B)"
+```
+
+**In plain English**:
+- "It's NOT the case that both A AND B are true" is the same as "either A is false OR B is false."
+- "It's NOT the case that A OR B is true" is the same as "A is false AND B is false."
+
+### Simplification Example
+
+Let's simplify: F = A·B + A·B̅
+
+```
+F = A·B + A·B̅
+  = A · (B + B̅)     ← Factor out A (distributive law)
+  = A · 1            ← Complement law: B + B̅ = 1
+  = A                ← Identity law: A · 1 = A
+```
+
+The complex expression F = A·B + A·B̅ simplifies to just F = A. This means the output depends only on A, regardless of B.
+
+### Another Example: Simplify F = (A+B)·(A+B̅)
+
+```
+F = (A+B)·(A+B̅)
+  = A·A + A·B̅ + B·A + B·B̅     ← Expand (FOIL)
+  = A + A·B̅ + A·B + 0          ← A·A = A, B·B̅ = 0
+  = A + A·(B̅ + B)               ← Factor
+  = A + A·1                     ← Complement
+  = A + A                       ← Identity
+  = A                           ← Idempotent
+```
+
+## Why It Matters
+
+Boolean algebra is the **mathematical foundation** of all digital systems:
+
+- **Circuit design**: Every logic gate implements a Boolean operation. Complex circuits are designed by writing and simplifying Boolean expressions.
+- **Programming**: Every `if` statement, `while` loop condition, and `&&`/`||` operator is Boolean algebra.
+- **Database queries**: SQL `WHERE` clauses combine conditions with AND, OR, NOT.
+- **Search engines**: Boolean search ("cats AND dogs NOT fish") filters results using Boolean logic.
+- **CPU optimization**: Simplifying Boolean expressions means fewer gates, less power, faster circuits.
+
+In the next lesson, we'll see how these abstract operations become physical reality — as **logic gates** built from transistors.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/boolean-algebra"
+  questions={[
+    {q: "What does De Morgan's Law state about (A · B)̅?", options: ["A̅ · B̅", "A̅ + B̅", "A + B", "A · B"], answer: 1, explanation: "De Morgan's first law: the complement of an AND is the OR of the complements. (A · B)̅ = A̅ + B̅. To negate an AND expression, negate each variable and change AND to OR."},
+    {q: "Simplify: A + A·B", options: ["A·B", "A + B", "A", "B"], answer: 2, explanation: "A + A·B = A·(1 + B) = A·1 = A by using the distributive law to factor out A, then the null law (1+B = 1), then the identity law (A·1 = A). This is called the absorption law."},
+    {q: "What makes Boolean algebra different from regular algebra?", options: ["Variables can be any number", "Variables can only be 0 or 1, and both distributive law forms work", "It doesn't have any laws", "It only uses multiplication"], answer: 1, explanation: "Boolean algebra restricts variables to exactly two values (0 and 1). Additionally, unlike regular algebra, both forms of the distributive law hold: A+(B·C) = (A+B)·(A+C) is valid in Boolean algebra but NOT in regular algebra."}
+  ]}
+/>
+
+## What's Next
+
+Boolean algebra gives us the math, but how do we build physical devices that actually compute AND, OR, and NOT? The answer is **logic gates** — tiny circuits made from transistors. Next: <ConceptLink to="digital-logic/logic-gates" label="Logic Gates" />.

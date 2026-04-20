@@ -1,0 +1,158 @@
+{/* Lesson 3.6 — Stacks */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/recursion"]} />
+
+## Hook — Last In, First Out
+
+Think of a stack of plates: you add plates to the top and remove them from the top. You can't pull a plate from the middle. This **Last-In, First-Out (LIFO)** principle is exactly how the **stack** data structure works — and it's already been running behind the scenes in every program you've written (the call stack!).
+
+## What Is a Stack?
+
+A **stack** is an abstract data structure with two primary operations:
+
+- **push(item)**: Add an item to the top.
+- **pop()**: Remove and return the top item.
+- **peek()** / **top()**: Look at the top item without removing it.
+- **isEmpty()**: Check if the stack is empty.
+
+```
+push(10)  push(20)  push(30)  pop()    pop()
+                    
+   │  │    │  │     │30│     │  │     │  │
+   │  │    │20│     │20│     │20│     │  │
+   │10│    │10│     │10│     │10│     │10│
+   └──┘    └──┘     └──┘     └──┘     └──┘
+                              → 30     → 20
+```
+
+**All operations are O(1)** — constant time regardless of stack size.
+
+## See It Work — Implementing a Stack
+
+### Array-Based Stack
+
+```c
+#define MAX_SIZE 100
+
+typedef struct {
+    int data[MAX_SIZE];
+    int top;  // index of the top element (-1 if empty)
+} Stack;
+
+void init(Stack *s) { s->top = -1; }
+int isEmpty(Stack *s) { return s->top == -1; }
+int isFull(Stack *s) { return s->top == MAX_SIZE - 1; }
+
+void push(Stack *s, int value) {
+    if (isFull(s)) { printf("Stack overflow!\n"); return; }
+    s->data[++(s->top)] = value;
+}
+
+int pop(Stack *s) {
+    if (isEmpty(s)) { printf("Stack underflow!\n"); return -1; }
+    return s->data[(s->top)--];
+}
+
+int peek(Stack *s) {
+    if (isEmpty(s)) { printf("Stack empty!\n"); return -1; }
+    return s->data[s->top];
+}
+```
+
+### Real-World Applications
+
+**1. Expression Evaluation — Matching Parentheses**
+
+```
+Input: "({[]})"
+
+Process:
+  '(' → push    Stack: [(]
+  '{' → push    Stack: [(, {]
+  '[' → push    Stack: [(, {, []
+  ']' → pop '[' matches ']' ✓    Stack: [(, {]
+  '}' → pop '{' matches '}' ✓    Stack: [(]
+  ')' → pop '(' matches ')' ✓    Stack: []
+  
+  Stack empty → BALANCED! ✓
+```
+
+**2. Undo/Redo**
+
+```
+User actions → pushed to Undo stack:
+  Type "H"    Undo: [H]         Redo: []
+  Type "i"    Undo: [H, i]      Redo: []
+  Undo        Undo: [H]         Redo: [i]
+  Undo        Undo: []          Redo: [i, H]
+  Redo        Undo: [H]         Redo: [i]
+```
+
+**3. Function Call Stack (you already know this!)**
+
+```c
+void c() { /* ... */ }
+void b() { c(); }
+void a() { b(); }
+int main() { a(); }
+
+Call stack:
+main() → push a() → push b() → push c()
+c() returns → pop → b() returns → pop → a() returns → pop → main()
+```
+
+**4. Infix to Postfix Conversion**
+
+```
+Infix:    3 + 4 * 2
+Postfix:  3 4 2 * +
+
+Why? Postfix eliminates parentheses and makes evaluation trivial with a stack:
+  Read 3: push 3         Stack: [3]
+  Read 4: push 4         Stack: [3, 4]
+  Read 2: push 2         Stack: [3, 4, 2]
+  Read *: pop 2,4 → 8    Stack: [3, 8]
+  Read +: pop 8,3 → 11   Stack: [11]
+  Result: 11
+```
+
+## How It Actually Works — DFS with a Stack
+
+**Depth-First Search** uses a stack (explicitly or via recursion):
+
+```
+Graph:  A → B → D
+        A → C → E
+
+Explicit stack DFS:
+  Push A           Stack: [A]
+  Pop A, visit A   Stack: []  Push neighbors C, B
+  Pop B, visit B   Stack: [C]  Push neighbor D
+  Pop D, visit D   Stack: [C]  No unvisited neighbors
+  Pop C, visit C   Stack: []  Push neighbor E
+  Pop E, visit E   Stack: []
+  
+  Visit order: A, B, D, C, E (depth-first!)
+```
+
+## Why It Matters
+
+- The **call stack** is the most important stack in computing — it manages function calls, local variables, and return addresses.
+- **Stack overflow** (too many recursive calls) is a common runtime error.
+- Compilers use stacks for expression parsing and evaluation.
+- Browser history, undo systems, and backtracking algorithms all use stacks.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/stacks"
+  questions={[
+    {q: "What is the time complexity of push and pop operations on a stack?", options: ["O(n)", "O(log n)", "O(1) — both operations only access the top element, regardless of stack size", "O(n²)"], answer: 2, explanation: "Push adds to the top (increment pointer, write value). Pop removes from the top (read value, decrement pointer). Neither operation needs to look at or move any other elements. The stack could hold a million items and push/pop still take the same constant time."},
+    {q: "How is a stack used for matching parentheses?", options: ["It counts parentheses", "Push each opening bracket; on closing bracket, pop and check if it matches. If the stack is empty at the end with all matches, the expression is balanced.", "It stores the expression", "It replaces parentheses"], answer: 1, explanation: "When you see '(' or '{' or '[', push it. When you see ')', pop and verify it matches '('. If you try to pop from an empty stack (extra closing bracket) or the stack isn't empty at the end (extra opening bracket), the expression is unbalanced. The stack's LIFO nature ensures inner brackets are matched first."},
+    {q: "What is the relationship between recursion and stacks?", options: ["They're unrelated", "Every recursive function implicitly uses the call stack; any recursion can be converted to an iterative solution using an explicit stack", "Stacks are faster than recursion", "Recursion doesn't use memory"], answer: 1, explanation: "Each recursive call pushes a new frame onto the call stack. Converting recursion to iteration typically involves creating an explicit stack data structure that does what the call stack was doing — storing the state needed for each level. DFS, tree traversals, and backtracking can all be expressed either recursively or with an explicit stack."}
+  ]}
+/>
+
+## What's Next
+
+If stacks are LIFO (last in, first out), what about the opposite? **Queues** are FIFO (first in, first out) — like a line at a store. Next: <ConceptLink to="prog-ds/queues" label="Queues" />.

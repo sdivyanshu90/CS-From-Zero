@@ -1,0 +1,149 @@
+{/* Lesson 3.8 — Linked Lists */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/pointers"]} />
+
+## Hook — Breaking Free from Contiguous Memory
+
+Arrays are great for random access, but inserting or deleting elements in the middle requires shifting everything. What if each element could simply *point* to the next one? Then insertion is just changing a pointer. That's a **linked list** — a chain of nodes connected by pointers, where each node can live anywhere in memory.
+
+## What Is a Linked List?
+
+A **linked list** is a sequence of **nodes**, where each node contains:
+1. **Data** — the value stored
+2. **Pointer(s)** — reference(s) to the next (and possibly previous) node
+
+```
+Singly Linked List:
+ head
+  │
+  ▼
+┌──────┬───┐    ┌──────┬───┐    ┌──────┬──────┐
+│  10  │ ──┼───►│  20  │ ──┼───►│  30  │ NULL │
+└──────┴───┘    └──────┴───┘    └──────┴──────┘
+```
+
+```c
+typedef struct Node {
+    int data;
+    struct Node *next;
+} Node;
+```
+
+### Linked List vs. Array
+
+```
+Operation         Array    Linked List    Why
+─────────         ─────    ───────────    ─────
+Access by index   O(1)     O(n)          Must traverse from head
+Insert at front   O(n)     O(1)          Just change head pointer
+Insert at end     O(1)*    O(n)†         Must find the end
+Insert in middle  O(n)     O(1)‡         Just change pointers
+Delete            O(n)     O(1)‡         Just change pointers
+Memory            Compact  Extra pointer per node
+Cache             Excellent Poor         Nodes scattered in memory
+
+* Amortized for dynamic arrays
+† O(1) if you keep a tail pointer
+‡ O(1) once you have a reference to the position
+```
+
+## See It Work — Operations
+
+### Insertion at Head — O(1)
+
+```c
+Node* insert_front(Node *head, int value) {
+    Node *new_node = malloc(sizeof(Node));
+    new_node->data = value;
+    new_node->next = head;
+    return new_node;  // new_node is the new head
+}
+
+Before: head → [10] → [20] → [30] → NULL
+insert_front(head, 5):
+After:  head → [5] → [10] → [20] → [30] → NULL
+```
+
+### Deletion — O(1) once you have the previous node
+
+```
+Delete node with value 20:
+Before: [10] → [20] → [30] → NULL
+After:  [10] ─────────→ [30] → NULL
+                 ↑
+          [20] freed
+Just change the pointer: prev->next = current->next; free(current);
+```
+
+### Doubly Linked List
+
+Each node has both `next` and `prev` pointers:
+
+```
+NULL ← [10] ⇄ [20] ⇄ [30] → NULL
+
+Advantages: Can traverse backward, delete a node without needing prev reference.
+Disadvantage: Extra pointer per node (more memory).
+```
+
+## How It Actually Works — When to Use Linked Lists
+
+**Use linked lists when:**
+- Frequent insertion/deletion at arbitrary positions
+- Size is unknown and changes often
+- You need to implement stacks, queues, or deques
+
+**Use arrays when:**
+- Frequent random access by index
+- Cache performance matters
+- Size is known or changes rarely
+
+### Common Linked List Patterns
+
+**Reverse a linked list** — classic interview question:
+```c
+Node* reverse(Node *head) {
+    Node *prev = NULL, *current = head, *next = NULL;
+    while (current != NULL) {
+        next = current->next;
+        current->next = prev;
+        prev = current;
+        current = next;
+    }
+    return prev;
+}
+```
+
+**Detect a cycle** — Floyd's tortoise and hare:
+```c
+int has_cycle(Node *head) {
+    Node *slow = head, *fast = head;
+    while (fast != NULL && fast->next != NULL) {
+        slow = slow->next;
+        fast = fast->next->next;
+        if (slow == fast) return 1;  // cycle detected!
+    }
+    return 0;
+}
+```
+
+## Why It Matters
+
+- Linked lists are the foundation for more complex structures: stacks, queues, hash table chains, adjacency lists, and free memory management.
+- Understanding pointers and linked structures is essential for systems programming.
+- Though arrays are preferred in most practical situations (cache performance), linked lists remain important for specific use cases.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/linked-lists"
+  questions={[
+    {q: "Why is random access O(n) in a linked list but O(1) in an array?", options: ["Linked lists are slower hardware", "Linked list nodes aren't contiguous — you must follow pointers from the head, visiting each node sequentially, while arrays calculate addresses directly", "Arrays are newer", "Linked lists have bugs"], answer: 1, explanation: "Array elements are contiguous: address = base + index × size (constant-time math). Linked list nodes are scattered in memory; to reach node i, you must start at the head and follow i pointers. There's no shortcut — you can't compute the address of the nth node without visiting all nodes before it."},
+    {q: "What is Floyd's cycle detection algorithm?", options: ["It sorts a linked list", "Two pointers move at different speeds (slow: 1 step, fast: 2 steps); if they meet, there's a cycle — runs in O(n) time and O(1) space", "It reverses a linked list", "It finds the middle node"], answer: 1, explanation: "The slow pointer moves one node per step, the fast pointer moves two. If there's no cycle, the fast pointer reaches NULL. If there's a cycle, the fast pointer eventually 'laps' the slow pointer and they meet inside the cycle. This uses O(1) extra space (just two pointers) and O(n) time."},
+    {q: "Why are linked lists poor for cache performance?", options: ["They use too much memory", "Nodes are allocated at arbitrary heap locations, so consecutive accesses jump around in memory, causing cache misses on almost every access", "The CPU can't handle pointers", "Linked lists are too large for cache"], answer: 1, explanation: "Each node is individually malloc'd and can be anywhere in the heap. Traversing the list means jumping to a random memory location each step — each access likely misses the cache. Arrays, being contiguous, load entire cache lines of useful adjacent data. In practice, this makes array traversal 10-100× faster than linked list traversal."}
+  ]}
+/>
+
+## What's Next
+
+Linear structures (arrays, linked lists, stacks, queues) are one-dimensional. Many real-world relationships are hierarchical — file systems, organizational charts, HTML documents. These need **trees**. Next: <ConceptLink to="prog-ds/trees" label="Trees" />.

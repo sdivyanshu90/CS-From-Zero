@@ -1,0 +1,130 @@
+{/* Lesson 6.3 — Parsing */}
+
+<PrerequisiteBadge prerequisites={["compilers/lexical-analysis"]} />
+
+## Hook — Understanding Structure
+
+The lexer gives us tokens. But `x + y * z` could mean `(x+y)*z` or `x+(y*z)`. The **parser** resolves this ambiguity by building a **parse tree** (or **abstract syntax tree**) according to the grammar rules. Parsing is the heart of the compiler's front end.
+
+## Top-Down Parsing — LL Parsers
+
+Start from the start symbol, try to derive the input string. **Predictive parsing** uses the next token to decide which production to apply.
+
+### Recursive Descent (Hand-Written)
+
+```c
+// Grammar: E → T (('+' | '-') T)*
+//          T → F (('*' | '/') F)*
+//          F → '(' E ')' | NUM | ID
+
+ASTNode* parse_expr() {
+    ASTNode *left = parse_term();
+    while (token == PLUS || token == MINUS) {
+        char op = token;
+        advance();
+        ASTNode *right = parse_term();
+        left = make_binop(op, left, right);
+    }
+    return left;
+}
+
+ASTNode* parse_term() {
+    ASTNode *left = parse_factor();
+    while (token == STAR || token == SLASH) {
+        char op = token;
+        advance();
+        ASTNode *right = parse_factor();
+        left = make_binop(op, left, right);
+    }
+    return left;
+}
+```
+
+Recursive descent naturally encodes **operator precedence**: `parse_expr` calls `parse_term` calls `parse_factor` — deeper = tighter binding.
+
+### LL(1) Parsing
+
+```
+LL(1): Left-to-right scan, Leftmost derivation, 1 token lookahead
+
+FIRST sets: Which tokens can a production start with?
+FOLLOW sets: Which tokens can follow a non-terminal?
+
+Parse table: [non-terminal][token] → production to use
+If any cell has multiple entries → NOT LL(1), grammar needs refactoring.
+```
+
+## Bottom-Up Parsing — LR Parsers
+
+Start from tokens, reduce to the start symbol. More powerful than LL.
+
+```
+Input: id + id * id
+
+Stack          Input              Action
+─────          ─────              ──────
+               id + id * id $     shift id
+id             + id * id $        reduce F → id
+F              + id * id $        reduce T → F
+T              + id * id $        reduce E → T
+E              + id * id $        shift +
+E +            id * id $          shift id
+E + id         * id $             reduce F → id
+E + F          * id $             reduce T → F
+E + T          * id $             shift * (not reduce! precedence)
+E + T *        id $               shift id
+E + T * id     $                  reduce F → id
+E + T * F      $                  reduce T → T * F
+E + T          $                  reduce E → E + T
+E              $                  ACCEPT ✓
+```
+
+### LR Parser Variants
+
+```
+Parser    States    Power        Usage
+──────    ──────    ─────        ─────
+LR(0)     Small     Weak         Theoretical
+SLR(1)    Small     Medium       Simple cases
+LALR(1)   Medium    Strong       Yacc/Bison (most common!)
+LR(1)     Large     Strongest    Theory, rarely used directly
+```
+
+## How It Actually Works — AST vs Parse Tree
+
+```
+Parse Tree (concrete):        AST (abstract):
+       E                          +
+      /|\                        / \
+     E + T                     id   *
+     |  /|\                        / \
+     T T * F                     id   id
+     |  |   |
+     F  F  id
+     |  |
+    id  id
+
+AST drops unnecessary tokens (parentheses, intermediate nodes).
+Compilers work with ASTs, not parse trees.
+```
+
+## Why It Matters
+
+- Every programming language needs a parser. Understanding parsing helps you design languages and debug syntax errors.
+- Recursive descent is used by GCC, Clang, Go, TypeScript, and V8.
+- LR parsers (via Yacc/Bison) are used in Ruby (CRuby), PHP, and PostgreSQL's SQL parser.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="compilers/parsing"
+  questions={[
+    {q: "Why is bottom-up (LR) parsing more powerful than top-down (LL)?", options: ["LR is faster", "LR parsers can handle left-recursive grammars and have more information when deciding which production to use (they see the entire right-hand side before reducing), while LL parsers must decide with only the first token", "LR uses less memory", "LL can't handle any grammars"], answer: 1, explanation: "LL parsers must choose a production seeing only the FIRST token of what it will derive. LR parsers wait until they've seen the entire right-hand side before deciding which production to reduce. This deferred decision-making lets LR handle left recursion (E → E+T) and more ambiguous situations. LL requires grammar transformations (left-factoring, removing left recursion) that LR doesn't need."},
+    {q: "How does a recursive descent parser encode operator precedence?", options: ["With a precedence table", "Through the call hierarchy — lower-precedence operators are parsed at higher levels (parse_expr for +,-) that call functions for higher-precedence operators (parse_term for *,/) which call parse_factor for atoms", "It doesn't handle precedence", "Through the lexer"], answer: 1, explanation: "In recursive descent, parse_expr handles + and -. It calls parse_term for each operand. parse_term handles * and /, calling parse_factor for each operand. Since * is handled deeper in the recursion, it binds tighter. The grammar structure mirrors the precedence hierarchy. To add a new precedence level, insert a new function between existing ones."},
+    {q: "Why do compilers use ASTs instead of parse trees?", options: ["ASTs are prettier", "ASTs drop syntactic sugar (parentheses, semicolons, intermediate grammar nodes) keeping only semantically meaningful structure — this simplifies all subsequent compiler phases", "Parse trees are too small", "ASTs are required by theory"], answer: 1, explanation: "A parse tree has nodes for every grammar rule applied, including ones that carry no semantic meaning (like the E→T rule when there's no addition). An AST keeps only meaningful nodes: operators, operands, control flow. This makes type checking, optimization, and code generation simpler — they work on a clean tree without navigating through meaningless intermediate nodes."}
+  ]}
+/>
+
+## What's Next
+
+Parsing gives us structure. **Syntax-Directed Translation** attaches meaning (semantic actions) to grammar rules. Next: <ConceptLink to="compilers/syntax-directed" label="Syntax-Directed Translation" />.

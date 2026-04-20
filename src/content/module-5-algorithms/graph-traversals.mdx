@@ -1,0 +1,160 @@
+{/* Lesson 4.8 — Graph Traversals */}
+
+<PrerequisiteBadge prerequisites={["algorithms/greedy"]} />
+
+## Hook — Exploring Every Corner
+
+How does Google Maps find a route? How does a web crawler visit every page? How does a social network suggest "people you may know"? All these start with **graph traversal** — systematically visiting every vertex and edge. BFS and DFS are the two fundamental traversal strategies, and nearly every graph algorithm builds on them.
+
+## BFS — Breadth-First Search
+
+Explore all neighbors before going deeper. Uses a **queue** (FIFO):
+
+```c
+void bfs(int graph[][MAX], int n, int start) {
+    int visited[MAX] = {0};
+    int queue[MAX], front = 0, rear = 0;
+    
+    visited[start] = 1;
+    queue[rear++] = start;
+    
+    while (front < rear) {
+        int v = queue[front++];
+        printf("%d ", v);
+        
+        for (int u = 0; u < n; u++) {
+            if (graph[v][u] && !visited[u]) {
+                visited[u] = 1;
+                queue[rear++] = u;
+            }
+        }
+    }
+}
+```
+
+```
+        A
+       / \
+      B   C
+     / \   \
+    D   E   F
+
+BFS from A: A → B, C → D, E, F (level by level)
+Queue trace: [A] → [B,C] → [C,D,E] → [D,E,F] → [E,F] → [F] → []
+```
+
+### BFS Properties
+
+- **Shortest path** in unweighted graphs (fewest edges)
+- **Time**: O(V + E) — visits every vertex and edge once
+- **Space**: O(V) — queue can hold up to V vertices
+- Explores in "expanding rings" from the source
+
+### BFS Applications
+
+```
+Application                What BFS gives you
+───────────                ──────────────────
+Shortest path (unweighted) Number of edges from source to every vertex
+Connected components       Which vertices are reachable from each other
+Bipartite check           Can the graph be 2-colored?
+Level-order tree traversal Visit nodes level by level
+Web crawling              Discover pages by following links
+```
+
+## DFS — Depth-First Search
+
+Go as deep as possible before backtracking. Uses a **stack** (or recursion):
+
+```c
+void dfs(int graph[][MAX], int n, int v, int visited[]) {
+    visited[v] = 1;
+    printf("%d ", v);
+    
+    for (int u = 0; u < n; u++) {
+        if (graph[v][u] && !visited[u]) {
+            dfs(graph, n, u, visited);
+        }
+    }
+}
+```
+
+```
+        A
+       / \
+      B   C
+     / \   \
+    D   E   F
+
+DFS from A: A → B → D → E → C → F (go deep, then backtrack)
+```
+
+### DFS Properties
+
+- **Time**: O(V + E)
+- **Space**: O(V) — recursion stack depth
+- Discovers back edges (cycles) naturally
+
+### DFS Applications
+
+```
+Application              How DFS helps
+───────────              ─────────────
+Cycle detection          Back edge in DFS tree = cycle
+Topological sort         Process nodes in reverse finish order
+Connected components     Each DFS tree is a component
+Strongly connected       Tarjan's or Kosaraju's algorithm
+  components (directed)
+Path finding             Does a path exist from A to B?
+Maze solving             Explore one path completely, backtrack
+```
+
+### Topological Sort via DFS
+
+```
+Process nodes in reverse DFS finish order:
+
+void topo_dfs(int v, int visited[], int stack[], int *top) {
+    visited[v] = 1;
+    for each neighbor u of v:
+        if (!visited[u]) topo_dfs(u, visited, stack, top);
+    stack[(*top)++] = v;  // push to stack after all descendants done
+}
+
+Reverse the stack → topological order
+```
+
+## How It Actually Works — BFS vs. DFS Summary
+
+```
+Property          BFS                 DFS
+────────          ───                 ───
+Data structure    Queue               Stack (recursion)
+Order             Level by level      As deep as possible
+Shortest path     Yes (unweighted)    No
+Cycle detection   Possible            Natural (back edges)
+Space             O(V) — can be wide  O(V) — can be deep
+Topological sort  Kahn's algorithm    Reverse finish order
+```
+
+## Why It Matters
+
+- BFS and DFS are the building blocks of virtually all graph algorithms.
+- BFS finds shortest paths (Dijkstra generalizes BFS for weighted graphs).
+- DFS finds cycles, topological orderings, and strongly connected components.
+- Understanding when to use BFS vs. DFS is a fundamental algorithmic skill.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/graph-traversals"
+  questions={[
+    {q: "Why does BFS find shortest paths in unweighted graphs?", options: ["It's faster than DFS", "BFS explores all vertices at distance d before any vertex at distance d+1, so the first time it reaches a vertex, it has found the shortest path", "It uses a stack", "It sorts the graph"], answer: 1, explanation: "BFS uses a queue, processing vertices in FIFO order. All vertices 1 edge from the source are processed before any vertex 2 edges away. This 'wavefront' expansion guarantees that when BFS first visits a vertex, the path it took has the minimum number of edges. DFS may reach a vertex via a longer path first."},
+    {q: "How does DFS detect cycles in a directed graph?", options: ["By counting edges", "If DFS encounters a vertex that is currently on the recursion stack (a 'back edge'), that vertex was an ancestor in the DFS tree, forming a cycle", "By sorting vertices", "By using BFS"], answer: 1, explanation: "DFS classifies edges into tree edges (to unvisited vertices), back edges (to ancestors on the current stack), forward edges, and cross edges. A back edge connects a vertex to one of its ancestors — meaning you can follow the path from ancestor to descendant and back, forming a cycle. If DFS finds no back edges, the directed graph is acyclic (a DAG)."},
+    {q: "What is the time complexity of both BFS and DFS?", options: ["O(V²)", "O(V + E) — each vertex is visited once and each edge is examined once (twice for undirected)", "O(V × E)", "O(E²)"], answer: 1, explanation: "Each vertex enters the queue/stack exactly once: O(V). Each edge is examined when processing its endpoints: O(E). Together: O(V + E). For adjacency matrix representation, finding all neighbors of a vertex takes O(V), giving O(V²) total. With adjacency lists, it's the optimal O(V + E)."}
+  ]}
+/>
+
+## What's Next
+
+BFS finds shortest paths in unweighted graphs. For weighted graphs with non-negative edges, we need **Dijkstra's algorithm** and for negative edges, **Bellman-Ford**. Next: <ConceptLink to="algorithms/shortest-paths" label="Shortest Path Algorithms" />.

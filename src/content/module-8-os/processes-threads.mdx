@@ -1,0 +1,143 @@
+{/* Lesson 7.2 — Processes & Threads */}
+
+<PrerequisiteBadge prerequisites={["os/what-is-os"]} />
+
+## Hook — Programs in Motion
+
+A program sitting on disk is just bytes. When you run it, the OS creates a **process** — a running instance with its own memory, file handles, and execution state. Modern programs use **threads** to do multiple things simultaneously within the same process. Understanding processes and threads is essential for concurrent programming.
+
+## What Is a Process?
+
+A process is a program in execution. It includes:
+
+```
+Process Control Block (PCB):
+┌─────────────────────────┐
+│ PID: 1234               │ ← unique identifier
+│ State: RUNNING          │ ← current state
+│ PC: 0x00401234          │ ← program counter
+│ Registers: [saved]      │ ← CPU register values
+│ Memory: [page table]    │ ← virtual memory mapping
+│ Open files: [fd 0,1,2]  │ ← file descriptors
+│ Priority: 20            │ ← scheduling priority
+│ Parent PID: 1200        │ ← who created this process
+└─────────────────────────┘
+```
+
+### Process States
+
+```
+         ┌─────────┐
+    ┌────│  NEW     │
+    │    └─────────┘
+    ↓
+┌─────────┐    schedule    ┌─────────┐
+│  READY  │───────────────→│ RUNNING │
+└─────────┘               └─────────┘
+    ↑                      │    │
+    │          preempt     │    │ I/O or
+    │←─────────────────────┘    │ wait
+    │                           ↓
+    │    I/O complete    ┌──────────┐
+    │←───────────────────│ WAITING  │
+    │                    └──────────┘
+    │
+    └────→ TERMINATED
+```
+
+## See It Work — Fork and Exec (Unix)
+
+```c
+#include <unistd.h>
+#include <sys/wait.h>
+
+int main() {
+    pid_t pid = fork();   // Create child process (copy of parent)
+    
+    if (pid == 0) {
+        // Child process
+        execl("/bin/ls", "ls", "-la", NULL);  // Replace with new program
+    } else {
+        // Parent process
+        wait(NULL);  // Wait for child to finish
+        printf("Child done\n");
+    }
+}
+
+// fork() creates a COPY of the process
+// exec() REPLACES the process image with a new program
+// Together: fork+exec = run a new program
+```
+
+## Threads — Lightweight Processes
+
+A **thread** is a unit of execution within a process. Multiple threads share the same address space:
+
+```
+Process:
+┌─────────────────────────────────────┐
+│ Shared: Code, Data, Heap, Files     │
+│                                      │
+│ Thread 1    Thread 2    Thread 3    │
+│ ┌────────┐ ┌────────┐ ┌────────┐  │
+│ │Stack   │ │Stack   │ │Stack   │  │
+│ │PC      │ │PC      │ │PC      │  │
+│ │Registers│ │Registers│ │Registers│ │
+│ └────────┘ └────────┘ └────────┘  │
+└─────────────────────────────────────┘
+
+Each thread has its own: stack, program counter, registers
+Threads share: code, data, heap, file descriptors
+```
+
+### Process vs. Thread
+
+```
+                    Process              Thread
+────────            ────────             ──────
+Memory              Separate             Shared
+Creation cost       High (copy pages)    Low (just stack + PC)
+Communication       IPC (pipes, etc.)    Shared memory (fast!)
+Crash impact        Isolated             Kills entire process
+Context switch      Expensive            Cheap
+```
+
+## How It Actually Works — Thread Models
+
+```
+User-level threads (green threads):
+  Managed by runtime, not OS. Fast creation/switching.
+  But: one blocking syscall blocks ALL threads.
+  Used by: early Java, Go goroutines (M:N model)
+
+Kernel-level threads:
+  Managed by OS. True parallelism on multi-core.
+  But: creation/switching more expensive.
+  Used by: Linux pthreads, Windows threads
+
+M:N model (hybrid):
+  M user threads mapped to N kernel threads.
+  Best of both: cheap creation + true parallelism.
+  Used by: Go runtime, Erlang BEAM
+```
+
+## Why It Matters
+
+- Multi-threaded programming is essential for responsive UIs, servers, and performance.
+- Process isolation is why your browser runs tabs in separate processes — one crash doesn't kill all tabs.
+- Understanding threads explains race conditions, deadlocks, and why concurrent programming is hard.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/processes-threads"
+  questions={[
+    {q: "Why does fork() return different values in parent and child?", options: ["It's random", "fork() returns child's PID to the parent (so it can wait/manage the child) and 0 to the child (so it knows it's the child) — this lets the same code take different paths after forking", "It's a bug", "The OS chooses randomly"], answer: 1, explanation: "After fork(), both parent and child continue from the same instruction. The return value is the ONLY way to distinguish them. Parent gets child's PID (needed for wait(), signal(), etc.). Child gets 0 (it can call getpid() for its own PID, getppid() for parent's). This elegant design lets one code path handle both roles with a simple if/else check."},
+    {q: "Why are threads cheaper than processes?", options: ["Threads are simpler", "Creating a thread only requires allocating a stack and setting up a program counter — threads share code, data, heap, and file descriptors with the parent process, avoiding the expensive memory copying and page table setup that process creation requires", "Threads use less CPU", "Threads don't need an OS"], answer: 1, explanation: "Process creation (fork) must copy or COW-map the entire address space: page tables, file descriptor table, signal handlers, etc. Thread creation just needs a new stack (typically 1-8MB) and register set. Context switching between threads in the same process is also cheaper: no page table switch (same address space), no TLB flush. The tradeoff: shared memory makes synchronization necessary and bugs like data races possible."},
+    {q: "What is the advantage of Go's M:N threading model?", options: ["It's simpler", "Go maps M goroutines (lightweight, ~2KB stack) to N OS threads, getting cheap creation (millions of goroutines) AND true parallelism on multi-core CPUs — the Go runtime handles scheduling without OS overhead per goroutine", "It's faster than C", "It avoids all concurrency bugs"], answer: 1, explanation: "Creating a goroutine costs ~2KB (vs ~1MB for an OS thread). Go's runtime multiplexes millions of goroutines onto a small number of OS threads (typically NumCPU). When a goroutine blocks on I/O, the runtime parks it and runs another on the same OS thread — no OS context switch. For CPU work, goroutines run in parallel across OS threads. This gives the cheap creation of green threads with the true parallelism of kernel threads."}
+  ]}
+/>
+
+## What's Next
+
+Multiple processes and threads need CPU time. How does the OS decide who runs next? Next: <ConceptLink to="os/cpu-scheduling" label="CPU Scheduling" />.

@@ -1,0 +1,111 @@
+{/* Lesson 8.6 — B+ Trees & Indexing */}
+
+<PrerequisiteBadge prerequisites={["dbms/normalization"]} />
+
+## Hook — Finding a Needle in a Billion Rows
+
+A table has 100 million rows. Without an index, finding one row means scanning all 100 million — minutes of I/O. With a B+ tree index, the same lookup takes 3-4 disk reads — milliseconds. **Indexing** is the single most impactful database optimization technique.
+
+## Why B+ Trees?
+
+```
+Binary Search Tree: O(log₂ n) levels.
+  100M rows → ~27 levels → 27 disk reads. Still slow!
+
+B+ Tree: Each node holds hundreds of keys (one disk page).
+  Branching factor ~500.
+  100M rows → log₅₀₀(100M) ≈ 3-4 levels → 3-4 disk reads!
+
+Key insight: Minimize disk I/O, not comparisons.
+Each node = one disk page (4-16 KB).
+```
+
+## See It Work — B+ Tree Structure
+
+```
+Internal nodes: Keys + pointers to children.
+Leaf nodes: Keys + pointers to actual data rows.
+All leaves linked in a doubly-linked list (range queries!).
+
+                    [50 | 100]
+                   /     |     \
+          [10|30|45]  [60|75|90]  [110|130]
+          /  |  |  \   |  |  |    |   |   \
+Leaves: [5,10][12,30][31,45][50,60][61,75][76,90][100,110][111,130]
+         ←→    ←→     ←→    ←→     ←→     ←→      ←→       ←→
+
+Range query: WHERE age BETWEEN 30 AND 75
+  → Find leaf with 30, then follow linked list to 75.
+  → Only reads the needed leaves, not the whole tree.
+```
+
+## How It Actually Works — Index Types
+
+```
+Clustered Index:
+  Table rows physically sorted by the index key.
+  Only ONE per table (data can only be sorted one way).
+  Range queries are blazing fast (sequential I/O).
+  
+  PRIMARY KEY creates a clustered index by default.
+
+Non-Clustered (Secondary) Index:
+  Separate structure pointing to row locations.
+  Multiple per table (index on name, email, etc.).
+  Lookup: index → row pointer → fetch row (extra I/O).
+
+Covering Index:
+  Index contains ALL columns needed by the query.
+  No need to fetch the actual row — answer from index alone!
+  CREATE INDEX idx ON Orders(customer_id) INCLUDE (total, date);
+```
+
+### When Indexes Hurt
+
+```
+Cost of indexes:
+  - Extra disk space (index can be 10-30% of table size)
+  - Slower writes (every INSERT/UPDATE must update all indexes)
+  - Maintenance overhead
+
+Don't index:
+  - Small tables (full scan is faster than index lookup)
+  - Columns with low selectivity (gender: M/F — half the table)
+  - Columns rarely used in WHERE/JOIN/ORDER BY
+  - Tables with heavy write workloads
+```
+
+### Hash Index vs B+ Tree
+
+```
+Hash Index:
+  O(1) exact lookup: WHERE id = 42
+  Cannot do: ranges, sorting, LIKE, partial matches
+  Used: memory-only indexes, hash joins
+
+B+ Tree:
+  O(log n) but supports everything:
+  =, <, >, <=, >=, BETWEEN, ORDER BY, LIKE 'prefix%'
+  Default index type in most databases.
+```
+
+## Why It Matters
+
+- Missing indexes are the #1 cause of slow queries in production databases.
+- Understanding B+ trees explains why some queries are fast and others aren't.
+- Index design is a core DBA skill — adding the right index can make a query 10,000× faster.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/b-plus-indexes"
+  questions={[
+    {q: "Why do databases use B+ trees instead of binary search trees?", options: ["B+ trees are simpler", "B+ trees have a high branching factor (~500 per node) matching disk page size, so 100M rows need only 3-4 disk reads instead of 27 — minimizing I/O, which is the true bottleneck, not CPU comparisons", "Binary trees can't store strings", "B+ trees use less memory"], answer: 1, explanation: "Disk I/O costs ~10ms (HDD) vs ~100ns (CPU comparison). A BST with 100M nodes has height ~27 → 27 disk reads × 10ms = 270ms. A B+ tree with branching factor 500 has height ~3 → 3 disk reads × 10ms = 30ms. The top 2 levels are usually cached in RAM, so it's often just 1 disk read. B+ trees also store keys sorted within nodes, and leaf nodes are linked for efficient range scans — BSTs can't do sequential access efficiently."},
+    {q: "Why can there be only one clustered index per table?", options: ["It's a software limitation", "A clustered index determines the physical sort order of data on disk — rows can only be physically sorted one way. Multiple clustered indexes would require multiple copies of the entire table, each sorted differently", "It uses too much memory", "SQL standard says so"], answer: 1, explanation: "With a clustered index on 'id', rows are stored on disk as: id=1, id=2, id=3, ... A range query (WHERE id BETWEEN 100 AND 200) reads contiguous disk pages — sequential I/O, very fast. If you also wanted rows sorted by 'name', the same rows would need a different physical order — impossible without duplicating the entire table. Secondary indexes solve this: a separate B+ tree with (name → row location) pointers. The extra pointer lookup costs one more I/O per row but allows multiple sort orders."},
+    {q: "When would adding an index make performance WORSE?", options: ["Never", "On tables with heavy write workloads, every INSERT/UPDATE/DELETE must also update all indexes — if a table has many indexes and frequent writes, the index maintenance overhead can outweigh the read performance benefit", "Only on small tables", "Only with hash indexes"], answer: 1, explanation: "Each index on a table adds overhead to writes: INSERT must add entries to every index. UPDATE on an indexed column must update the index. DELETE must remove from every index. A table with 10 indexes means every INSERT does 10 extra writes. For write-heavy tables (logging, event streams), this can make inserts 10× slower. Also, indexes on low-selectivity columns (boolean, status with 3 values) cause the optimizer to scan half the table via index — slower than a sequential full-table scan."}
+  ]}
+/>
+
+## What's Next
+
+How are tables and indexes physically stored on disk? Next: <ConceptLink to="dbms/file-organization" label="File Organization" />.

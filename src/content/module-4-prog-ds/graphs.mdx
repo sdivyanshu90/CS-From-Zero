@@ -1,0 +1,153 @@
+{/* Lesson 3.13 — Graphs */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/hash-tables"]} />
+
+## Hook — Connections Are Everything
+
+Facebook's social network. Google Maps' road network. The internet's web of links. Airline routes. Neural networks. All are **graphs** — structures that model **relationships** between things. Unlike trees (which are hierarchical), graphs can have cycles, multiple paths, and complex interconnections. Graphs are arguably the most powerful and general data structure.
+
+## What Is a Graph?
+
+A **graph** G = (V, E) consists of:
+- **V**: A set of **vertices** (nodes)
+- **E**: A set of **edges** (connections between vertices)
+
+```
+Undirected Graph:        Directed Graph:
+  A --- B                  A → B
+  |   / |                  ↓   ↑
+  |  /  |                  C → D
+  C --- D
+
+Weighted Graph:
+  A --5-- B
+  |       |
+  3       2
+  |       |
+  C --7-- D
+```
+
+### Graph Types
+
+```
+Type          Description                     Example
+────          ───────────                     ───────
+Undirected    Edges go both ways              Facebook friendships
+Directed      Edges have direction            Twitter follows, web links
+Weighted      Edges have costs/distances      Road map with distances
+Unweighted    All edges equal                 Social network connections
+Cyclic        Contains cycles                 Road networks
+Acyclic       No cycles                       Family tree
+DAG           Directed Acyclic Graph          Task dependencies, Git commits
+```
+
+## See It Work — Graph Representations
+
+### Adjacency Matrix
+
+```
+     A  B  C  D
+A  [ 0  1  1  0 ]
+B  [ 1  0  1  1 ]
+C  [ 1  1  0  1 ]
+D  [ 0  1  1  0 ]
+
+matrix[i][j] = 1 if edge exists between i and j
+
+Space: O(V²)
+Check edge exists: O(1) — just look up matrix[i][j]
+Find all neighbors: O(V) — scan entire row
+Good for: Dense graphs (many edges)
+```
+
+### Adjacency List
+
+```
+A: [B, C]
+B: [A, C, D]
+C: [A, B, D]
+D: [B, C]
+
+Each vertex stores a list of its neighbors.
+
+Space: O(V + E)
+Check edge exists: O(degree) — scan neighbor list
+Find all neighbors: O(degree) — just return the list
+Good for: Sparse graphs (few edges relative to V²)
+```
+
+Most real-world graphs are sparse, so adjacency lists are the standard representation.
+
+## How It Actually Works — Graph Traversals
+
+### BFS (Breadth-First Search) — Level by Level
+
+```
+From A:
+Queue: [A]
+Visit A, enqueue neighbors B,C → Queue: [B, C]
+Visit B, enqueue unvisited D   → Queue: [C, D]
+Visit C                        → Queue: [D]
+Visit D                        → Queue: []
+
+Order: A, B, C, D
+Time: O(V + E)
+
+BFS finds shortest paths in unweighted graphs!
+```
+
+### DFS (Depth-First Search) — Go Deep First
+
+```
+From A:
+Stack: [A]
+Visit A, push C,B → Stack: [C, B]
+Visit B, push D   → Stack: [C, D]
+Visit D, push C (already visited) → Stack: [C]
+Visit C           → Stack: []
+
+Order: A, B, D, C
+Time: O(V + E)
+
+DFS is useful for: cycle detection, topological sort, connected components
+```
+
+### Topological Sort (DAGs only)
+
+Order vertices so that every edge goes from earlier to later:
+
+```
+Task dependencies:
+  A → C (A must finish before C)
+  B → C
+  B → D
+  C → E
+  D → E
+
+Topological order: A, B, C, D, E (or A, B, D, C, E)
+Both valid — every edge goes left to right.
+
+Used for: Build systems (Makefile), course prerequisites, task scheduling.
+```
+
+## Why It Matters
+
+- Graphs model **relationships** — the most general type of data structure.
+- Social networks, maps, internet routing, recommendation systems, and compilers all use graphs.
+- Graph algorithms (BFS, DFS, shortest path, minimum spanning tree) solve real-world problems.
+- Understanding graphs is prerequisite to understanding many advanced CS topics.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/graphs"
+  questions={[
+    {q: "When should you use an adjacency matrix vs. an adjacency list?", options: ["Always use a matrix", "Matrix for dense graphs (many edges) because edge lookup is O(1); list for sparse graphs (few edges) because it uses O(V+E) space instead of O(V²)", "Always use a list", "They're identical"], answer: 1, explanation: "An adjacency matrix uses O(V²) space regardless of edges — wasteful for sparse graphs (e.g., a social network where each person knows hundreds out of billions). An adjacency list uses O(V+E) space — much less for sparse graphs. However, the matrix provides O(1) edge lookup, which is useful for dense graphs or when you frequently need to check 'is there an edge between X and Y?'"},
+    {q: "What does BFS guarantee that DFS does not in an unweighted graph?", options: ["BFS is faster", "BFS finds the shortest path (fewest edges) between two nodes because it explores all nodes at distance d before distance d+1", "BFS uses less memory", "DFS can't traverse graphs"], answer: 1, explanation: "BFS uses a queue to explore level by level — all nodes 1 edge away, then 2 edges away, etc. The first time BFS reaches a node, it has found the shortest path (in terms of number of edges). DFS goes deep and may find a longer path first. For weighted graphs, you need Dijkstra's algorithm instead."},
+    {q: "What is a topological sort used for?", options: ["Sorting numbers", "Ordering tasks/nodes in a DAG so that every dependency (edge) points from earlier to later in the sequence — used for build systems, course prerequisites, and task scheduling", "Finding shortest paths", "Detecting cycles"], answer: 1, explanation: "Topological sort produces a linear ordering of vertices where for every directed edge (u, v), u appears before v. This is only possible in a DAG (directed acyclic graph). Real applications: compilation order (file A depends on B, compile B first), course prerequisites, recipe step ordering, spreadsheet cell evaluation order."}
+  ]}
+/>
+
+## What's Next
+
+Binary search trees work great in memory, but databases store billions of records on disk. Disk access is slow, so we need trees with very high branching factor to minimize disk reads. That's the **B-Tree**. Next: <ConceptLink to="prog-ds/b-trees" label="B-Trees" />.

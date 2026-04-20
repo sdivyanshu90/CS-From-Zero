@@ -1,0 +1,174 @@
+{/* Lesson 3.1 — Variables & Types */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/data-representation"]} />
+
+## Hook — Giving Names to Numbers
+
+Without variables, programming would be impossible. You'd have to memorize that memory address `0x7FFF5A2C` holds the user's age and `0x7FFF5A30` holds their score. **Variables** let you write `age` and `score` instead — human-readable names that the compiler translates back to memory addresses. But there's more to it: every variable has a **type** that determines how its bits are interpreted and what operations are valid.
+
+## What Are Variables?
+
+A **variable** is a named storage location in memory. It has four properties:
+
+1. **Name** (identifier): How you refer to it in code (`age`, `total_score`, `isReady`)
+2. **Type**: What kind of data it holds (integer, float, string, boolean)
+3. **Value**: The current data stored in it
+4. **Address**: Where in memory it lives (you usually don't need to know this)
+
+```c
+int age = 25;
+// name: age
+// type: int (32-bit integer)
+// value: 25
+// address: assigned by the compiler (e.g., stack offset -4 from frame pointer)
+```
+
+### Declaration vs. Initialization
+
+```c
+int x;        // Declaration: reserves memory, value is undefined (garbage!)
+int y = 10;   // Declaration + initialization: reserves memory AND sets value
+x = 5;        // Assignment: sets value of already-declared variable
+```
+
+**WARNING**: Using an uninitialized variable is undefined behavior in C/C++. The bits in that memory location are whatever was there before — it could be 0, 42, or -8473629. Always initialize your variables.
+
+## See It Work — Primitive Data Types
+
+### Integer Types
+
+```
+Type              Size      Range                           Use Case
+──────            ────      ─────                           ────────
+char / int8       1 byte    -128 to 127 (or 0-255 unsigned) Characters, small numbers
+short / int16     2 bytes   -32,768 to 32,767               Small counters
+int / int32       4 bytes   -2.1 billion to 2.1 billion     Most integers
+long / int64      8 bytes   ±9.2 × 10¹⁸                    Large numbers, timestamps
+```
+
+**Signed vs. Unsigned**: Signed integers use two's complement (can be negative). Unsigned integers are always non-negative but can hold larger positive values.
+
+```c
+unsigned int u = 4294967295;  // max 32-bit unsigned: 2³² - 1
+int s = 2147483647;           // max 32-bit signed: 2³¹ - 1
+
+// DANGER: unsigned underflow
+unsigned int a = 0;
+a = a - 1;  // Result: 4294967295 (wraps around!)
+```
+
+### Floating-Point Types
+
+```
+float:   4 bytes, ~7 significant digits,   range: ±3.4 × 10³⁸
+double:  8 bytes, ~15 significant digits,  range: ±1.8 × 10³⁰⁸
+```
+
+```c
+float pi = 3.14159f;         // 'f' suffix for float literal
+double precise_pi = 3.141592653589793;
+```
+
+Remember from the data representation lesson: 0.1 + 0.2 ≠ 0.3 in floating-point. Never use `==` to compare floats.
+
+### Boolean Type
+
+```c
+bool isReady = true;   // 1 bit of information, usually stored as 1 byte
+bool isEmpty = false;
+```
+
+### Character Type
+
+```c
+char letter = 'A';     // Stored as ASCII value 65 (01000001 in binary)
+char newline = '\n';   // Escape sequence for newline (ASCII 10)
+```
+
+Characters are just integers with a special interpretation. `'A' + 1 == 'B'` is true because 65 + 1 = 66.
+
+## How It Actually Works — Type Systems
+
+### Static vs. Dynamic Typing
+
+**Static typing** (C, C++, Java, Rust): Types are checked at **compile time**. The compiler catches type errors before the program runs.
+
+```c
+int x = 10;
+x = "hello";  // COMPILE ERROR: can't assign string to int
+```
+
+**Dynamic typing** (Python, JavaScript, Ruby): Types are checked at **runtime**. Variables can change type freely.
+
+```python
+x = 10        # x is an integer
+x = "hello"   # x is now a string — perfectly fine!
+```
+
+**Tradeoffs**:
+- Static: Catches bugs early, enables optimizations, but more verbose.
+- Dynamic: Faster to write, more flexible, but bugs hide until runtime.
+
+### Strong vs. Weak Typing
+
+**Strong typing** (Python, Java): Prevents implicit type conversions that could lose data.
+
+```python
+"5" + 3   # TypeError! Can't add string and int
+```
+
+**Weak typing** (JavaScript, C): Allows implicit conversions.
+
+```javascript
+"5" + 3   // "53" — JavaScript converts 3 to string, concatenates
+"5" - 3   // 2 — JavaScript converts "5" to number, subtracts
+```
+
+### Type Casting
+
+Explicitly converting between types:
+
+```c
+int a = 7, b = 2;
+double result = a / b;          // Result: 3.0 (integer division, then cast)
+double correct = (double)a / b;  // Result: 3.5 (cast first, then divide)
+```
+
+### Memory Layout
+
+```
+int x = 42;        // 4 bytes on stack: 00 00 00 2A (big-endian)
+double y = 3.14;   // 8 bytes on stack: 40 09 1E B8 51 EB 85 1F
+char c = 'A';      // 1 byte on stack: 41
+bool b = true;     // 1 byte on stack: 01
+
+Stack (grows downward):
+Address    Value       Variable
+0x7FFE10   00 00 00 2A  x (int, 4 bytes)
+0x7FFE08   40 09 1E B8  y (double, 8 bytes, first half)
+0x7FFE04   51 EB 85 1F  y (second half)
+0x7FFE03   41           c (char, 1 byte)
+0x7FFE02   01           b (bool, 1 byte)
+```
+
+## Why It Matters
+
+- Types tell the compiler how to interpret bits and what operations are valid.
+- Choosing the right type affects memory usage, performance, and correctness.
+- Type-related bugs (overflow, truncation, loss of precision) are among the most common programming errors.
+- Understanding types helps you interface with hardware, parse binary data, and write correct programs.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/variables-types"
+  questions={[
+    {q: "What happens when you subtract 1 from an unsigned int with value 0?", options: ["You get -1", "You get the maximum unsigned value (wraps around due to unsigned underflow)", "The program crashes", "You get 0"], answer: 1, explanation: "Unsigned integers can't be negative. Subtracting 1 from 0 wraps around to the maximum value (4,294,967,295 for 32-bit unsigned). This is defined behavior in C/C++ but often a bug. It's equivalent to how a car odometer going below 00000 would show 99999."},
+    {q: "Why should you never compare floating-point numbers with ==?", options: ["It's slow", "Floating-point representation has limited precision, so calculations like 0.1 + 0.2 produce 0.30000000000000004, not exactly 0.3", "The == operator doesn't work for floats", "Floats can't be equal"], answer: 1, explanation: "Many decimal fractions (0.1, 0.2, etc.) can't be represented exactly in binary floating-point. Small rounding errors accumulate, making exact equality unreliable. Instead, compare using a tolerance: abs(a - b) < epsilon where epsilon is a small value like 1e-9."},
+    {q: "What is the key difference between static and dynamic typing?", options: ["Static typing is faster", "Static typing checks types at compile time (before running); dynamic typing checks types at runtime (during execution)", "Dynamic typing doesn't use types", "Static typing only works in C"], answer: 1, explanation: "In static typing (C, Java, Rust), the compiler verifies type correctness before the program runs — catching errors early. In dynamic typing (Python, JS), type checking happens during execution — more flexible but errors only appear when the problematic code actually runs."}
+  ]}
+/>
+
+## What's Next
+
+Variables store data, but how do we actually compute and make decisions? We need control flow, functions, and our first complete programs. Next: <ConceptLink to="prog-ds/first-program" label="Your First Program" />.

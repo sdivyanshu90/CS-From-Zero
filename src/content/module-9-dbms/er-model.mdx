@@ -1,0 +1,128 @@
+{/* Lesson 8.2 — ER Model */}
+
+<PrerequisiteBadge prerequisites={["dbms/why-databases"]} />
+
+## Hook — Designing Before Building
+
+You wouldn't build a house without blueprints. Similarly, you don't create a database without a **data model**. The Entity-Relationship (ER) model is the blueprint — a visual way to design your database before writing a single line of SQL.
+
+## Core Concepts
+
+```
+Entity: A "thing" with independent existence.
+  Student, Course, Department
+
+Attribute: A property of an entity.
+  Student: name, id, gpa
+
+Relationship: A connection between entities.
+  Student ENROLLS_IN Course
+
+┌──────────┐    enrolls    ┌──────────┐
+│ Student   │──────────────│ Course   │
+│           │    M : N     │          │
+│ id (PK)   │              │ code (PK)│
+│ name      │              │ title    │
+│ gpa       │              │ credits  │
+└──────────┘              └──────────┘
+```
+
+## See It Work — Cardinalities
+
+```
+One-to-One (1:1):
+  Person ──── Passport
+  Each person has exactly one passport.
+
+One-to-Many (1:N):
+  Department ──── Employee
+  One department has many employees.
+  Each employee belongs to one department.
+
+Many-to-Many (M:N):
+  Student ──── Course
+  Students take many courses.
+  Courses have many students.
+  → Requires a junction/bridge table!
+
+  Student ──── Enrollment ──── Course
+               (student_id, course_id, grade)
+```
+
+### Keys
+
+```
+Primary Key (PK): Uniquely identifies each entity instance.
+  Student.id — no two students share an id.
+
+Foreign Key (FK): References a PK in another table.
+  Enrollment.student_id → Student.id
+  Creates and enforces the relationship.
+
+Candidate Key: Could be PK (unique, not null).
+  Student: id, email — both unique, pick one as PK.
+
+Composite Key: PK made of multiple attributes.
+  Enrollment: (student_id, course_id) together are unique.
+```
+
+## How It Actually Works — ER to Tables
+
+```
+ER Diagram:
+  Department (1) ──has──→ (N) Employee
+
+Tables:
+  CREATE TABLE Department (
+    dept_id   INT PRIMARY KEY,
+    dept_name VARCHAR(100)
+  );
+
+  CREATE TABLE Employee (
+    emp_id    INT PRIMARY KEY,
+    name      VARCHAR(100),
+    dept_id   INT REFERENCES Department(dept_id)  -- FK on "many" side
+  );
+
+Rule: FK goes on the "many" side of 1:N relationships.
+
+M:N relationship → create junction table:
+  CREATE TABLE Enrollment (
+    student_id INT REFERENCES Student(id),
+    course_id  INT REFERENCES Course(code),
+    grade      CHAR(2),
+    PRIMARY KEY (student_id, course_id)
+  );
+```
+
+### Weak Entities
+
+```
+A weak entity can't exist without its owner entity.
+  Room can't exist without Building.
+  Room number is only unique within a building.
+
+Building (1) ═══has═══ (N) Room
+  Room PK: (building_id, room_number)  -- partial key
+```
+
+## Why It Matters
+
+- ER modeling prevents costly redesigns later — get the schema right before coding.
+- Understanding cardinalities determines where foreign keys go.
+- Every database textbook, interview, and real project starts with an ER diagram.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/er-model"
+  questions={[
+    {q: "Why does a Many-to-Many relationship need a junction table?", options: ["It's a convention", "A single foreign key can only reference one row — in M:N, each side references multiple rows on the other side. A junction table with two foreign keys creates individual rows for each pairing, making the relationship queryable and maintainable", "It saves space", "SQL requires it"], answer: 1, explanation: "In a 1:N relationship, the FK on the 'many' side points to one row on the 'one' side — simple. But in M:N: Student 1 takes courses A, B, C. Course A has students 1, 2, 3. You can't put multiple values in one FK column. The junction table (Enrollment) has one row per (student, course) pair. This also lets you store relationship attributes (grade, enrollment date) on the junction table."},
+    {q: "Where does the foreign key go in a 1:N relationship?", options: ["On the 'one' side", "On the 'many' side — each row on the 'many' side has a FK pointing to the one row it's related to on the 'one' side. Putting the FK on the 'one' side would require storing multiple values in one column, violating 1NF", "On both sides", "In a separate table"], answer: 1, explanation: "Department (1) → Employee (N). Each employee belongs to ONE department, so emp.dept_id stores that one value. If instead Department had an employees column, it would need to store [1, 2, 3, ...] — a list, violating First Normal Form (atomic values only). The FK on the 'many' side is always a single scalar value pointing to one PK on the 'one' side."},
+    {q: "What makes an entity 'weak'?", options: ["It has no attributes", "A weak entity cannot be uniquely identified by its own attributes alone — it depends on a strong (owner) entity for identification. Its primary key includes the owner's key plus its own partial key", "It's rarely used", "It has fewer rows"], answer: 1, explanation: "Room 101 in Building A ≠ Room 101 in Building B. 'Room number' alone isn't unique across the database. Room's PK = (building_id, room_number). Without the building, the room concept doesn't exist. The double-line rectangle (═══) and double-line diamond in ER notation indicate weak entities and their identifying relationships. Other examples: OrderItem depends on Order, Dependent depends on Employee."}
+  ]}
+/>
+
+## What's Next
+
+The ER model is conceptual. The **relational model** formalizes it with mathematical rigor. Next: <ConceptLink to="dbms/relational-model" label="Relational Model" />.

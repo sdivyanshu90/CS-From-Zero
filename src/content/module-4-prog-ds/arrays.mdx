@@ -1,0 +1,175 @@
+{/* Lesson 3.3 — Arrays */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/first-program"]} />
+
+## Hook — Your First Data Structure
+
+What if you need to store 1,000 student grades? Creating 1,000 separate variables (`grade1`, `grade2`, ..., `grade1000`) would be insane. **Arrays** solve this: a single variable that holds a collection of values, accessed by index. Arrays are the most fundamental data structure in computing — fast, simple, and the building block for everything else.
+
+## What Is an Array?
+
+An **array** is a contiguous block of memory that stores a fixed number of elements of the same type. Each element is accessed by its **index** (position), starting from 0.
+
+```c
+int grades[5] = {95, 87, 72, 91, 88};
+//  Index:        0   1   2   3   4
+
+printf("%d\n", grades[0]);  // 95 (first element)
+printf("%d\n", grades[4]);  // 88 (last element)
+grades[2] = 78;             // change third element to 78
+```
+
+### Memory Layout
+
+Arrays are stored as consecutive bytes in memory:
+
+```
+grades array (5 ints, 4 bytes each = 20 bytes total):
+
+Address:  0x1000  0x1004  0x1008  0x100C  0x1010
+Value:    [  95  ][  87  ][  72  ][  91  ][  88  ]
+Index:       0       1       2       3       4
+
+Address of grades[i] = base_address + i × sizeof(int)
+grades[3] = 0x1000 + 3 × 4 = 0x100C
+```
+
+This contiguous layout is why array access is **O(1)** — the CPU calculates the exact memory address with one multiplication and one addition.
+
+## See It Work — Array Operations
+
+### Traversal
+
+```c
+// Print all elements
+for (int i = 0; i < 5; i++) {
+    printf("grades[%d] = %d\n", i, grades[i]);
+}
+```
+
+### Linear Search
+
+```c
+int find(int arr[], int size, int target) {
+    for (int i = 0; i < size; i++) {
+        if (arr[i] == target) return i;  // found at index i
+    }
+    return -1;  // not found
+}
+// Time complexity: O(n) — must check each element in worst case
+```
+
+### Insertion and Deletion
+
+```
+Insert 50 at index 2 (must shift elements right):
+Before: [10, 20, 30, 40, 50]
+         ───────── shift right ─→
+After:  [10, 20, 50, 30, 40, 50]
+
+Delete at index 1 (must shift elements left):
+Before: [10, 20, 30, 40, 50]
+         ←─ shift left ─────
+After:  [10, 30, 40, 50, ??]
+```
+
+Insertion and deletion in the middle are **O(n)** because elements must be shifted.
+
+### Common Array Operations — Time Complexity
+
+```
+Operation              Time        Why
+─────────              ────        ─────
+Access by index        O(1)        Direct address calculation
+Search (unsorted)      O(n)        Must check each element
+Search (sorted)        O(log n)    Binary search
+Insert at end          O(1)        If space available
+Insert at beginning    O(n)        Shift all elements right
+Insert in middle       O(n)        Shift elements right
+Delete at end          O(1)        Just reduce size
+Delete at beginning    O(n)        Shift all elements left
+```
+
+## How It Actually Works — Multi-Dimensional Arrays
+
+### 2D Arrays (Matrices)
+
+```c
+int matrix[3][4] = {
+    {1,  2,  3,  4},
+    {5,  6,  7,  8},
+    {9, 10, 11, 12}
+};
+
+printf("%d\n", matrix[1][2]);  // 7 (row 1, column 2)
+```
+
+In memory (row-major order, as in C/C++):
+
+```
+Row 0:    [1] [2] [3] [4]
+Row 1:    [5] [6] [7] [8]
+Row 2:    [9] [10] [11] [12]
+
+Contiguous in memory:
+[1][2][3][4][5][6][7][8][9][10][11][12]
+
+Address of matrix[i][j] = base + (i × num_columns + j) × sizeof(int)
+matrix[1][2] = base + (1 × 4 + 2) × 4 = base + 24
+```
+
+### Dynamic Arrays
+
+Static arrays have fixed size. **Dynamic arrays** (like `std::vector` in C++, `ArrayList` in Java, `list` in Python) can grow:
+
+```
+Strategy: Start with capacity 4. When full, allocate 2× capacity, copy elements.
+
+Operations:  push 1, push 2, push 3, push 4, push 5
+Capacity:    4 → 4 → 4 → 4 → 8 (doubled!)
+             [1][2][3][4] → [1][2][3][4][5][_][_][_]
+
+Amortized time for append: O(1)
+  Most appends are O(1) (just add to end)
+  Occasionally O(n) (need to resize and copy)
+  But doubling means resizes happen exponentially less often
+  Average over n appends: O(n) total → O(1) each
+```
+
+### Why Arrays Are Cache-Friendly
+
+Arrays exploit **spatial locality** perfectly:
+
+```
+Array traversal: [1][2][3][4][5][6][7][8][9]...
+                  ↑ cache line loaded
+                  All 16 ints in this 64-byte cache line are hits!
+
+Linked list traversal: [1]→[7]→[3]→[9]→...
+                        ↑    ↑    ↑ each node might be anywhere in memory
+                        Miss! Miss! Miss!
+```
+
+Sequential array access is 10-100× faster than linked list traversal due to cache behavior.
+
+## Why It Matters
+
+- Arrays are the **most used data structure** in all of programming.
+- Understanding their memory layout explains performance characteristics.
+- Most other data structures (stacks, queues, hash tables, heaps) are often built on top of arrays.
+- Cache-friendliness makes arrays the default choice unless you specifically need fast insertion/deletion.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/arrays"
+  questions={[
+    {q: "Why is array access by index O(1)?", options: ["Because arrays are small", "The CPU calculates the exact memory address using: base_address + index × element_size — no searching needed", "The compiler optimizes it", "Arrays use hash tables internally"], answer: 1, explanation: "Because array elements are contiguous and uniformly sized, the address of any element can be computed directly: base + index × size. This is a constant-time arithmetic operation regardless of array size. No iteration or searching is needed."},
+    {q: "Why is inserting at the beginning of an array O(n)?", options: ["The array must be resized", "All existing elements must be shifted one position to the right to make room, requiring n moves", "The index must be recalculated", "Arrays don't support insertion"], answer: 1, explanation: "To insert at index 0, every element must be moved one position right: element at index n-1 moves to n, element at n-2 moves to n-1, etc. This requires n shift operations. This is the fundamental tradeoff of arrays: fast random access but slow insertion/deletion in the middle."},
+    {q: "What is the amortized time complexity of appending to a dynamic array?", options: ["O(n)", "O(log n)", "O(1) amortized — most appends are O(1), and occasional O(n) resizes become rare enough to average out", "O(n²)"], answer: 2, explanation: "Dynamic arrays double capacity when full. After doubling from size n to 2n, the next n appends are O(1) each. The O(n) copy cost is 'amortized' over those n cheap appends: total work for n appends ≈ 3n → O(1) each on average."}
+  ]}
+/>
+
+## What's Next
+
+Arrays give you fast access but are fixed in size and costly to insert into. What if you need a variable that stores a *memory address* — a reference to another variable? That's a **pointer**, and it's the key to dynamic data structures. Next: <ConceptLink to="prog-ds/pointers" label="Pointers & References" />.

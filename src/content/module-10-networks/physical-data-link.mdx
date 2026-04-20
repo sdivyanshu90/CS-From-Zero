@@ -1,0 +1,101 @@
+{/* Lesson 9.2 — Physical & Data Link Layer */}
+
+<PrerequisiteBadge prerequisites={["networks/global-postal-system"]} />
+
+## Hook — Bits on a Wire
+
+Everything starts with physics. A voltage change on a copper wire. A pulse of light in a fiber optic cable. A radio wave from an antenna. The **physical layer** turns bits into signals, and the **data link layer** ensures those bits arrive correctly across a single hop.
+
+## Physical Layer
+
+```
+Medium           Speed        Distance      Use
+──────           ─────        ────────      ───
+Twisted Pair     1-10 Gbps    100m          LAN (Cat5e/Cat6)
+Coaxial Cable    1 Gbps       Km            Cable TV/internet
+Fiber Optic      100 Gbps+    100+ km       Backbone, data centers
+Wireless (WiFi)  1-10 Gbps    30-100m       LAN
+Cellular (5G)    1-20 Gbps    Km            Mobile
+
+Encoding: How bits become signals.
+  NRZ: 0=low, 1=high (simple but can't detect long runs)
+  Manchester: 0=low→high, 1=high→low (self-clocking)
+  4B/5B: Map 4 data bits to 5-bit codes (never long runs of same)
+```
+
+## Data Link Layer
+
+### Framing
+
+```
+Raw bit stream has no boundaries. How to know where a frame starts/ends?
+
+Ethernet Frame:
+┌──────────┬──────┬──────┬──────┬─────────┬─────┐
+│ Preamble │ Dest │ Src  │ Type │ Payload │ FCS │
+│ 8 bytes  │ MAC  │ MAC  │ 2B   │ 46-1500 │ 4B  │
+│          │ 6B   │ 6B   │      │ bytes   │     │
+└──────────┴──────┴──────┴──────┴─────────┴─────┘
+
+Preamble: Synchronization pattern (10101010...)
+FCS: Frame Check Sequence (CRC-32 checksum)
+MTU: Maximum Transmission Unit = 1500 bytes (Ethernet)
+```
+
+### Error Detection
+
+```
+CRC (Cyclic Redundancy Check):
+  Treat data as polynomial, divide by generator.
+  Remainder = checksum. Append to frame.
+  Receiver divides again — if remainder ≠ 0, error detected.
+  
+  Detects: all single-bit errors, all double-bit errors,
+           any odd number of errors, all burst errors < checksum length.
+
+  CRC-32: 99.99999% detection rate for random errors.
+```
+
+### Multiple Access — Sharing the Wire
+
+```
+How do multiple devices share one communication channel?
+
+ALOHA: Send whenever ready. Collision? Wait random time, retry.
+  Efficiency: ~18% (pure), ~37% (slotted).
+
+CSMA/CD (Ethernet):
+  1. Listen before sending (Carrier Sense)
+  2. If busy, wait. If clear, send.
+  3. Listen while sending (Collision Detection)
+  4. If collision: stop, send jam signal, wait random time (exponential backoff)
+  
+  Not needed for full-duplex switched Ethernet (modern standard).
+
+CSMA/CA (WiFi):
+  Can't detect collisions wirelessly (half-duplex).
+  1. Listen. If clear, wait DIFS + random backoff.
+  2. Send. Wait for ACK from receiver.
+  3. No ACK? Collision assumed → increase backoff, retry.
+```
+
+## Why It Matters
+
+- Understanding L1/L2 explains why WiFi is unreliable (collisions, interference) and Ethernet is reliable.
+- CRC is used everywhere — Ethernet, USB, ZIP files, PNG images — for error detection.
+- MTU understanding prevents fragmentation problems and explains "path MTU discovery."
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/physical-data-link"
+  questions={[
+    {q: "Why does WiFi use CSMA/CA instead of CSMA/CD?", options: ["It's faster", "In wireless networks, a device can't simultaneously send and listen for collisions (the transmitted signal overwhelms the receiver) — so WiFi avoids collisions proactively by waiting a random time before sending and requiring acknowledgments, rather than detecting collisions after they happen", "It's simpler", "WiFi doesn't have collisions"], answer: 1, explanation: "CSMA/CD (Ethernet) transmits and listens simultaneously — if it hears a collision (garbled signal), it stops immediately. Wireless can't do this: the transmitter's signal is millions of times stronger than any received signal at the antenna — it would drown out any collision. Also, the 'hidden terminal problem': A can hear B, C can hear B, but A can't hear C — A and C may transmit simultaneously, colliding at B. CSMA/CA uses ACKs: if no ACK received, assume collision and retry with exponential backoff."},
+    {q: "What is the purpose of the CRC in an Ethernet frame?", options: ["Encryption", "The CRC (Frame Check Sequence) detects transmission errors — the sender computes a checksum over the frame data, and the receiver recomputes it. If they don't match, the frame was corrupted in transit and is silently discarded", "Compression", "Addressing"], answer: 1, explanation: "Electrical interference, crosstalk, and signal degradation can flip bits during transmission. CRC-32 catches these errors with >99.999% probability. Note: CRC detects errors but doesn't correct them — the corrupted frame is simply dropped. Higher layers (TCP) handle retransmission. This is deliberate: most frames arrive intact, so error correction overhead would be wasted. Only error detection is needed at L2 — let TCP handle the rare retransmissions."},
+    {q: "Why is modern Ethernet full-duplex and switch-based?", options: ["It's cheaper", "Full-duplex (simultaneous send/receive) with switches eliminates collisions entirely — each device has a dedicated connection to the switch, so CSMA/CD is unnecessary. This enables every port to use full link bandwidth simultaneously", "It's required by IPv6", "It uses less power"], answer: 1, explanation: "Old Ethernet: shared coaxial cable, half-duplex, CSMA/CD. If 10 devices share a 10 Mbps cable, each effectively gets ~1 Mbps. Modern Ethernet: each device connects to a switch port via dedicated twisted pair. Full-duplex: send and receive simultaneously on separate wire pairs. No shared medium → no collisions → no CSMA/CD needed. A 24-port gigabit switch: each port gets full 1 Gbps. The switch forwards frames only to the destination port (using MAC address table), not to all ports."}
+  ]}
+/>
+
+## What's Next
+
+Devices on the same network use MAC addresses. How does Ethernet actually work? Next: <ConceptLink to="networks/mac-ethernet" label="MAC & Ethernet" />.

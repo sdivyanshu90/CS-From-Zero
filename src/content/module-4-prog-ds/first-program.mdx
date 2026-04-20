@@ -1,0 +1,196 @@
+{/* Lesson 3.2 — Your First Program */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/variables-types"]} />
+
+## Hook — Making the Machine Do Your Bidding
+
+You understand bits, gates, CPUs, and data types. Now it's time to actually **write code** — to give the machine a sequence of instructions and watch it execute. This lesson covers the fundamental building blocks of programming: statements, expressions, control flow, and functions. By the end, you'll understand how every program is structured.
+
+## What Is a Program?
+
+A **program** is a sequence of instructions that tells the computer what to do. At the highest level, a program:
+
+1. Takes **input** (from keyboard, files, network, sensors)
+2. **Processes** the input (calculations, decisions, transformations)
+3. Produces **output** (to screen, files, network, actuators)
+
+```c
+#include <stdio.h>
+
+int main() {
+    // Input
+    int celsius;
+    printf("Enter temperature in Celsius: ");
+    scanf("%d", &celsius);
+    
+    // Process
+    double fahrenheit = celsius * 9.0 / 5.0 + 32.0;
+    
+    // Output
+    printf("%d°C = %.1f°F\n", celsius, fahrenheit);
+    
+    return 0;
+}
+```
+
+### Statements and Expressions
+
+An **expression** produces a value: `2 + 3`, `x * y`, `age >= 18`.
+
+A **statement** performs an action: `int x = 5;`, `printf("hello");`, `return 0;`.
+
+Every expression can be used as a statement (by discarding its value), but not every statement is an expression.
+
+## See It Work — Control Flow
+
+### Sequential Execution
+
+By default, statements execute top-to-bottom, one after another:
+
+```c
+int a = 5;       // executes first
+int b = 10;      // executes second
+int c = a + b;   // executes third (c = 15)
+```
+
+### Conditional Execution (if/else)
+
+Make decisions based on conditions:
+
+```c
+if (temperature > 100) {
+    printf("Water is boiling!\n");
+} else if (temperature > 0) {
+    printf("Water is liquid.\n");
+} else {
+    printf("Water is frozen.\n");
+}
+```
+
+The condition is a Boolean expression. Only ONE branch executes — the first whose condition is true.
+
+### Loops — Repeating Actions
+
+**for loop** — when you know how many iterations:
+```c
+for (int i = 0; i < 10; i++) {
+    printf("%d ", i);  // prints: 0 1 2 3 4 5 6 7 8 9
+}
+// i starts at 0, runs while i < 10, increments i after each iteration
+```
+
+**while loop** — when you don't know how many iterations:
+```c
+int guess;
+while (guess != secret) {
+    printf("Guess the number: ");
+    scanf("%d", &guess);
+}
+printf("Correct!\n");
+```
+
+**do-while loop** — always executes at least once:
+```c
+int choice;
+do {
+    printf("1. Play  2. Quit\n");
+    scanf("%d", &choice);
+} while (choice != 2);
+```
+
+### Loop Control
+
+```c
+for (int i = 0; i < 100; i++) {
+    if (i == 50) break;      // EXIT the loop entirely
+    if (i % 2 == 0) continue; // SKIP to next iteration
+    printf("%d ", i);         // prints odd numbers 1-49
+}
+```
+
+## How It Actually Works — Functions
+
+A **function** is a reusable block of code that takes inputs (parameters), does some work, and optionally returns a result:
+
+```c
+// Function definition
+double calculate_bmi(double weight_kg, double height_m) {
+    return weight_kg / (height_m * height_m);
+}
+
+// Function call
+double my_bmi = calculate_bmi(70.0, 1.75);
+printf("BMI: %.1f\n", my_bmi);  // BMI: 22.9
+```
+
+### Why Functions Matter
+
+1. **Reusability**: Write once, use many times.
+2. **Abstraction**: Call `calculate_bmi()` without knowing the formula.
+3. **Decomposition**: Break complex problems into manageable pieces.
+4. **Testing**: Test each function independently.
+
+### The Call Stack
+
+When a function is called, the CPU:
+
+```
+1. Push return address onto the stack
+2. Push function arguments onto the stack
+3. Allocate space for local variables on the stack
+4. Jump to function code
+5. Execute function body
+6. Push return value to designated register
+7. Deallocate local variables
+8. Pop return address
+9. Jump back to caller
+
+Stack during calculate_bmi(70.0, 1.75):
+┌──────────────────┐
+│ return address    │ ← where to go back
+├──────────────────┤
+│ weight_kg = 70.0  │ ← parameter
+├──────────────────┤
+│ height_m = 1.75   │ ← parameter
+├──────────────────┤
+│ (local variables) │ ← function's scratch space
+└──────────────────┘ ← Stack Pointer (SP)
+```
+
+This is the **call stack** — it grows and shrinks as functions are called and return. Understanding this is key to debugging crashes (stack traces) and understanding recursion.
+
+### Scope and Lifetime
+
+```c
+int global_var = 100;       // Global: visible everywhere, lives entire program
+
+void my_function() {
+    int local_var = 42;     // Local: visible only inside this function
+    static int count = 0;   // Static local: preserves value between calls
+    count++;
+}
+// local_var doesn't exist here — it was destroyed when the function returned
+// count's value persists (1 after first call, 2 after second, etc.)
+```
+
+## Why It Matters
+
+- Every program, from a "hello world" to a web browser, is built from these same building blocks: variables, conditionals, loops, and functions.
+- Understanding control flow is essential for debugging — you need to trace how execution moves through your code.
+- The call stack explains stack overflow errors, recursive behavior, and function call overhead.
+- Good function decomposition is the foundation of maintainable software.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/first-program"
+  questions={[
+    {q: "What is the difference between a 'while' loop and a 'do-while' loop?", options: ["They're identical", "A do-while loop always executes its body at least once, then checks the condition; a while loop checks the condition first and might never execute", "Do-while is faster", "While loops can't use break"], answer: 1, explanation: "A while loop evaluates its condition BEFORE each iteration — if the condition is initially false, the body never executes. A do-while evaluates the condition AFTER each iteration, guaranteeing at least one execution. Use do-while when you always need at least one iteration (e.g., menu display, input validation)."},
+    {q: "What happens on the call stack when a function is called?", options: ["The stack is cleared", "A new stack frame is pushed with the return address, arguments, and local variables; it's popped when the function returns", "Nothing changes", "The function's code is copied to the stack"], answer: 1, explanation: "Each function call creates a new stack frame containing: the return address (where to resume after the call), the function's parameters, and space for its local variables. When the function returns, this frame is popped off, freeing the memory and restoring the caller's context. This is why local variables cease to exist after a function returns."},
+    {q: "Why are functions important in programming?", options: ["They make programs run faster", "They enable code reuse, abstraction, decomposition of complex problems, and independent testing", "They're required by all languages", "They reduce memory usage"], answer: 1, explanation: "Functions are the primary tool for managing complexity. They let you write code once and call it many times (reuse), hide implementation details behind a name (abstraction), break large problems into small pieces (decomposition), and verify each piece works correctly (testing). Good function design is the difference between maintainable and unmaintainable code."}
+  ]}
+/>
+
+## What's Next
+
+Now that we can write programs, we need efficient ways to organize data. The simplest and most fundamental data structure is the **array** — a contiguous block of memory holding elements of the same type. Next: <ConceptLink to="prog-ds/arrays" label="Arrays" />.

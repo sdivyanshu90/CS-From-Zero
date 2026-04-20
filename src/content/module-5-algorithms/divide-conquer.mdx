@@ -1,0 +1,127 @@
+{/* Lesson 4.5 — Divide & Conquer */}
+
+<PrerequisiteBadge prerequisites={["algorithms/searching"]} />
+
+## Hook — Split, Solve, Combine
+
+How do you sort a million numbers? Sort two halves of 500,000, then merge. How do you sort 500,000? Sort two halves of 250,000, then merge. Keep splitting until trivial, then combine. This is **divide and conquer** — the most powerful algorithm design paradigm, behind merge sort, quicksort, binary search, and the Fast Fourier Transform.
+
+## The Three Steps
+
+Every divide and conquer algorithm follows:
+
+1. **Divide**: Split the problem into smaller subproblems of the same type.
+2. **Conquer**: Solve each subproblem recursively (base case: solve directly).
+3. **Combine**: Merge subproblem solutions into the overall solution.
+
+## See It Work — Classic Examples
+
+### Merge Sort
+
+```
+Divide:  [5,3,8,1] → [5,3] and [8,1]
+Conquer: [3,5] and [1,8] (recursively sorted)
+Combine: merge [3,5] and [1,8] → [1,3,5,8]
+```
+
+### Maximum Subarray (Kadane's is better, but D&C illustrates the paradigm)
+
+Find the contiguous subarray with the largest sum:
+
+```
+[-2, 1, -3, 4, -1, 2, 1, -5, 4]
+
+Divide at midpoint:
+  Left:  [-2, 1, -3, 4]
+  Right: [-1, 2, 1, -5, 4]
+  
+Conquer: Best subarray entirely in left, entirely in right
+Combine: Also check subarrays that CROSS the midpoint
+
+The answer could be in the left half, the right half,
+or crossing the middle. Check all three, take the max.
+```
+
+### Closest Pair of Points
+
+Given n points in a plane, find the pair with minimum distance:
+
+```
+Brute force: Check all n(n-1)/2 pairs → O(n²)
+
+Divide and conquer:
+1. Sort points by x-coordinate
+2. Divide into left and right halves
+3. Recursively find closest pair in each half (δ_L, δ_R)
+4. δ = min(δ_L, δ_R)
+5. Check pairs that cross the dividing line (within strip of width 2δ)
+   → Cleverly, only O(n) pairs need checking in the strip!
+
+Time: O(n log n)
+```
+
+## How It Actually Works — The Master Theorem
+
+The recurrence for divide and conquer:
+
+```
+T(n) = aT(n/b) + O(nᵈ)
+
+a = number of subproblems
+b = factor by which input shrinks
+d = exponent of the combine step
+
+Master Theorem:
+If d > log_b(a): T(n) = O(nᵈ)         — combine dominates
+If d = log_b(a): T(n) = O(nᵈ log n)   — balanced
+If d < log_b(a): T(n) = O(n^(log_b a)) — subproblems dominate
+
+Examples:
+Merge sort:  T(n) = 2T(n/2) + O(n) → a=2, b=2, d=1 → d=log₂2=1 → O(n log n)
+Binary search: T(n) = T(n/2) + O(1) → a=1, b=2, d=0 → d=log₂1=0 → O(log n)
+Karatsuba:   T(n) = 3T(n/2) + O(n) → a=3, b=2, d=1 → log₂3≈1.58 > 1 → O(n^1.58)
+```
+
+### Karatsuba Multiplication
+
+Multiply two n-digit numbers faster than O(n²):
+
+```
+Standard multiplication: 1234 × 5678 → O(n²)
+
+Karatsuba insight: Split each number in half:
+  1234 = 12 × 100 + 34
+  5678 = 56 × 100 + 78
+
+  Instead of 4 multiplications (12×56, 12×78, 34×56, 34×78),
+  compute only 3:
+    ac = 12 × 56 = 672
+    bd = 34 × 78 = 2652
+    (a+b)(c+d) = 46 × 134 = 6164
+    ad + bc = 6164 - 672 - 2652 = 2840
+
+  Result = ac×10000 + (ad+bc)×100 + bd = 7006652
+
+  3 subproblems instead of 4 → O(n^1.58) instead of O(n²)
+```
+
+## Why It Matters
+
+- Divide and conquer is behind the most important algorithms: merge sort, quicksort, FFT, matrix multiplication.
+- The Master Theorem lets you instantly determine the complexity of any D&C algorithm.
+- The paradigm teaches you to think about problems recursively — a skill that transfers to many domains.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/divide-conquer"
+  questions={[
+    {q: "What are the three steps of divide and conquer?", options: ["Plan, code, test", "Divide the problem into subproblems, conquer (solve) each recursively, combine the sub-solutions into the overall solution", "Input, process, output", "Sort, search, return"], answer: 1, explanation: "Divide: break the problem into smaller instances of the same problem. Conquer: solve each recursively until reaching the base case. Combine: merge sub-solutions into the solution for the original problem. The key insight is that subproblems must be the SAME type as the original — this enables recursion."},
+    {q: "Using the Master Theorem, what is the complexity of T(n) = 4T(n/2) + O(n)?", options: ["O(n log n)", "O(n²) — since a=4, b=2, d=1: log₂4 = 2 > 1 = d, so T(n) = O(n^(log₂4)) = O(n²)", "O(n)", "O(n³)"], answer: 1, explanation: "a=4 (4 subproblems), b=2 (each half size), d=1 (linear combine). log_b(a) = log₂(4) = 2. Since d=1 < 2=log_b(a), the subproblems dominate, giving T(n) = O(n^(log₂4)) = O(n²). Intuitively, the 4 subproblems create so much work that the linear combine step is negligible."},
+    {q: "Why is Karatsuba multiplication faster than schoolbook multiplication?", options: ["It uses simpler math", "It reduces the number of recursive multiplications from 4 to 3 per level, changing the recurrence from T(n) = 4T(n/2) to T(n) = 3T(n/2), giving O(n^1.58) instead of O(n²)", "It skips some digits", "It rounds numbers"], answer: 1, explanation: "Schoolbook multiplication of two n-digit numbers requires 4 half-size multiplications: ac, ad, bc, bd. Karatsuba's trick computes ad+bc as (a+b)(c+d)-ac-bd, needing only 3 multiplications (ac, bd, (a+b)(c+d)) plus some additions. This changes the recurrence from 4T(n/2) to 3T(n/2), reducing complexity from O(n²) to O(n^log₂3) ≈ O(n^1.585)."}
+  ]}
+/>
+
+## What's Next
+
+Divide and conquer splits problems into independent subproblems. But what if subproblems overlap? Then we're recomputing the same thing over and over. **Dynamic Programming** fixes this by remembering solutions. Next: <ConceptLink to="algorithms/dynamic-programming" label="Dynamic Programming" />.

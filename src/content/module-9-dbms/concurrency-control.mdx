@@ -1,0 +1,109 @@
+{/* Lesson 8.9 — Concurrency Control */}
+
+<PrerequisiteBadge prerequisites={["dbms/transactions"]} />
+
+## Hook — A Thousand Users, One Database
+
+An airline booking system handles thousands of concurrent requests. Two users try to book the last seat at the same time. Without **concurrency control**, both succeed — but there's only one seat. The database must ensure correctness while maximizing throughput.
+
+## Lock-Based Protocols
+
+```
+Shared Lock (S): Multiple txns can read simultaneously.
+Exclusive Lock (X): Only one txn can write. Blocks everyone else.
+
+Compatibility:
+         Requesting
+         S     X
+Held S   ✓     ✗
+     X   ✗     ✗
+
+Two-Phase Locking (2PL):
+  Phase 1 (Growing): Acquire locks, never release.
+  Phase 2 (Shrinking): Release locks, never acquire.
+  
+  Guarantees serializability!
+  But: can cause deadlocks (detect with wait-for graph).
+```
+
+### Lock Granularity
+
+```
+Level          Concurrency   Overhead
+─────          ───────────   ────────
+Database       Lowest        Minimal
+Table          Low           Low
+Page           Medium        Medium
+Row            High          Higher
+Field          Highest       Highest
+
+Most databases: Row-level locking (best balance).
+Intention locks: Indicate locking intent at higher levels
+to avoid checking every row.
+```
+
+## See It Work — MVCC
+
+```
+Multi-Version Concurrency Control:
+  Keep old versions of data. Readers see a snapshot.
+  Writers create new versions. No read-write blocking!
+
+Transaction T1 (started at time 10):
+  Sees data as of time 10 (snapshot).
+
+Transaction T2 (started at time 15):
+  Updates row X → creates new version with timestamp 15.
+  
+T1 still reads old version of X (timestamp < 10).
+T2 reads new version.
+
+No locks for reads! Reads never block writes!
+Used by: PostgreSQL, Oracle, MySQL InnoDB.
+
+PostgreSQL implementation:
+  Each row has xmin (creating txn) and xmax (deleting txn).
+  Visibility check: xmin committed AND (xmax not set OR xmax not committed).
+  Old versions cleaned up by VACUUM.
+```
+
+## How It Actually Works — Deadlock Handling
+
+```
+T1: LOCK(A), wants LOCK(B)
+T2: LOCK(B), wants LOCK(A)
+→ Deadlock!
+
+Detection: Build wait-for graph periodically.
+  If cycle exists → deadlock.
+  
+Resolution: Abort one transaction (the "victim").
+  Choose victim by: youngest txn, least work done, fewest locks.
+  Victim is rolled back, others proceed.
+
+Prevention (alternative):
+  Wait-Die: Older txns wait, younger txns abort and retry.
+  Wound-Wait: Older txns force younger to abort.
+  Timeout: If waiting too long, assume deadlock and abort.
+```
+
+## Why It Matters
+
+- Concurrency control enables thousands of users to share a database without corruption.
+- MVCC is the dominant approach in modern databases — understanding it explains PostgreSQL and MySQL behavior.
+- Deadlock handling is essential for any multi-user application.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/concurrency-control"
+  questions={[
+    {q: "Why is MVCC preferred over pure locking in modern databases?", options: ["It's simpler", "MVCC allows readers to access consistent snapshots without acquiring locks, so reads never block writes and writes never block reads — this dramatically improves concurrency compared to lock-based systems where readers and writers block each other", "It uses less memory", "It's faster for writes"], answer: 1, explanation: "In a lock-based system: T1 reads row X (S-lock) → T2 wants to update X (X-lock) → T2 blocks until T1 finishes. With MVCC: T1 reads the old version of X → T2 creates a new version → both proceed without blocking. The cost: storing multiple versions uses more space, and VACUUM/garbage collection is needed to clean up old versions. PostgreSQL's VACUUM is the main operational challenge of MVCC. But the concurrency benefit is enormous — web applications with many reads and few writes see massive throughput improvements."},
+    {q: "Why does Two-Phase Locking guarantee serializability?", options: ["It prevents all locks", "By enforcing that all lock acquisitions happen before any lock release (growing then shrinking), 2PL ensures that the order in which transactions access data items is consistent — equivalent to some serial execution order", "It uses fewer locks", "It's faster than MVCC"], answer: 1, explanation: "Without 2PL: T1 locks A, unlocks A, then locks B. Between unlock(A) and lock(B), T2 could lock A and see T1's changes to A but not B — inconsistent view. With 2PL: T1 locks A and B (growing phase), then unlocks both (shrinking phase). No window where T2 can see partial results. The growing phase ensures all data is 'captured' before any is released. The lock point (last lock acquired) determines the effective serial order. The price: holding all locks until shrinking phase → reduced concurrency and deadlock risk."},
+    {q: "How does PostgreSQL implement MVCC?", options: ["Using locks", "Each row stores xmin (transaction that created it) and xmax (transaction that deleted/updated it) — a transaction can see a row only if xmin is committed and xmax is either unset or uncommitted, creating consistent snapshots without locks", "Using timestamps", "Using log files"], answer: 1, explanation: "When T1 (txid=100) inserts a row: xmin=100, xmax=null. When T2 (txid=200) updates it: old row gets xmax=200, new row created with xmin=200. T3 (txid=150, started before T2): sees old row (xmin=100 committed, xmax=200 not yet committed from T3's perspective). T4 (txid=250, started after T2 committed): sees new row. The VACUUM process eventually removes old row versions that no active transaction can see. This is why long-running transactions in PostgreSQL cause table bloat — old versions can't be vacuumed."}
+  ]}
+/>
+
+## What's Next
+
+Congratulations! You've completed the **Database Management Systems** module. You understand data modeling, SQL, normalization, indexing, file organization, transactions, and concurrency control. Next module: <ConceptLink to="networks/what-is-network" label="Computer Networks" /> — how computers communicate across the globe.

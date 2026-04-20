@@ -1,0 +1,90 @@
+{/* Lesson 5.3 — The Pumping Lemma */}
+
+<PrerequisiteBadge prerequisites={["theory/regex-finite-automata"]} />
+
+## Hook — Proving the Impossible
+
+You suspect a language isn't regular, but how do you **prove** it? You can't just say "I can't find a DFA" — maybe you didn't try hard enough. The **pumping lemma** is a mathematical tool that lets you rigorously prove a language is NOT regular. It's based on the pigeonhole principle and the structure of finite automata.
+
+## The Pumping Lemma for Regular Languages
+
+**If** L is regular, **then** there exists a pumping length p such that any string s ∈ L with |s| ≥ p can be split into s = xyz where:
+
+1. |xy| ≤ p (x and y are in the first p characters)
+2. |y| > 0 (y is not empty)
+3. For all i ≥ 0, xy^i z ∈ L (pumping y any number of times stays in L)
+
+### Intuition
+
+```
+A DFA with p states processing a string of length ≥ p must revisit a state.
+
+States: q0 → q1 → q2 → q1 → q3 → q4
+                    ↑_____↑
+                    cycle! (y part)
+
+The cycle can be traversed 0, 1, 2, ... times.
+If the string is accepted, all pumped versions must be too.
+
+s = x    y    z
+s = x   yy    z     (pump once)
+s = x  yyy    z     (pump twice)
+s = x         z     (pump zero times)
+All must be in L if L is regular!
+```
+
+## See It Work — Proving aⁿbⁿ Is Not Regular
+
+**Claim**: L = \{aⁿbⁿ | n ≥ 0\} is not regular.
+
+**Proof by contradiction**:
+1. Assume L is regular. Then pumping lemma gives us p.
+2. Choose s = aᵖbᵖ ∈ L (length 2p ≥ p ✓)
+3. s = xyz where |xy| ≤ p and |y| > 0
+4. Since |xy| ≤ p and s starts with p a's, y = aᵏ for some k > 0 (y is all a's)
+5. Pump: xy²z = aᵖ⁺ᵏbᵖ. Since k > 0, this has more a's than b's → NOT in L!
+6. Contradiction! L cannot be regular. ∎
+
+## How It Actually Works — More Examples
+
+### Proving \{ww | w ∈ \{0,1\}*\} Is Not Regular
+
+```
+Assume regular, pumping length p.
+Choose s = 0ᵖ1ᵖ0ᵖ1ᵖ (which is ww where w = 0ᵖ1ᵖ)
+y = 0ᵏ (in first p chars, all 0s)
+Pump: xy²z has extra 0s in the first half → not of form ww
+Contradiction! ∎
+```
+
+### Pumping Lemma for Context-Free Languages
+
+A similar (but more complex) pumping lemma exists for CFLs:
+
+```
+If L is context-free, any long enough string s can be split as
+s = uvxyz where |vxy| ≤ p, |vy| > 0, and uvⁱxyⁱz ∈ L for all i.
+
+This proves \{aⁿbⁿcⁿ\} is NOT context-free!
+```
+
+## Why It Matters
+
+- The pumping lemma is the standard tool for proving languages are not regular (or not context-free).
+- It tells you when you NEED a more powerful computational model.
+- It demonstrates proof by contradiction — a fundamental mathematical technique.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="theory/pumping-lemma"
+  questions={[
+    {q: "What is the key insight behind the pumping lemma?", options: ["Regular languages are small", "A DFA with p states must revisit a state on input of length ≥ p (pigeonhole principle), creating a cycle that can be 'pumped' any number of times while remaining in the language", "Pumping makes strings longer", "It counts characters"], answer: 1, explanation: "A DFA has p states. Processing a string of length ≥ p requires p+1 state visits, so by the pigeonhole principle, some state is visited twice. The input between those two visits (y) forms a cycle. Traversing this cycle 0, 1, 2, ... times must all lead to acceptance if the original string is accepted. If we can find a pump count that leaves the language, the language isn't regular."},
+    {q: "Why do we choose a specific string s when using the pumping lemma?", options: ["Any string works", "We need to choose s strategically so that ANY split xyz (satisfying the constraints) leads to a pumped version outside L — the adversary chooses the split, we choose s", "The lemma tells us which string to use", "We always use the shortest string"], answer: 1, explanation: "The proof is a game: we choose s ∈ L with |s| ≥ p. The 'adversary' (the lemma) chooses any valid split xyz. We must show that for EVERY valid split, some pumped version xy^iz leaves L. Choosing s strategically (like aᵖbᵖ) constrains where y can be, making our job easier. Poor choice of s might not lead to a contradiction."},
+    {q: "Can the pumping lemma prove a language IS regular?", options: ["Yes, if pumping works", "No — the pumping lemma is a necessary condition for regularity, not sufficient. Some non-regular languages satisfy the pumping conditions. It can only prove non-regularity.", "Yes, always", "Only for small languages"], answer: 1, explanation: "The pumping lemma says: IF regular THEN pumpable. The contrapositive is: IF not pumpable THEN not regular. But the converse (IF pumpable THEN regular) is FALSE. Some non-regular languages happen to be pumpable. To prove a language IS regular, you must construct a DFA, NFA, or regex for it. The pumping lemma is a one-way tool."}
+  ]}
+/>
+
+## What's Next
+
+We proved some languages need more than finite automata. **Context-Free Grammars** and **Pushdown Automata** add stack memory, enabling parsing of programming languages. Next: <ConceptLink to="theory/cfg-pda" label="Context-Free Grammars & PDAs" />.

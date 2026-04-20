@@ -1,0 +1,121 @@
+{/* Lesson 8.8 — Transactions */}
+
+<PrerequisiteBadge prerequisites={["dbms/file-organization"]} />
+
+## Hook — All or Nothing
+
+You're transferring $500 between bank accounts. The debit goes through. Then the system crashes. Without **transactions**, that $500 is gone forever. Transactions wrap multiple operations into an atomic unit — either everything succeeds or everything is rolled back as if nothing happened.
+
+## Transaction Lifecycle
+
+```sql
+BEGIN TRANSACTION;
+  UPDATE Account SET balance = balance - 500 WHERE id = 1;
+  UPDATE Account SET balance = balance + 500 WHERE id = 2;
+COMMIT;  -- both updates permanent
+
+-- If anything fails:
+ROLLBACK;  -- undo everything since BEGIN
+```
+
+```
+States:
+  Active → Partially Committed → Committed
+    ↓                              
+  Failed → Aborted (rolled back)
+
+Once committed: changes survive any failure.
+Once aborted: as if the transaction never happened.
+```
+
+## See It Work — ACID in Practice
+
+### Atomicity (Write-Ahead Logging)
+
+```
+Before modifying data, write the change to a LOG:
+  LOG: [TxnID=42, UPDATE Account SET balance=500 WHERE id=1, old=1000]
+
+If crash before COMMIT:
+  On recovery, read log → UNDO all changes for uncommitted txns.
+
+If crash after COMMIT:
+  On recovery, read log → REDO all changes for committed txns.
+
+ARIES recovery algorithm:
+  1. Analysis: Scan log to find active txns at crash
+  2. Redo: Replay ALL logged changes (committed or not)
+  3. Undo: Reverse changes of uncommitted txns
+```
+
+### Isolation Levels
+
+```
+Level               Dirty Read  Non-Repeatable  Phantom
+─────               ──────────  ──────────────  ───────
+READ UNCOMMITTED    Possible    Possible        Possible
+READ COMMITTED      No          Possible        Possible
+REPEATABLE READ     No          No              Possible
+SERIALIZABLE        No          No              No
+
+Dirty Read: See uncommitted data from another txn.
+Non-Repeatable Read: Same query, different results (row changed).
+Phantom: Same query, different results (rows added/removed).
+
+Default in most DBs: READ COMMITTED.
+Strongest: SERIALIZABLE (slowest).
+```
+
+### Durability (WAL + Checkpoints)
+
+```
+WAL (Write-Ahead Log):
+  Changes logged to disk BEFORE data pages are modified.
+  Log is append-only → sequential writes → fast!
+
+Checkpoints:
+  Periodically flush dirty pages to disk.
+  Write checkpoint record to log.
+  Recovery only needs to replay log from last checkpoint.
+  Without checkpoints: recovery replays entire log (hours).
+```
+
+## How It Actually Works — Schedules
+
+```
+Serial schedule: Transactions execute one after another.
+  T1 complete, then T2 complete. Always correct but slow.
+
+Concurrent schedule: Operations interleaved.
+  T1: R(A)  W(A)       R(B) W(B)
+  T2:       R(A) W(A)              R(B) W(B)
+  
+Serializable: A concurrent schedule equivalent to SOME serial order.
+  The gold standard — same result as if txns ran sequentially.
+
+Conflict Serializability:
+  Two operations conflict if: same data item, different txns,
+  at least one is a write.
+  Build precedence graph → if acyclic → serializable.
+```
+
+## Why It Matters
+
+- Transactions are the foundation of data integrity in every database application.
+- Understanding isolation levels prevents bugs: too low → data corruption, too high → poor performance.
+- WAL is used by every major database (PostgreSQL, MySQL, SQLite) for crash recovery.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/transactions"
+  questions={[
+    {q: "Why is Write-Ahead Logging essential for atomicity?", options: ["It speeds up writes", "WAL records every change BEFORE it's applied to data pages — if the system crashes, the log provides a complete record to either redo committed changes or undo uncommitted ones, ensuring transactions are always atomic", "It compresses data", "It's optional"], answer: 1, explanation: "Without WAL: crash during a multi-page update → some pages updated, others not → inconsistent state. With WAL: all changes are in the log first. On crash recovery: scan the log. For committed txns: redo any changes not yet in data pages. For uncommitted txns: undo any changes already in data pages. The log is the source of truth. Key property: log writes are sequential (fast), data page writes can happen later in any order."},
+    {q: "Why isn't SERIALIZABLE the default isolation level?", options: ["It's buggy", "SERIALIZABLE requires the database to detect and prevent all possible anomalies, which means more locking or conflict detection — this significantly reduces concurrency and throughput. READ COMMITTED is the default because it prevents dirty reads while allowing reasonable concurrency", "It's not supported", "It uses too much memory"], answer: 1, explanation: "SERIALIZABLE in PostgreSQL uses SSI (Serializable Snapshot Isolation): tracks read/write dependencies and aborts txns that would violate serializability. This means some transactions are aborted and retried — wasted work. In lock-based systems (SQL Server): SERIALIZABLE holds locks until commit AND uses range locks to prevent phantoms — blocking other transactions. READ COMMITTED releases read locks immediately, allowing more concurrency. Most applications tolerate non-repeatable reads (just re-read if needed)."},
+    {q: "What is a dirty read and why is it dangerous?", options: ["Reading deleted data", "A dirty read occurs when a transaction reads data written by another transaction that hasn't committed yet — if that other transaction rolls back, the first transaction has acted on data that never officially existed, potentially causing cascading errors", "Reading slowly", "Reading encrypted data"], answer: 1, explanation: "T1: UPDATE balance SET amount=0 WHERE id=1 (not committed yet). T2: SELECT amount FROM balance WHERE id=1 → reads 0 (dirty read). T1: ROLLBACK (balance is actually still 1000). T2 now has wrong data and might make decisions based on it (deny a withdrawal for insufficient funds when the account actually has $1000). READ COMMITTED prevents this: T2 only sees committed values. Only READ UNCOMMITTED allows dirty reads — almost never used in practice."}
+  ]}
+/>
+
+## What's Next
+
+How do databases handle multiple transactions accessing the same data? Next: <ConceptLink to="dbms/concurrency-control" label="Concurrency Control" />.

@@ -1,0 +1,134 @@
+{/* Lesson 3.10 — Binary Search Trees */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/trees"]} />
+
+## Hook — Searching in O(log n)
+
+Imagine a phone book with a million names. You don't read every name — you open to the middle, see if your name comes before or after, and eliminate half the book. Then repeat. That's **binary search**, and a **Binary Search Tree (BST)** is the data structure that makes this work dynamically — supporting fast search, insertion, AND deletion.
+
+## What Is a BST?
+
+A **Binary Search Tree** is a binary tree where for every node:
+- All values in the **left subtree** are **less** than the node.
+- All values in the **right subtree** are **greater** than the node.
+
+```
+        8
+       / \
+      3   10
+     / \    \
+    1   6    14
+       / \   /
+      4   7 13
+
+Search for 7:
+  8 → 7 < 8, go left
+  3 → 7 > 3, go right
+  6 → 7 > 6, go right
+  7 → found! (4 comparisons for 9 nodes)
+```
+
+## See It Work — BST Operations
+
+### Search — O(h)
+
+```c
+TreeNode* search(TreeNode *root, int key) {
+    if (root == NULL || root->data == key) return root;
+    if (key < root->data) return search(root->left, key);
+    return search(root->right, key);
+}
+```
+
+### Insert — O(h)
+
+```c
+TreeNode* insert(TreeNode *root, int key) {
+    if (root == NULL) {
+        TreeNode *node = malloc(sizeof(TreeNode));
+        node->data = key; node->left = node->right = NULL;
+        return node;
+    }
+    if (key < root->data) root->left = insert(root->left, key);
+    else if (key > root->data) root->right = insert(root->right, key);
+    return root;
+}
+```
+
+### Delete — O(h) — The Tricky One
+
+Three cases:
+```
+Case 1: Leaf node — just remove it.
+Case 2: One child — replace node with its child.
+Case 3: Two children — replace with inorder successor
+        (smallest node in right subtree), then delete that node.
+
+Delete 3 from:         Result:
+      8                    8
+     / \                  / \
+    3   10               4   10
+   / \    \             / \    \
+  1   6    14          1   6    14
+     / \   /              / \   /
+    4   7 13             5   7 13
+
+Step: Replace 3 with inorder successor (4), delete 4 from right subtree.
+```
+
+## How It Actually Works — Balance Matters
+
+### The Degenerate Case
+
+If you insert sorted data (1, 2, 3, 4, 5), the BST degenerates into a linked list:
+
+```
+1
+ \
+  2
+   \
+    3
+     \
+      4
+       \
+        5
+
+Height = n - 1 → all operations become O(n)!
+```
+
+### Self-Balancing Trees
+
+**AVL Trees**: Maintain the property that for every node, heights of left and right subtrees differ by at most 1. Rotations restore balance after insertions/deletions.
+
+**Red-Black Trees**: Color each node red or black with rules that ensure the tree stays approximately balanced. Used in Java TreeMap, C++ std::map, Linux kernel.
+
+```
+Balanced BST guarantees:
+  Search:  O(log n)
+  Insert:  O(log n)
+  Delete:  O(log n)
+
+Unbalanced BST worst case:
+  All ops: O(n)
+```
+
+## Why It Matters
+
+- BSTs enable O(log n) search, insert, and delete — much faster than arrays for dynamic data.
+- Self-balancing BSTs (AVL, Red-Black) are used in database indexes, language standard libraries, and operating system kernels.
+- BSTs support **ordered operations**: find min/max, range queries, inorder traversal.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/binary-search-trees"
+  questions={[
+    {q: "Why can a BST degenerate to O(n) performance?", options: ["The tree is too large", "Inserting sorted data creates a chain where every node has only one child, making the tree height equal to n — effectively a linked list", "The BST algorithm is broken", "BSTs always have O(n) performance"], answer: 1, explanation: "If you insert 1, 2, 3, 4, 5 into a BST, each new value is greater than the last and goes to the right child. The result is a linear chain of height n-1. Every search/insert/delete must traverse this chain, giving O(n) performance. Self-balancing trees (AVL, Red-Black) prevent this."},
+    {q: "How do you delete a BST node with two children?", options: ["Delete both children first", "Replace the node's value with its inorder successor (smallest value in right subtree), then delete the successor node", "Just remove the node", "It can't be done"], answer: 1, explanation: "The inorder successor is the smallest node in the right subtree — it's always a leaf or has only a right child. Replacing the deleted node with this value maintains the BST property (it's larger than everything in the left subtree and smaller than everything else in the right subtree). Then you recursively delete the successor node (which has at most one child — an easy case)."},
+    {q: "What is the time complexity guarantee of a self-balancing BST?", options: ["O(n) for all operations", "O(1) for all operations", "O(log n) for search, insert, and delete — because rotations keep the height at O(log n)", "O(n log n) for all operations"], answer: 2, explanation: "Self-balancing BSTs (AVL, Red-Black) maintain height = O(log n) through rotations after insertions and deletions. Since all operations depend on tree height, this guarantees O(log n) worst-case performance regardless of insertion order."}
+  ]}
+/>
+
+## What's Next
+
+BSTs keep data sorted. But what if you need to quickly find the minimum or maximum? **Heaps** are trees optimized specifically for that. Next: <ConceptLink to="prog-ds/heaps" label="Heaps & Priority Queues" />.

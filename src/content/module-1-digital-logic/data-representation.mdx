@@ -1,0 +1,180 @@
+{/* Lesson 1.7 — Data Representation */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/number-systems"]} />
+
+## Hook — Beyond Whole Numbers
+
+So far, we've handled integers. But what about 3.14? Or -273.15? Or the letter "é"? Or the emoji "🎉"? Computers must represent *every* type of data — floating-point numbers, characters in hundreds of languages, images, audio, video — all using nothing but bits.
+
+## What Is Data Representation?
+
+**Data representation** is the set of conventions and formats used to encode different types of information as binary sequences. The same bits can mean completely different things depending on the **encoding scheme** being used.
+
+### Integers — Fixed-Point Representation
+
+We already know unsigned and two's complement signed integers. Here's the complete picture:
+
+```
+8-bit Unsigned:  00000000 to 11111111  →  0 to 255
+8-bit Signed:    10000000 to 01111111  →  -128 to +127
+
+16-bit Unsigned: 0 to 65,535
+16-bit Signed:   -32,768 to +32,767
+
+32-bit Unsigned: 0 to 4,294,967,295
+32-bit Signed:   -2,147,483,648 to +2,147,483,647
+
+64-bit Signed:   approximately ±9.2 × 10¹⁸
+```
+
+**Integer overflow**: When a computation exceeds the representable range, it wraps around. In 8-bit unsigned: 255 + 1 = 0. In 8-bit signed: 127 + 1 = -128. This is a common source of bugs.
+
+### Floating-Point Numbers — IEEE 754
+
+For real numbers (decimals), computers use the **IEEE 754** standard. A 32-bit float has three parts:
+
+```
+┌─────┬──────────┬───────────────────────┐
+│Sign │ Exponent │       Mantissa        │
+│1 bit│  8 bits  │       23 bits         │
+└─────┴──────────┴───────────────────────┘
+
+Value = (-1)^sign × 1.mantissa × 2^(exponent - 127)
+```
+
+**Example: Representing 6.75 in 32-bit float**
+
+```
+Step 1: Convert to binary
+  6 = 110₂
+  0.75 = 0.11₂ (0.5 + 0.25)
+  6.75 = 110.11₂
+
+Step 2: Normalize (scientific notation, base 2)
+  110.11 = 1.1011 × 2²
+
+Step 3: Encode
+  Sign: 0 (positive)
+  Exponent: 2 + 127 = 129 = 10000001₂
+  Mantissa: 10110000000000000000000 (the part after "1.")
+
+Result: 0 10000001 10110000000000000000000
+```
+
+### Floating-Point Pitfalls
+
+Floating-point has **finite precision**, leading to some surprising behavior:
+
+```
+0.1 + 0.2 = 0.30000000000000004  (in most languages)
+
+Why? 0.1 in binary is 0.000110011001100110011... (repeating forever)
+It gets truncated to fit in 23 or 52 bits, introducing a tiny error.
+```
+
+**Never compare floats for exact equality.** Instead, check if the difference is within a small tolerance (epsilon).
+
+Other pitfalls:
+- **Catastrophic cancellation**: Subtracting nearly equal large numbers loses precision.
+- **Absorption**: Adding a tiny number to a huge number may have no effect (the tiny number falls below the precision of the large one).
+
+### Special float values:
+```
++0, -0       (yes, there are two zeros)
++Infinity    (e.g., 1.0 / 0.0)
+-Infinity    (e.g., -1.0 / 0.0)
+NaN          (Not a Number, e.g., 0.0 / 0.0)
+```
+
+## See It Work — Character Encoding
+
+### ASCII (7-bit, 128 characters)
+
+ASCII assigns numbers 0-127 to common characters:
+
+```
+Range     Characters
+0-31      Control characters (newline, tab, bell, etc.)
+32-47     Space, punctuation (! " # $ % & ' ( ) * + , - . /)
+48-57     Digits (0-9)
+65-90     Uppercase letters (A-Z)
+97-122    Lowercase letters (a-z)
+
+Notice: 'A' (65) and 'a' (97) differ by exactly 32.
+In binary: A = 1000001, a = 1100001 — only bit 5 differs!
+This isn't a coincidence — it was designed for easy case conversion.
+```
+
+### Unicode and UTF-8
+
+ASCII only covers English. **Unicode** assigns a unique **code point** to every character in every script:
+
+```
+A      → U+0041
+é      → U+00E9
+中     → U+4E2D
+🎉    → U+1F389
+```
+
+But how do we store code points in memory? That's where **encoding** comes in. **UTF-8** is the dominant encoding on the web:
+
+```
+Code Point Range      UTF-8 Bytes    Pattern
+U+0000 to U+007F     1 byte         0xxxxxxx (same as ASCII!)
+U+0080 to U+07FF     2 bytes        110xxxxx 10xxxxxx
+U+0800 to U+FFFF     3 bytes        1110xxxx 10xxxxxx 10xxxxxx
+U+10000 to U+10FFFF  4 bytes        11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+
+UTF-8 is backward compatible with ASCII — any valid ASCII file is also valid UTF-8.
+```
+
+**Example**: "é" (U+00E9 = 11101001₂)
+```
+Fits in range U+0080-U+07FF → 2 bytes
+Pattern: 110xxxxx 10xxxxxx
+Fill in: 110 00011  10 101001
+Result:  0xC3 0xA9
+```
+
+## How It Actually Works — Endianness
+
+When storing multi-byte values in memory, which byte goes first?
+
+```
+Value: 0x12345678 stored at address 0x100
+
+Big-Endian (most significant byte first):
+  0x100: 12  0x101: 34  0x102: 56  0x103: 78
+  
+Little-Endian (least significant byte first):
+  0x100: 78  0x101: 56  0x102: 34  0x103: 12
+```
+
+- **Big-endian**: Network protocols (called "network byte order"), some RISC CPUs.
+- **Little-endian**: x86, x86-64 (most PCs and servers), ARM in default mode.
+
+Endianness matters when reading binary files, network packets, or debugging memory dumps.
+
+## Why It Matters
+
+- **Integer overflow** causes security vulnerabilities (buffer overflows) and bugs.
+- **Floating-point imprecision** causes incorrect financial calculations, simulation errors, and failing unit tests.
+- **Character encoding** issues cause mojibake (garbled text), broken websites, and data corruption.
+- **Endianness** issues cause data corruption when transferring between systems.
+
+Understanding data representation helps you avoid these real-world problems.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/data-representation"
+  questions={[
+    {q: "Why does 0.1 + 0.2 not exactly equal 0.3 in floating-point?", options: ["It's a programming bug", "0.1 and 0.2 cannot be represented exactly in binary floating-point, so small rounding errors accumulate", "The CPU makes mistakes", "Floating-point is broken"], answer: 1, explanation: "Just as 1/3 = 0.333... can't be represented exactly in decimal, 0.1 = 0.000110011... can't be represented exactly in binary. The infinite repeating binary fractions get truncated to fit in 23 (float) or 52 (double) mantissa bits, introducing tiny errors."},
+    {q: "What is the key advantage of UTF-8 over other Unicode encodings?", options: ["It's faster", "It's backward compatible with ASCII — any ASCII text is already valid UTF-8, and it uses variable-length encoding to save space", "It supports more characters", "It was invented first"], answer: 1, explanation: "UTF-8 uses 1 byte for ASCII characters (making it fully backward compatible), 2 bytes for Latin/Greek/Cyrillic, 3 bytes for most Asian scripts, and 4 bytes for emoji and rare characters. This variable-length approach is very space-efficient for text that is mostly ASCII."},
+    {q: "What happens when you add 1 to the maximum value of an 8-bit unsigned integer (255)?", options: ["It becomes 256", "It wraps around to 0 (integer overflow)", "The CPU throws an error", "It stays at 255"], answer: 1, explanation: "255 in binary is 11111111. Adding 1 gives 100000000 (9 bits), but only 8 bits are stored, so the result is 00000000 = 0. This is integer overflow (or wraparound). It's a common source of security vulnerabilities and bugs."}
+  ]}
+/>
+
+## What's Next
+
+We've covered how to represent data and build circuits. Now let's see how these concepts combine with error detection and correction — ensuring data integrity when bits can flip due to noise. Next: <ConceptLink to="digital-logic/error-detection" label="Error Detection" />.

@@ -1,0 +1,129 @@
+{/* Lesson 7.7 — Memory Management */}
+
+<PrerequisiteBadge prerequisites={["os/ipc"]} />
+
+## Hook — The Illusion of Infinite Memory
+
+Your laptop has 16 GB of RAM, yet each process thinks it has its own 256 TB address space. How? **Virtual memory** creates an abstraction where each process sees a private, contiguous address space mapped to physical RAM by the hardware. This is one of the most elegant abstractions in all of computing.
+
+## Virtual Memory
+
+```
+Process A sees:            Physical RAM:
+0x0000 ┌──────┐           ┌──────┐ 0x0000
+       │ Code │──────────→│ A:Code│
+       │ Data │──────┐    │ B:Code│
+       │ Heap │─┐   └───→│ A:Data│
+       │      │ │         │ B:Heap│
+       │ Stack│─┤    ┌───→│ A:Heap│
+0xFFFF └──────┘ │    │    │ A:Stk │
+                │    │    │ B:Data│
+Process B sees: │    │    │ B:Stk │
+0x0000 ┌──────┐ │    │    └──────┘ 0xFFFF
+       │ Code │─┤    │
+       │ Data │─┤    │    Disk (swap):
+       │ Heap │─┘    │    ┌──────┐
+       │ Stack│──────┘    │unused │
+0xFFFF └──────┘           │pages  │
+                          └──────┘
+Same virtual addresses → different physical locations!
+```
+
+## See It Work — Paging
+
+Memory is divided into fixed-size **pages** (typically 4KB):
+
+```
+Virtual address: 0x12345678
+  Page number: 0x12345 (upper bits)
+  Offset: 0x678 (lower 12 bits, within the page)
+
+Page Table (per process):
+  Virtual Page → Physical Frame
+  0x12345     → 0xABCDE        (in RAM)
+  0x12346     → DISK (page fault! load from swap)
+  0x12347     → 0x00001        (in RAM)
+
+Translation: Virtual 0x12345678 → Physical 0xABCDE678
+```
+
+### Translation Lookaside Buffer (TLB)
+
+```
+Page table is in RAM → every memory access needs TWO accesses!
+  1. Access page table to get physical address
+  2. Access the actual data
+
+TLB: Hardware cache of recent page table entries.
+  TLB hit (99%+): translation in 1 cycle
+  TLB miss: walk page table (~100 cycles)
+
+TLB is why context switches are expensive:
+  Different process → different page table → flush TLB!
+```
+
+### Multi-Level Page Tables
+
+```
+Problem: 2⁴⁸ byte address space / 4KB pages = 2³⁶ entries.
+         Each entry 8 bytes = 512 GB just for the page table!
+
+Solution: Multi-level (x86-64 uses 4 levels):
+  Level 4 (PML4): 512 entries → each points to...
+  Level 3 (PDPT): 512 entries → each points to...
+  Level 2 (PD):   512 entries → each points to...
+  Level 1 (PT):   512 entries → physical frame
+
+Only allocate page table pages for addresses actually used!
+Most entries at upper levels are empty.
+Sparse usage = small page table.
+```
+
+## How It Actually Works — Page Replacement
+
+When RAM is full and a page fault occurs, which page to evict?
+
+```
+Algorithm       Description                  Performance
+─────────       ───────────                  ───────────
+FIFO            Evict oldest page            Poor (Belady's anomaly)
+LRU             Evict least recently used    Good but expensive
+Clock           Approximate LRU             Good, practical
+OPT             Evict page used farthest     Optimal (impossible — needs future)
+                in future
+
+Linux uses: Clock-like approximation with active/inactive lists.
+```
+
+### Copy-on-Write (COW)
+
+```
+fork() doesn't copy memory immediately!
+
+Parent and child share the same physical pages (read-only).
+When either writes → page fault → kernel copies just that page.
+
+Result: fork() is nearly free if child calls exec() immediately
+(which replaces all pages anyway).
+```
+
+## Why It Matters
+
+- Virtual memory protects processes from each other (separate address spaces).
+- Understanding paging explains why adding RAM helps and why programs use swap.
+- Page faults, TLB misses, and COW directly affect performance.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/memory-management"
+  questions={[
+    {q: "Why is the TLB critical for performance?", options: ["It stores data", "Without the TLB, every memory access would require multiple additional memory accesses to walk the page table (4 levels on x86-64) — the TLB caches translations, turning a ~400-cycle lookup into a 1-cycle hit for 99%+ of accesses", "It compresses memory", "It prevents page faults"], answer: 1, explanation: "x86-64 has 4-level page tables. Without TLB, reading one byte requires 4 extra memory reads (one per level) + 1 for the actual data = 5 memory accesses instead of 1. At ~100 cycles per access, that's 500 cycles vs. 100. The TLB has ~1500 entries and hits 99%+ of the time, making virtual memory nearly free. TLB misses are expensive, which is why huge pages (2MB/1GB) help — fewer TLB entries cover more memory."},
+    {q: "How does copy-on-write make fork() efficient?", options: ["It skips copying", "After fork(), parent and child share the same physical pages marked read-only. Only when a process writes to a page does the kernel copy it — if the child immediately calls exec() (replacing all pages), no copying happens at all", "It uses shared memory", "It compresses pages"], answer: 1, explanation: "Without COW, fork() would copy the entire address space (potentially GBs) even if the child immediately calls exec() and discards everything. With COW: mark all pages read-only, share them. Write attempts cause a page fault, kernel copies just that page. Typical fork+exec pattern: zero pages copied (exec replaces everything before any writes). This makes process creation in Unix very fast despite the 'copy everything' semantics of fork()."},
+    {q: "Why do multi-level page tables save memory?", options: ["They use compression", "In a flat page table, every possible virtual page needs an entry (512 GB for 48-bit addresses). Multi-level tables only allocate entries for address ranges actually used — most entries at upper levels point to nothing, saving memory for sparse address spaces", "They're stored on disk", "They have fewer entries"], answer: 1, explanation: "A 48-bit virtual address space has 2^36 pages. A flat table: 2^36 × 8 bytes = 512 GB — absurd! With 4-level tables, the top level has 512 entries (4KB). If only 1 entry is used, the next level is also 4KB. A process using only 100MB might have a page table of ~100KB instead of 512GB. The tree structure naturally handles sparse usage — most branches don't exist."}
+  ]}
+/>
+
+## What's Next
+
+The OS also manages persistent storage. How are files organized on disk? Next: <ConceptLink to="os/file-systems" label="File Systems" />.

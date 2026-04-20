@@ -1,0 +1,119 @@
+{/* Lesson 5.7 — Complexity Classes: P, NP, and Beyond */}
+
+<PrerequisiteBadge prerequisites={["theory/decidability"]} />
+
+## Hook — The Biggest Open Problem in Computer Science
+
+Is P = NP? This question asks whether every problem whose solution can be quickly **verified** can also be quickly **solved**. It's worth a $1 million Millennium Prize and affects cryptography, optimization, AI, and virtually every area of CS. Understanding complexity classes tells you which problems are tractable and which are (probably) not.
+
+## P — Polynomial Time
+
+**P** = problems solvable in polynomial time O(nᵏ) by a deterministic TM.
+
+```
+Problems in P (efficiently solvable):
+  - Sorting: O(n log n)
+  - Shortest path: O(V² or (V+E)log V)
+  - Primality testing: O(log⁶ n)  — AKS algorithm, 2002
+  - Linear programming
+  - Matching in bipartite graphs
+  - 2-SAT
+```
+
+## NP — Nondeterministic Polynomial Time
+
+**NP** = problems whose solutions can be **verified** in polynomial time.
+
+```
+Equivalently: solvable in polynomial time by a NONDETERMINISTIC TM
+(one that can "guess" the right answer).
+
+Example: SUBSET-SUM
+  Input: Set S = \{3, 7, 1, 8, 4\}, target T = 12
+  Question: Is there a subset summing to T?
+  
+  Hard to FIND: Must check many subsets (2ⁿ possibilities)
+  Easy to VERIFY: Given \{3, 1, 8\}, check 3+1+8 = 12 ✓
+```
+
+**P ⊆ NP**: If you can solve it quickly, you can verify it quickly (just solve it again).
+
+## See It Work — NP-Complete Problems
+
+**NP-Complete** = the hardest problems in NP. If ANY NP-complete problem has a polynomial solution, then P = NP (all of NP collapses to P).
+
+```
+Classic NP-Complete problems:
+  SAT: Is this boolean formula satisfiable?
+  3-SAT: SAT with clauses of size 3
+  CLIQUE: Does this graph have a clique of size k?
+  VERTEX-COVER: Can k vertices cover all edges?
+  HAMILTONIAN-PATH: Visit every vertex exactly once?
+  SUBSET-SUM: Does a subset sum to target?
+  TRAVELING SALESMAN (decision): Tour of cost ≤ k?
+  GRAPH-COLORING: Color with k colors, no adjacent same color?
+
+All NP-complete problems are polynomial-time reducible to each other!
+Solving one in polynomial time solves them ALL.
+```
+
+### Cook-Levin Theorem (1971)
+
+SAT is NP-complete. Proof: any NP computation can be encoded as a boolean formula.
+
+## How It Actually Works — The Landscape
+
+```
+┌──────────────────────────────────────────┐
+│                PSPACE                     │
+│  ┌────────────────────────────────────┐  │
+│  │             NP                      │  │
+│  │  ┌──────────────────────────────┐  │  │
+│  │  │    NP-Complete              │  │  │
+│  │  └──────────────────────────────┘  │  │
+│  │  ┌──────────────────────────────┐  │  │
+│  │  │         P                    │  │  │
+│  │  └──────────────────────────────┘  │  │
+│  └────────────────────────────────────┘  │
+│  ┌────────────────────────────────────┐  │
+│  │            co-NP                    │  │
+│  └────────────────────────────────────┘  │
+└──────────────────────────────────────────┘
+              EXPTIME (outside)
+
+P ⊆ NP ⊆ PSPACE ⊆ EXPTIME
+Whether any ⊆ is proper (strict subset) is unknown for P vs NP!
+```
+
+### NP-Hard
+
+Problems at least as hard as NP-complete, but not necessarily in NP:
+
+```
+NP-Hard but NOT in NP:
+  - Halting problem (undecidable, not in NP)
+  - Optimal Traveling Salesman (optimization, not decision)
+  
+NP-Complete = NP-Hard ∩ NP
+```
+
+## Why It Matters
+
+- If you prove your problem is NP-complete, stop looking for an efficient exact algorithm — use approximation, heuristics, or special cases.
+- Cryptography relies on P ≠ NP: if P = NP, RSA and most encryption would break.
+- Recognizing NP-complete problems saves enormous time in practice.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="theory/complexity-classes"
+  questions={[
+    {q: "What is the key difference between P and NP?", options: ["P is faster", "P = problems solvable in polynomial time; NP = problems verifiable in polynomial time. We don't know if every verifiable problem is also solvable efficiently (P = NP question)", "NP means 'not polynomial'", "P is a subset of NP-complete"], answer: 1, explanation: "NP does NOT mean 'not polynomial'! NP = Nondeterministic Polynomial time = problems where a correct solution can be verified in polynomial time. P = problems where a solution can be found in polynomial time. Clearly P ⊆ NP (if you can find it fast, you can verify it fast). The open question: is NP ⊆ P? Can every efficiently verifiable problem be efficiently solved? Most experts believe P ≠ NP."},
+    {q: "What makes a problem NP-complete?", options: ["It's unsolvable", "It's in NP AND every problem in NP can be polynomial-time reduced to it — meaning it's among the hardest problems in NP, and solving it efficiently would solve all of NP", "It's the hardest possible problem", "It has exponential time complexity"], answer: 1, explanation: "NP-complete requires two things: (1) The problem is in NP (solutions verifiable in poly time), and (2) every NP problem reduces to it in poly time (NP-hard). This means NP-complete problems are the 'hardest' in NP. If ANY NP-complete problem has a poly-time algorithm, ALL NP problems do (P = NP). The interconnectedness is remarkable: SAT, CLIQUE, HAMILTONIAN-PATH, and thousands of others are all equivalent in difficulty."},
+    {q: "Why does P vs NP matter for cryptography?", options: ["Encryption is in P", "Most cryptography assumes certain problems (like factoring large numbers) are NOT in P. If P = NP, these problems would have efficient solutions, breaking RSA and most public-key cryptography", "NP problems can't be encrypted", "P = NP would make encryption faster"], answer: 1, explanation: "RSA relies on the assumption that factoring n = p × q is hard (no known poly-time algorithm). If P = NP, factoring would be in P (it's in NP: given p,q, verify n = p×q in poly time). An efficient factoring algorithm would break RSA. Similarly, discrete logarithm (Diffie-Hellman, elliptic curves) would fall. Most public-key cryptography would collapse. This is why the P vs NP question has enormous practical implications beyond theory."}
+  ]}
+/>
+
+## What's Next
+
+You've completed the **Theory of Computation** module! You understand the hierarchy of formal languages, what machines can and cannot compute, and the complexity of decidable problems. Next module: <ConceptLink to="compilers/what-is-compiler" label="Compiler Design" /> — where we build the tools that transform human-readable code into machine instructions.

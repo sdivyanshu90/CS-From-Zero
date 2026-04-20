@@ -1,0 +1,120 @@
+{/* Lesson 7.9 — I/O & Disk Scheduling */}
+
+<PrerequisiteBadge prerequisites={["os/file-systems"]} />
+
+## Hook — The Bottleneck
+
+RAM access: ~100 nanoseconds. SSD: ~100 microseconds. HDD: ~10 milliseconds. That's a 100,000× gap between RAM and HDD. **I/O scheduling** minimizes this bottleneck by reordering disk requests to reduce mechanical seek time and maximize throughput.
+
+## How Disks Work
+
+```
+HDD (Hard Disk Drive):
+  Spinning platter, moving read/write head.
+  Seek time: Move head to correct track (~5-10 ms)
+  Rotational delay: Wait for sector (~4 ms at 7200 RPM)
+  Transfer: Read data (~0.1 ms per 4KB)
+  
+  Total: ~10 ms per random read. Sequential: much faster!
+
+SSD (Solid State Drive):
+  No moving parts. Flash memory chips.
+  Random read: ~100 μs (100× faster than HDD)
+  Sequential: ~500 MB/s (similar to HDD)
+  No seek time → scheduling less critical
+  But: write amplification, wear leveling needed
+```
+
+## See It Work — Disk Scheduling Algorithms
+
+### FCFS (First Come, First Served)
+
+```
+Head at track 50. Queue: 98, 183, 37, 122, 14, 124, 65, 67
+
+Movement: 50→98→183→37→122→14→124→65→67
+Total head movement: 640 tracks
+
+Simple but terrible — lots of unnecessary seeking.
+```
+
+### SSTF (Shortest Seek Time First)
+
+```
+Head at 50. Always go to nearest request.
+50→37→14→65→67→98→122→124→183
+Total: 236 tracks — much better!
+
+Problem: Starvation of far-away requests.
+```
+
+### SCAN (Elevator Algorithm)
+
+```
+Head at 50, moving UP. Go to end, then reverse.
+50→65→67→98→122→124→183→(end)→37→14
+Total: ~332 tracks
+
+Fair: no starvation. Predictable latency.
+Like an elevator — services requests in one direction,
+then reverses.
+```
+
+### C-SCAN (Circular SCAN)
+
+```
+Only service requests in one direction.
+At the end, jump back to beginning without servicing.
+50→65→67→98→122→124→183→(jump to 0)→14→37
+More uniform wait times than SCAN.
+```
+
+## How It Actually Works — Modern I/O
+
+```
+Linux I/O schedulers:
+  mq-deadline: Deadline-based, prevents starvation (default for HDD)
+  bfq: Budget Fair Queuing, good for interactive desktops
+  none/noop: No reordering (best for SSDs — no seek time!)
+
+I/O stack:
+  Application → VFS → File System → Block Layer → I/O Scheduler
+  → Device Driver → Hardware
+```
+
+### Buffered vs. Direct I/O
+
+```
+Buffered I/O (default):
+  Write goes to page cache → OS writes to disk later
+  Read checks page cache first → disk only on miss
+  + Fast for repeated/sequential access
+  - Data loss risk if crash before flush
+
+Direct I/O (O_DIRECT):
+  Bypass page cache, write directly to disk
+  Used by databases (they have their own cache)
+  + Predictable performance, no double-caching
+  - Slower for general use
+```
+
+## Why It Matters
+
+- Disk I/O is the #1 performance bottleneck in most applications.
+- Choosing the right I/O scheduler matters for HDDs (less so for SSDs).
+- Understanding buffered vs. direct I/O is critical for database and server performance.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/io-scheduling"
+  questions={[
+    {q: "Why is disk scheduling less important for SSDs than HDDs?", options: ["SSDs are newer", "SSDs have no mechanical seek arm — accessing any location takes roughly the same time (~100μs), so reordering requests for spatial locality provides little benefit. HDDs have 5-10ms seek times that vary with head position, making request ordering critical", "SSDs don't need scheduling", "SSDs are always faster"], answer: 1, explanation: "HDD performance is dominated by seek time (moving the head) and rotational delay — both depend on the physical position. Reordering requests to minimize head movement (SCAN, SSTF) can 3-5× improve throughput. SSDs access any cell electrically in ~100μs regardless of 'location.' Reordering doesn't help — the 'none' scheduler is optimal (just pass requests through). Some SSDs even have internal parallelism that benefits from receiving many requests at once."},
+    {q: "Why do databases use Direct I/O instead of the OS page cache?", options: ["Direct I/O is always faster", "Databases have their own buffer pool optimized for database access patterns (B-tree traversal, index lookups). Using the OS cache too would waste RAM on double-caching and give the database less control over eviction policy", "The OS cache doesn't work with databases", "Direct I/O is required"], answer: 1, explanation: "The OS page cache uses LRU, which may not be optimal for database patterns. A full table scan would flush useful cached pages. Databases (PostgreSQL, MySQL InnoDB) manage their own buffer pool with specialized eviction (clock sweep, LRU-K). Using O_DIRECT avoids: (1) double caching (same data in both caches = wasted RAM), (2) OS evicting useful database pages, (3) unpredictable write timing. The database controls when data hits disk, ensuring durability guarantees."},
+    {q: "What problem does the SCAN algorithm solve over SSTF?", options: ["It's faster", "SCAN prevents starvation — SSTF always goes to the nearest request, which can starve far-away requests that keep getting pushed back by closer new requests. SCAN sweeps across the disk, guaranteeing every request is eventually reached", "It uses less memory", "It works on SSDs"], answer: 1, explanation: "With SSTF, if requests keep arriving near the head's current position, distant requests wait indefinitely — starvation. SCAN solves this: the head moves in one direction, servicing all requests along the way, then reverses. Every request is guaranteed to be serviced within one full sweep. The tradeoff: SCAN has slightly more total head movement than SSTF, but bounded worst-case latency. C-SCAN improves fairness further by only servicing in one direction."}
+  ]}
+/>
+
+## What's Next
+
+Processes also need **system calls** to interact with the kernel — the formal interface between user and kernel space. Next: <ConceptLink to="os/system-calls" label="System Calls" />.

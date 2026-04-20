@@ -1,0 +1,176 @@
+{/* Lesson 3.4 — Pointers & References */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/arrays"]} />
+
+## Hook — Variables That Point to Other Variables
+
+Every piece of data in your computer lives at a specific memory address. A **pointer** is a variable that stores that address — it "points to" another variable. Pointers give you the power to build dynamic data structures (linked lists, trees, graphs), pass data efficiently (without copying), and interact directly with memory. They're also the source of some of the most notorious bugs in computing.
+
+## What Is a Pointer?
+
+A **pointer** is a variable whose value is a memory address:
+
+```c
+int x = 42;
+int *ptr = &x;    // ptr stores the address of x
+
+printf("%d\n", x);       // 42 (value of x)
+printf("%p\n", &x);      // 0x7FFE1234 (address of x)
+printf("%p\n", ptr);      // 0x7FFE1234 (ptr holds x's address)
+printf("%d\n", *ptr);     // 42 (dereference: follow the pointer to get x's value)
+```
+
+```
+Memory:
+Address:   0x7FFE1234   0x7FFE1238
+Variable:  [   42    ]  [0x7FFE1234]
+Name:         x             ptr
+              ↑               │
+              └───────────────┘ ptr points to x
+```
+
+### Key Operators
+
+- `&variable` — **address-of**: gets the memory address of a variable
+- `*pointer` — **dereference**: follows the pointer to access the value it points to
+
+```c
+int x = 10;
+int *p = &x;     // p = address of x
+*p = 20;         // change the value at that address
+printf("%d\n", x);  // 20 — x was modified through the pointer!
+```
+
+## See It Work — Pointer Arithmetic
+
+Because arrays are contiguous, pointer arithmetic lets you navigate through them:
+
+```c
+int arr[] = {10, 20, 30, 40, 50};
+int *p = arr;     // p points to arr[0]
+
+printf("%d\n", *p);       // 10 (arr[0])
+printf("%d\n", *(p + 1)); // 20 (arr[1])
+printf("%d\n", *(p + 3)); // 40 (arr[3])
+
+p++;                       // p now points to arr[1]
+printf("%d\n", *p);       // 20
+```
+
+`p + 1` doesn't add 1 byte — it adds `sizeof(int)` bytes (4 bytes). The compiler knows the pointer's type and adjusts automatically.
+
+### Arrays and Pointers — The Connection
+
+In C, the array name **is** a pointer to the first element:
+
+```c
+arr[i]  is equivalent to  *(arr + i)
+&arr[i] is equivalent to  (arr + i)
+```
+
+This is why `arr[0]` and `*arr` are the same thing.
+
+## How It Actually Works — Dynamic Memory Allocation
+
+Pointers enable **dynamic memory allocation** — requesting memory at runtime:
+
+```c
+// Allocate memory for 100 integers on the heap
+int *data = (int *)malloc(100 * sizeof(int));
+
+if (data == NULL) {
+    // malloc failed — out of memory!
+    exit(1);
+}
+
+// Use the memory
+for (int i = 0; i < 100; i++) {
+    data[i] = i * i;
+}
+
+// MUST free when done — otherwise memory leak!
+free(data);
+data = NULL;  // good practice: avoid dangling pointer
+```
+
+### Stack vs. Heap
+
+```
+Stack (automatic):                  Heap (manual):
+- Allocated on function entry       - Allocated with malloc/new
+- Freed on function return           - Freed with free/delete
+- Very fast (just move SP)           - Slower (allocation algorithm)
+- Limited size (~1-8 MB)             - Large (limited by RAM)
+- No fragmentation                   - Can fragment over time
+
+int x = 5;            // stack      int *p = malloc(4);    // heap
+```
+
+### Common Pointer Bugs
+
+**1. Null Pointer Dereference**
+```c
+int *p = NULL;
+*p = 42;        // CRASH! Segmentation fault — accessing address 0
+```
+
+**2. Dangling Pointer**
+```c
+int *p = malloc(sizeof(int));
+free(p);
+*p = 42;        // UNDEFINED BEHAVIOR — memory has been freed
+```
+
+**3. Memory Leak**
+```c
+void leak() {
+    int *p = malloc(1000000);
+    // forgot to free(p)!
+    // When function returns, p (the pointer) is destroyed
+    // but the 1MB of heap memory is still allocated — leaked!
+}
+```
+
+**4. Buffer Overflow**
+```c
+int arr[5];
+arr[10] = 42;   // Writing past the array — overwrites other data!
+// This is the #1 source of security vulnerabilities in C/C++
+```
+
+### References (C++ and other languages)
+
+A **reference** is like a pointer but simpler and safer:
+
+```cpp
+int x = 42;
+int &ref = x;     // ref IS x (another name for the same variable)
+ref = 100;
+printf("%d\n", x);  // 100
+
+// References cannot be NULL
+// References cannot be reassigned to point elsewhere
+// References don't need dereferencing syntax
+```
+
+## Why It Matters
+
+- Pointers are how C/C++ build **all** dynamic data structures (linked lists, trees, hash tables).
+- Understanding pointers means understanding memory, which means understanding performance.
+- Pointer bugs (buffer overflows, use-after-free) are the most common source of **security vulnerabilities**.
+- Modern languages (Rust, Go, Java) were designed specifically to avoid pointer pitfalls while keeping the benefits.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/pointers"
+  questions={[
+    {q: "What is the value of *ptr if int x = 10; int *ptr = &x;?", options: ["The address of x", "10 — dereferencing ptr gives the value stored at the address it points to, which is x's value", "A pointer", "Undefined"], answer: 1, explanation: "ptr stores the address of x (&x). The dereference operator (*ptr) follows that address and retrieves the value stored there, which is 10. Think of it as: ptr says 'go to this address', *ptr says 'get the value at that address'."},
+    {q: "What is a memory leak?", options: ["Memory getting corrupted", "Allocated heap memory that can no longer be freed because no pointer references it, causing the program to consume increasing amounts of memory", "A hardware failure", "Using too much stack space"], answer: 1, explanation: "When you malloc memory but lose the pointer (function returns, pointer reassigned) without calling free, the memory remains allocated but is unreachable. Over time, leaked memory accumulates and can exhaust system RAM. This is why languages like Java and Python have garbage collectors — they automatically free unreachable memory."},
+    {q: "Why is buffer overflow a security vulnerability?", options: ["It crashes the program", "Writing past an array's bounds can overwrite adjacent memory including return addresses, allowing attackers to redirect program execution to malicious code", "It's slow", "It uses too much memory"], answer: 1, explanation: "If an attacker can write past a buffer on the stack, they can overwrite the function's return address. When the function returns, execution jumps to the attacker's code instead of the caller. This is the basis of buffer overflow exploits — the most common class of security vulnerability in C/C++ programs."}
+  ]}
+/>
+
+## What's Next
+
+With pointers and dynamic memory, we can now build data structures that grow and shrink at runtime. But first, we need a powerful technique for solving problems by breaking them into smaller identical subproblems: **recursion**. Next: <ConceptLink to="prog-ds/recursion" label="Recursion" />.

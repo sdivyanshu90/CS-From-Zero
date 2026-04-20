@@ -1,0 +1,192 @@
+{/* Lesson 2.3 — Addressing Modes */}
+
+<PrerequisiteBadge prerequisites={["architecture/isa"]} />
+
+## Hook — Finding Your Data
+
+An instruction says "add two numbers" — but *which* two numbers? Are they in registers? Stored at a specific memory address? Or at an address that itself is stored somewhere else? **Addressing modes** are the different ways an instruction specifies where its operands (the data it operates on) are located.
+
+## What Are Addressing Modes?
+
+An **addressing mode** defines how the operand field of an instruction is interpreted to find the actual data. Different addressing modes give programmers (and compilers) flexible ways to access data in registers, memory, and complex data structures.
+
+### The Main Addressing Modes
+
+**1. Immediate Addressing** — The operand IS the data
+
+```
+ADD R1, #5        ; R1 = R1 + 5
+MOV R2, #0xFF     ; R2 = 255
+
+The value 5 is embedded directly in the instruction.
+No memory access needed — fastest mode.
+
+Use case: Constants, loop counters, initialization.
+```
+
+**2. Register Addressing** — The operand is in a register
+
+```
+ADD R1, R2, R3    ; R1 = R2 + R3
+MOV R1, R2        ; R1 = R2
+
+Data is already in CPU registers — very fast (1 cycle).
+
+Use case: Variables currently being computed with.
+```
+
+**3. Direct (Absolute) Addressing** — The operand is at a fixed memory address
+
+```
+LOAD R1, [0x1000]   ; R1 = Memory[0x1000]
+STORE R1, [0x2000]  ; Memory[0x2000] = R1
+
+The memory address is hardcoded in the instruction.
+
+Use case: Global variables, memory-mapped I/O registers.
+Limitation: Address must fit in the instruction.
+```
+
+**4. Register Indirect Addressing** — A register holds the address
+
+```
+LOAD R1, [R2]     ; R1 = Memory[R2]
+STORE R1, [R3]    ; Memory[R3] = R1
+
+The register contains a pointer to the data.
+
+Use case: Pointer dereferencing, traversing linked lists.
+C equivalent: x = *ptr;
+```
+
+**5. Base + Offset (Displacement) Addressing** — Register + constant
+
+```
+LOAD R1, [R2 + 8]    ; R1 = Memory[R2 + 8]
+LOAD R1, [SP + 16]   ; R1 = Memory[StackPointer + 16]
+
+Add a constant offset to a base register to get the address.
+
+Use case: Struct field access, local variables on the stack.
+C equivalent: x = person.age; (if 'age' is 8 bytes from struct start)
+```
+
+**6. Indexed Addressing** — Base + (index × scale)
+
+```
+LOAD R1, [R2 + R3 * 4]   ; R1 = Memory[R2 + R3 * 4]
+
+Multiply index register by element size, add to base.
+
+Use case: Array access. R2 = array base, R3 = index, 4 = element size.
+C equivalent: x = arr[i]; (for int arr[] where sizeof(int) == 4)
+```
+
+**7. PC-Relative Addressing** — Relative to current instruction
+
+```
+BRANCH +20      ; jump to PC + 20 bytes
+LOAD R1, [PC + 100]  ; load from 100 bytes ahead of current instruction
+
+Address is relative to the Program Counter.
+
+Use case: Branch targets, position-independent code.
+Why: Code can be loaded at any address and still work.
+```
+
+## See It Work — Addressing Modes in Real Code
+
+### Accessing a struct field
+
+```c
+struct Point { int x; int y; };   // x at offset 0, y at offset 4
+struct Point p;
+int val = p.y;                    // access field at offset 4
+```
+
+```
+; R5 holds address of struct p
+LOAD R1, [R5 + 4]    ; base+offset addressing
+; R1 now contains p.y
+```
+
+### Accessing an array element
+
+```c
+int arr[100];
+int val = arr[i];    // access element at index i
+```
+
+```
+; R5 = base address of arr, R6 = i
+LOAD R1, [R5 + R6 * 4]    ; indexed addressing (4 bytes per int)
+; R1 now contains arr[i]
+```
+
+### Walking a linked list
+
+```c
+struct Node { int data; Node* next; };
+while (current != NULL) {
+    process(current->data);
+    current = current->next;
+}
+```
+
+```
+loop:
+  CMP R5, #0              ; is current NULL?
+  BEQ done                ; if yes, exit loop
+  LOAD R1, [R5 + 0]       ; R1 = current->data (base+offset)
+  ; ... process R1 ...
+  LOAD R5, [R5 + 4]       ; current = current->next (base+offset)
+  JUMP loop
+done:
+```
+
+## How It Actually Works — x86 Addressing Complexity
+
+x86 supports a very complex addressing mode in a single instruction:
+
+```
+General x86 addressing:
+[base + index * scale + displacement]
+
+Where:
+  base  = any general register
+  index = any register except ESP
+  scale = 1, 2, 4, or 8
+  displacement = 8-bit or 32-bit constant
+
+Examples:
+  MOV EAX, [EBX]                    ; register indirect
+  MOV EAX, [EBX + 8]                ; base + displacement
+  MOV EAX, [EBX + ECX * 4]          ; base + index * scale
+  MOV EAX, [EBX + ECX * 4 + 12]    ; base + index * scale + displacement
+
+This single addressing mode covers arrays, structs, 2D arrays, and complex data structures.
+```
+
+RISC architectures keep it simpler — typically only supporting register indirect and base+offset modes, with separate instructions for computing complex addresses.
+
+## Why It Matters
+
+- Compilers choose addressing modes to generate efficient code for data structure access.
+- Understanding addressing modes helps you read assembly output, debug crashes, and write optimized code.
+- The choice of addressing modes significantly affects ISA complexity, instruction encoding, and performance.
+- x86's complex addressing modes reduce instruction count but increase hardware complexity. RISC's simple modes require more instructions but are easier to pipeline.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="architecture/addressing-modes"
+  questions={[
+    {q: "Which addressing mode is used for accessing array elements like arr[i]?", options: ["Immediate", "Direct", "Indexed (base + index × scale)", "PC-relative"], answer: 2, explanation: "Array access requires: base address of the array + index × element size. Indexed addressing does exactly this: [R_base + R_index × scale]. For example, accessing arr[5] in an int array: [R_arr + 5 × 4] = [R_arr + 20]."},
+    {q: "Why is PC-relative addressing important for position-independent code?", options: ["It's faster", "Addresses are relative to the current instruction, so the code works regardless of where in memory it's loaded", "It uses fewer bits", "It avoids registers"], answer: 1, explanation: "PC-relative addressing encodes offsets from the current position rather than absolute addresses. When the OS loads code at any starting address, all the relative offsets still point to the correct locations. This is essential for shared libraries (.so/.dll) which can be loaded at different addresses in different processes."},
+    {q: "What addressing mode does 'LOAD R1, [R2 + 8]' use?", options: ["Register indirect", "Immediate", "Base + offset (displacement)", "Direct"], answer: 2, explanation: "This adds a constant offset (8) to a base register (R2) to compute the memory address. It's called base+offset or displacement addressing. The common use is accessing struct fields or local variables on the stack at known offsets from a base pointer."}
+  ]}
+/>
+
+## What's Next
+
+We've seen what instructions look like and how they find their data. But what actually does the computation? The **ALU and datapath** — the circuit that routes data between registers, performs arithmetic, and writes results back. Next: <ConceptLink to="architecture/alu-datapath" label="ALU & Datapath" />.

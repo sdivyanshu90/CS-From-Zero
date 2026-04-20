@@ -1,0 +1,184 @@
+{/* Lesson 3.5 — Recursion */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/pointers"]} />
+
+## Hook — A Function That Calls Itself
+
+What if a function could solve a problem by calling *itself* with a smaller input? That's **recursion** — one of the most powerful and elegant ideas in computer science. It turns complex problems into simple, self-similar pieces. Sorting algorithms, tree traversals, fractals, and even your file system are naturally recursive.
+
+## What Is Recursion?
+
+**Recursion** is when a function calls itself to solve a smaller version of the same problem. Every recursive function needs two things:
+
+1. **Base case**: The simplest version of the problem, solved directly without recursion.
+2. **Recursive case**: The problem is broken into a smaller subproblem, and the function calls itself.
+
+```c
+int factorial(int n) {
+    if (n <= 1) return 1;       // Base case
+    return n * factorial(n - 1); // Recursive case
+}
+
+// factorial(5) = 5 × factorial(4)
+//              = 5 × 4 × factorial(3)
+//              = 5 × 4 × 3 × factorial(2)
+//              = 5 × 4 × 3 × 2 × factorial(1)
+//              = 5 × 4 × 3 × 2 × 1
+//              = 120
+```
+
+### The Call Stack in Recursion
+
+Each recursive call creates a new stack frame:
+
+```
+factorial(5)
+  └── factorial(4)
+        └── factorial(3)
+              └── factorial(2)
+                    └── factorial(1)
+                          returns 1
+                    returns 2 × 1 = 2
+              returns 3 × 2 = 6
+        returns 4 × 6 = 24
+  returns 5 × 24 = 120
+
+Stack at deepest point:
+┌─────────────┐
+│ factorial(1) │ ← top (newest)
+├─────────────┤
+│ factorial(2) │
+├─────────────┤
+│ factorial(3) │
+├─────────────┤
+│ factorial(4) │
+├─────────────┤
+│ factorial(5) │ ← bottom (oldest)
+└─────────────┘
+```
+
+## See It Work — Classic Recursive Problems
+
+### Fibonacci Numbers
+
+```c
+int fib(int n) {
+    if (n <= 1) return n;             // Base cases: fib(0)=0, fib(1)=1
+    return fib(n - 1) + fib(n - 2);  // Recursive case
+}
+// fib(5) = fib(4) + fib(3) = 5
+```
+
+**WARNING**: This naive implementation is O(2ⁿ) — exponentially slow! Each call branches into two more calls. fib(50) would take years. We'll see how to fix this with dynamic programming in the algorithms module.
+
+### Binary Search (Recursive)
+
+```c
+int binary_search(int arr[], int low, int high, int target) {
+    if (low > high) return -1;        // Base case: not found
+    
+    int mid = low + (high - low) / 2;
+    
+    if (arr[mid] == target) return mid;           // Found!
+    if (arr[mid] < target)
+        return binary_search(arr, mid + 1, high, target);  // Search right half
+    else
+        return binary_search(arr, low, mid - 1, target);   // Search left half
+}
+// Each call eliminates half the remaining elements → O(log n)
+```
+
+### Tower of Hanoi
+
+Move n disks from source to destination using a helper peg. Rules: only move one disk at a time, never place a larger disk on a smaller one.
+
+```c
+void hanoi(int n, char from, char to, char helper) {
+    if (n == 0) return;                         // Base case
+    hanoi(n - 1, from, helper, to);             // Move n-1 disks to helper
+    printf("Move disk %d from %c to %c\n", n, from, to);  // Move largest disk
+    hanoi(n - 1, helper, to, from);             // Move n-1 disks from helper to destination
+}
+// hanoi(3, 'A', 'C', 'B') → 7 moves (2ⁿ - 1 moves for n disks)
+```
+
+## How It Actually Works — Recursion vs. Iteration
+
+Every recursive function can be rewritten iteratively (and vice versa):
+
+```c
+// Recursive factorial
+int fact_recursive(int n) {
+    if (n <= 1) return 1;
+    return n * fact_recursive(n - 1);
+}
+
+// Iterative factorial
+int fact_iterative(int n) {
+    int result = 1;
+    for (int i = 2; i <= n; i++) {
+        result *= i;
+    }
+    return result;
+}
+```
+
+**When to use recursion:**
+- Problem has natural recursive structure (trees, fractals, divide-and-conquer)
+- Code clarity matters more than performance
+- Depth is bounded (won't overflow the stack)
+
+**When to use iteration:**
+- Performance is critical (no function call overhead)
+- Deep recursion would overflow the stack
+- The iterative version is equally clear
+
+### Tail Recursion
+
+A function is **tail-recursive** if the recursive call is the very last operation:
+
+```c
+// Tail-recursive factorial
+int fact_tail(int n, int accumulator) {
+    if (n <= 1) return accumulator;
+    return fact_tail(n - 1, n * accumulator);  // nothing after the call
+}
+// Called as: fact_tail(5, 1)
+```
+
+Some compilers optimize tail recursion into a loop (no extra stack frames). This eliminates stack overflow for deep recursion.
+
+### Stack Overflow
+
+If recursion is too deep, the call stack runs out of space:
+
+```c
+void infinite() {
+    infinite();  // never returns — stack frames pile up forever
+}
+// CRASH: Stack overflow! (stack is typically 1-8 MB)
+```
+
+Even non-infinite recursion can overflow: `factorial(1000000)` creates a million stack frames.
+
+## Why It Matters
+
+- Recursion is the natural way to process **recursive data structures** (trees, graphs, nested structures).
+- Sorting algorithms (merge sort, quicksort) are fundamentally recursive.
+- Understanding recursion is prerequisite to understanding dynamic programming, backtracking, and divide-and-conquer.
+- Many interview problems have elegant recursive solutions.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/recursion"
+  questions={[
+    {q: "What are the two essential components of every recursive function?", options: ["Input and output", "A base case (stops recursion) and a recursive case (calls itself with a smaller problem)", "A loop and a condition", "Two function definitions"], answer: 1, explanation: "The base case provides a direct answer for the simplest subproblem (e.g., factorial(1) = 1). The recursive case breaks the problem into smaller subproblems and calls itself. Without a base case, recursion never stops (stack overflow). Without a recursive case, it's just a regular function."},
+    {q: "Why is the naive recursive Fibonacci implementation O(2ⁿ)?", options: ["It uses too much memory", "Each call makes TWO recursive calls, creating an exponentially growing call tree where many subproblems are redundantly recomputed", "Fibonacci numbers are large", "The base case is wrong"], answer: 1, explanation: "fib(n) calls fib(n-1) and fib(n-2). Each of those calls two more, etc. The call tree doubles at each level: fib(5) makes 15 calls, fib(10) makes 177, fib(50) makes over 25 billion! The same values are computed repeatedly — fib(3) is computed 5 times when computing fib(7). This is fixed with memoization (caching results)."},
+    {q: "What is tail recursion and why does it matter?", options: ["Recursion that starts from the end", "When the recursive call is the last operation, allowing the compiler to reuse the current stack frame (optimize to a loop), preventing stack overflow", "Recursion with no base case", "Recursion that uses arrays"], answer: 1, explanation: "In tail recursion, nothing happens after the recursive call returns — the function just passes the result up. The compiler can optimize this by reusing the same stack frame instead of creating a new one: it just updates the parameters and jumps back to the beginning. This turns recursion into an efficient loop with O(1) stack space."}
+  ]}
+/>
+
+## What's Next
+
+Now we have the tools to build our first abstract data structures. Let's start with **stacks** — a Last-In-First-Out (LIFO) structure that mirrors the call stack we've been studying. Next: <ConceptLink to="prog-ds/stacks" label="Stacks" />.

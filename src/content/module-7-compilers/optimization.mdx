@@ -1,0 +1,133 @@
+{/* Lesson 6.6 — Code Optimization */}
+
+<PrerequisiteBadge prerequisites={["compilers/intermediate-code"]} />
+
+## Hook — Making Code Faster Without Changing What It Does
+
+Compilers don't just translate — they **optimize**. A modern compiler can make your code 2-10x faster by eliminating redundancy, simplifying expressions, and reorganizing computation. Understanding optimizations explains why "the compiler knows best" is often true.
+
+## Local Optimizations (Within a Basic Block)
+
+### Constant Folding
+
+```
+Before:  x = 2 + 3          After:  x = 5
+Before:  y = x * 0          After:  y = 0
+Before:  z = x * 1          After:  z = x
+```
+
+### Constant Propagation
+
+```
+x = 5                       x = 5
+y = x + 3     →             y = 8    (x is known to be 5)
+z = y * 2                   z = 16   (y is known to be 8)
+```
+
+### Dead Code Elimination
+
+```
+x = compute_something();    // result never used
+y = 10;                     y = 10;
+return y;                   return y;
+// x assignment removed — it has no effect on output
+```
+
+### Common Subexpression Elimination (CSE)
+
+```
+a = b + c                   a = b + c
+d = b + c        →          d = a      (reuse previous result)
+```
+
+## Global Optimizations (Across Basic Blocks)
+
+### Loop-Invariant Code Motion
+
+```c
+// Before:                      // After:
+for (i = 0; i < n; i++) {      t = x * y;  // moved outside!
+    a[i] = x * y + i;          for (i = 0; i < n; i++) {
+}                                   a[i] = t + i;
+                                }
+// x * y doesn't change in the loop — compute once
+```
+
+### Strength Reduction
+
+```
+// Replace expensive operations with cheaper ones:
+x * 2    →  x << 1        (multiply → shift)
+x * 4    →  x << 2
+x / 8    →  x >> 3
+x % 4    →  x & 3         (modulo → bitwise AND for powers of 2)
+
+// In loops:
+for (i=0; i<n; i++)        t = 0;
+    a[i*4] = ...    →      for (i=0; i<n; i++) {
+                               a[t] = ...
+                               t += 4;  // multiplication → addition
+                           }
+```
+
+### Loop Unrolling
+
+```c
+// Before:                     // After:
+for (i=0; i<100; i++)         for (i=0; i<100; i+=4) {
+    a[i] = 0;                     a[i] = 0;
+                                   a[i+1] = 0;
+                                   a[i+2] = 0;
+                                   a[i+3] = 0;
+                               }
+// Reduces loop overhead (fewer branches)
+// Enables more instruction-level parallelism
+```
+
+## How It Actually Works — Data Flow Analysis
+
+Optimizations need **data flow analysis** to prove transformations are safe:
+
+```
+Reaching Definitions: Which assignments reach a point?
+  Used for: constant propagation, copy propagation
+
+Live Variable Analysis: Which variables are used later?
+  Used for: dead code elimination, register allocation
+
+Available Expressions: Which expressions are already computed?
+  Used for: common subexpression elimination
+```
+
+### Optimization Levels
+
+```
+GCC/Clang flags:
+  -O0: No optimization (fastest compile, easiest debug)
+  -O1: Basic optimizations
+  -O2: Most optimizations (default for production)
+  -O3: Aggressive (loop unrolling, vectorization)
+  -Os: Optimize for size
+  -Ofast: -O3 + unsafe math optimizations
+```
+
+## Why It Matters
+
+- Understanding optimizations helps you write code the compiler can optimize well.
+- Premature optimization by humans is often worse than what the compiler does.
+- Knowing optimization limits tells you when manual optimization IS necessary (cache layout, algorithmic changes).
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="compilers/optimization"
+  questions={[
+    {q: "Why can't the compiler always determine if code is dead?", options: ["Compilers aren't smart enough", "Dead code elimination requires knowing whether code is reachable — but reachability can depend on runtime input, and Rice's theorem proves that any non-trivial property of program behavior is undecidable in general", "It's too slow", "Dead code doesn't exist"], answer: 1, explanation: "Is 'if (complex_function(x)) { ... }' dead code? Only if complex_function always returns false — but determining that is undecidable (Rice's theorem). Compilers use conservative approximation: if they can't PROVE code is dead, they keep it. This means some dead code remains, but the compiler never incorrectly removes live code. Sound but incomplete."},
+    {q: "What makes loop optimizations particularly impactful?", options: ["Loops are simple", "Programs spend most of their execution time in loops (90/10 rule), so even small per-iteration improvements multiply across thousands or millions of iterations", "Loops are rare", "Loop code is always slow"], answer: 1, explanation: "A loop body executing 1 million times means saving 1 instruction per iteration saves 1 million instructions total. Loop-invariant code motion, strength reduction, and unrolling target this multiplier effect. This is why compilers put the most effort into loop optimization. Profilers confirm: a few hot loops typically dominate execution time."},
+    {q: "Why is -O3 not always better than -O2?", options: ["It's the same", "-O3 applies aggressive optimizations (heavy unrolling, vectorization) that can increase code size, cause instruction cache misses, and sometimes slow down code that doesn't match the optimization's assumptions", "It has bugs", "It changes semantics"], answer: 1, explanation: "-O3 adds aggressive loop unrolling (larger code → more I-cache misses), auto-vectorization (may not help if data isn't aligned or loops are short), and function inlining (code bloat). For small, cache-sensitive programs, the larger code from -O3 can be SLOWER than -O2's more conservative approach. -Ofast additionally breaks IEEE floating-point compliance, which can change results. Always benchmark."}
+  ]}
+/>
+
+## What's Next
+
+Optimized code needs to run somewhere. **Runtime environments** manage memory, function calls, and the stack. Next: <ConceptLink to="compilers/runtime-environments" label="Runtime Environments" />.

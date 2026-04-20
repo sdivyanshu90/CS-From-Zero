@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  ::selection {
+    background-color: #FEF3C7;
+    color: #1E293B;
+  }
+
+  .hljs {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+    padding: 1.25rem !important;
+    border-radius: 0.75rem !important;
+    overflow-x: auto !important;
+  }
+}

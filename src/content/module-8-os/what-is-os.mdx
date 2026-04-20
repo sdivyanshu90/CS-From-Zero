@@ -1,0 +1,101 @@
+{/* Lesson 7.1 — What Is an Operating System? */}
+
+<PrerequisiteBadge prerequisites={["compilers/runtime-environments"]} />
+
+## Hook — The Invisible Manager
+
+Every time you open a file, run a program, or connect to the internet, the **operating system** handles it. The OS is a layer of software between your applications and the hardware — managing resources, providing abstractions, and ensuring programs don't interfere with each other. Without it, you'd need to write hardware-specific code for every program.
+
+## What Does an OS Do?
+
+```
+┌────────────────────────────────────┐
+│         Applications               │
+│  (browser, editor, games)          │
+├────────────────────────────────────┤
+│      Operating System              │
+│  ┌────────┐ ┌────────┐ ┌────────┐ │
+│  │Process │ │Memory  │ │File    │ │
+│  │Mgmt    │ │Mgmt    │ │System  │ │
+│  ├────────┤ ├────────┤ ├────────┤ │
+│  │I/O     │ │Network │ │Security│ │
+│  │Mgmt    │ │Stack   │ │        │ │
+│  └────────┘ └────────┘ └────────┘ │
+├────────────────────────────────────┤
+│         Hardware                    │
+│  (CPU, RAM, Disk, NIC)             │
+└────────────────────────────────────┘
+```
+
+### Two Key Roles
+
+1. **Resource Manager**: CPU time, memory, disk, network — shared fairly among programs.
+2. **Abstraction Provider**: Files instead of disk sectors, sockets instead of network packets, processes instead of raw CPU instructions.
+
+## See It Work — Kernel vs. User Space
+
+```
+User Space (Ring 3):
+  Applications run here with RESTRICTED privileges.
+  Can't access hardware directly.
+  Must ask the OS via system calls.
+
+Kernel Space (Ring 0):
+  OS kernel runs here with FULL hardware access.
+  Manages all resources.
+  Handles interrupts and system calls.
+
+System Call: User → Kernel transition
+  open("file.txt") → trap to kernel → kernel accesses disk
+                    → returns file descriptor → back to user
+```
+
+### Types of Kernels
+
+```
+Monolithic (Linux, Windows):
+  Everything in one big kernel: drivers, filesystem, networking.
+  + Fast (no IPC overhead between components)
+  - Large, harder to maintain, one bug can crash everything
+
+Microkernel (Minix, QNX, seL4):
+  Minimal kernel: just IPC, scheduling, memory management.
+  Drivers and filesystems run as user-space servers.
+  + More reliable, modular
+  - Slower (IPC overhead for every service call)
+
+Hybrid (macOS/XNU, Windows NT):
+  Mix of both approaches.
+```
+
+## How It Actually Works — Boot Process
+
+```
+1. BIOS/UEFI: Hardware initialization, POST
+2. Bootloader (GRUB): Loads kernel into memory
+3. Kernel init: Initialize drivers, mount root filesystem
+4. Init system (systemd): Start user-space services
+5. Login manager: Present login screen
+6. Shell/Desktop: Ready for user
+```
+
+## Why It Matters
+
+- Understanding the OS explains why programs crash, how security works, and what "kernel panic" means.
+- OS concepts (scheduling, caching, concurrency) appear throughout CS and systems design.
+- Every software engineer interacts with the OS daily — understanding it makes you effective at debugging performance issues.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="os/what-is-os"
+  questions={[
+    {q: "Why do we need a separation between user space and kernel space?", options: ["Performance", "To protect the system — user programs run with restricted privileges so a buggy or malicious application can't corrupt the kernel, access other programs' memory, or directly manipulate hardware", "To save memory", "Historical reasons"], answer: 1, explanation: "Without privilege separation, any program could overwrite the kernel, read other programs' data, or send arbitrary commands to hardware. The CPU enforces privilege rings: kernel (ring 0) has full access, user (ring 3) is restricted. System calls provide a controlled gateway — the kernel validates every request. This is why a crashing app doesn't take down the whole system (usually)."},
+    {q: "What is the key tradeoff between monolithic and microkernel designs?", options: ["Size vs. features", "Performance vs. reliability — monolithic kernels are faster (no IPC overhead) but less reliable (one kernel bug crashes everything); microkernels are more reliable (isolated components) but slower (frequent IPC between services)", "Old vs. new", "Open source vs. proprietary"], answer: 1, explanation: "In a monolithic kernel (Linux), a filesystem bug can corrupt kernel memory and crash the whole system. In a microkernel, the filesystem runs as a separate user-space process — if it crashes, the kernel restarts it. But every filesystem operation requires IPC (user→kernel→filesystem server→kernel→user), adding overhead. Linux chose monolithic for performance; seL4 chose microkernel for formally verified security."},
+    {q: "What is a system call?", options: ["A function call", "A controlled mechanism for user-space programs to request kernel services — it triggers a CPU privilege transition from user mode to kernel mode, where the kernel validates and executes the request", "A network request", "A type of interrupt"], answer: 1, explanation: "A system call (syscall) is not a regular function call. It uses a special CPU instruction (syscall/int 0x80 on x86) that transitions from user mode (ring 3) to kernel mode (ring 0). The kernel checks arguments, performs the operation (open file, allocate memory, send packet), then returns to user mode. This transition has overhead (~100ns), which is why programs batch operations and use buffered I/O."}
+  ]}
+/>
+
+## What's Next
+
+The OS manages running programs as **processes**. But what exactly is a process, and how do **threads** fit in? Next: <ConceptLink to="os/processes-threads" label="Processes & Threads" />.

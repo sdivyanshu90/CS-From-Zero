@@ -1,0 +1,150 @@
+{/* Lesson 4.3 — Sorting Algorithms */}
+
+<PrerequisiteBadge prerequisites={["algorithms/big-o"]} />
+
+## Hook — Ordering the World
+
+Sorting is the most studied problem in computer science. Your email inbox, search results, leaderboards, database queries — all rely on sorting. There are dozens of sorting algorithms, each with different tradeoffs. Understanding sorting teaches you divide-and-conquer, recursion, and the fundamental limits of comparison-based algorithms.
+
+## The Problem
+
+**Input**: An array of n comparable elements.
+**Output**: The same elements in non-decreasing order.
+
+## See It Work — The Classic Sorts
+
+### Bubble Sort — O(n²)
+
+Repeatedly swap adjacent elements if out of order:
+
+```
+[5, 3, 8, 1, 2]
+Pass 1: [3,5,1,2,8]  ← 8 "bubbled" to end
+Pass 2: [3,1,2,5,8]  ← 5 in place
+Pass 3: [1,2,3,5,8]  ← sorted!
+
+Simple but slow. Never use in production.
+```
+
+### Selection Sort — O(n²)
+
+Find minimum, swap to front. Repeat for remaining elements:
+
+```
+[5, 3, 8, 1, 2]
+Find min (1), swap with position 0: [1, 3, 8, 5, 2]
+Find min in [3,8,5,2], swap:        [1, 2, 8, 5, 3]
+Find min in [8,5,3], swap:          [1, 2, 3, 5, 8]
+```
+
+### Insertion Sort — O(n²) worst, O(n) best
+
+Insert each element into its correct position in the sorted portion:
+
+```
+[5, 3, 8, 1, 2]
+[5] 3 → [3,5] 8 → [3,5,8] 1 → [1,3,5,8] 2 → [1,2,3,5,8]
+
+Best case O(n): already sorted (each element compared once)
+Excellent for small arrays and nearly-sorted data.
+```
+
+### Merge Sort — O(n log n) always
+
+Divide array in half, recursively sort each half, merge:
+
+```
+[5, 3, 8, 1, 2, 7, 4, 6]
+Split: [5,3,8,1] [2,7,4,6]
+Split: [5,3][8,1] [2,7][4,6]
+Split: [5][3] [8][1] [2][7] [4][6]
+Merge: [3,5] [1,8] [2,7] [4,6]
+Merge: [1,3,5,8] [2,4,6,7]
+Merge: [1,2,3,4,5,6,7,8]
+```
+
+```c
+void merge_sort(int arr[], int left, int right) {
+    if (left >= right) return;
+    int mid = left + (right - left) / 2;
+    merge_sort(arr, left, mid);
+    merge_sort(arr, mid + 1, right);
+    merge(arr, left, mid, right);  // merge two sorted halves
+}
+// Time: O(n log n) — always (log n levels, O(n) work per level)
+// Space: O(n) — needs temporary array for merging
+```
+
+### Quicksort — O(n log n) average, O(n²) worst
+
+Choose a pivot, partition around it, recurse:
+
+```
+[5, 3, 8, 1, 2, 7, 4, 6]  pivot = 5
+Partition: [3,1,2,4] [5] [8,7,6]
+           less than 5    greater than 5
+
+Recurse on [3,1,2,4] and [8,7,6]...
+
+Average: O(n log n) — with random pivot
+Worst:   O(n²) — if pivot is always min or max (sorted input!)
+Space:   O(log n) — in-place, only stack frames
+```
+
+Quicksort is typically fastest in practice despite worse worst case than merge sort (better cache behavior, less data movement).
+
+## How It Actually Works — Comparison Summary
+
+```
+Algorithm       Best       Average      Worst      Space    Stable
+─────────       ────       ───────      ─────      ─────    ──────
+Bubble sort     O(n)       O(n²)        O(n²)      O(1)     Yes
+Selection sort  O(n²)      O(n²)        O(n²)      O(1)     No
+Insertion sort  O(n)       O(n²)        O(n²)      O(1)     Yes
+Merge sort      O(n log n) O(n log n)   O(n log n) O(n)     Yes
+Quicksort       O(n log n) O(n log n)   O(n²)      O(log n) No*
+Heapsort        O(n log n) O(n log n)   O(n log n) O(1)     No
+
+Stable: Equal elements maintain their original relative order.
+```
+
+### The Lower Bound — Ω(n log n)
+
+**Any comparison-based sorting algorithm must make at least Ω(n log n) comparisons in the worst case.** Here's why:
+
+```
+n elements have n! possible orderings.
+Each comparison eliminates at most half the possibilities.
+Number of comparisons needed: log₂(n!) ≈ n log₂(n)
+
+This means merge sort and heapsort are OPTIMAL — you can't do better
+with comparisons alone!
+```
+
+### Non-Comparison Sorts — Breaking the Barrier
+
+**Counting Sort**: O(n + k) where k = range of values. Not comparison-based!
+**Radix Sort**: O(d × (n + k)) where d = number of digits.
+
+These work when values have restricted range (e.g., integers 0 to 999).
+
+## Why It Matters
+
+- Sorting is a **prerequisite** for binary search, merge operations, and many algorithms.
+- The choice between O(n²) and O(n log n) is the difference between seconds and days for large datasets.
+- Real implementations (like Timsort in Python/Java) combine techniques: merge sort structure + insertion sort for small subarrays.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/sorting"
+  questions={[
+    {q: "Why is quicksort typically faster than merge sort in practice despite having a worse worst case?", options: ["Quicksort is simpler", "Quicksort sorts in-place (better cache locality, less memory allocation) and has smaller constant factors; the O(n²) worst case is avoided with random pivot selection", "Quicksort has better Big-O", "Merge sort has bugs"], answer: 1, explanation: "Quicksort partitions in-place, accessing memory sequentially (cache-friendly). Merge sort needs an extra O(n) array, causing more cache misses and memory allocation overhead. With randomized pivot selection, quicksort's worst case (O(n²)) becomes astronomically unlikely. The constant factor in quicksort's O(n log n) is smaller than merge sort's."},
+    {q: "Why can't any comparison-based sort beat O(n log n)?", options: ["Computers aren't fast enough", "With n! possible orderings, each comparison halves the remaining possibilities, requiring at least log₂(n!) ≈ n log n comparisons to identify the correct ordering", "O(n log n) is the fastest possible", "It's a convention"], answer: 1, explanation: "Think of sorting as a decision tree: each comparison is a branch. The tree must have at least n! leaves (one for each possible ordering). A binary tree with n! leaves has height at least log₂(n!) ≈ n log n. This means any comparison-based algorithm must make at least n log n comparisons in the worst case. Counting sort and radix sort bypass this by not using comparisons."},
+    {q: "What does 'stable' mean for a sorting algorithm?", options: ["It doesn't crash", "Equal elements maintain their original relative order after sorting — important when sorting by multiple criteria", "It's well-tested", "It uses constant space"], answer: 1, explanation: "If you sort students by grade and two students both have grade 'A', a stable sort preserves their original order. This matters when sorting by multiple keys: sort by name first, then stable sort by grade → students with equal grades are alphabetical. Merge sort and insertion sort are stable; quicksort and heapsort are not."}
+  ]}
+/>
+
+## What's Next
+
+Sorting organizes data; now we need to find things in it. Next: <ConceptLink to="algorithms/searching" label="Searching Algorithms" />.

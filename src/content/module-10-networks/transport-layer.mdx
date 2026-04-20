@@ -1,0 +1,113 @@
+{/* Lesson 9.6 — Transport Layer (TCP & UDP) */}
+
+<PrerequisiteBadge prerequisites={["networks/routing"]} />
+
+## Hook — Reliable vs Fast
+
+IP delivers packets "best effort" — packets can be lost, duplicated, or reordered. **TCP** adds reliability: guaranteed delivery, correct order, flow control. **UDP** says "just send it fast." Choosing between them is one of the most important decisions in network programming.
+
+## UDP — User Datagram Protocol
+
+```
+UDP Header (8 bytes):
+┌──────────┬──────────┐
+│ Src Port │ Dst Port │  4 bytes
+├──────────┼──────────┤
+│ Length   │ Checksum │  4 bytes
+└──────────┴──────────┘
+
+Features:
+  ✗ No connection setup
+  ✗ No guaranteed delivery
+  ✗ No ordering
+  ✗ No flow/congestion control
+  ✓ Fast (minimal overhead)
+  ✓ Low latency
+  ✓ Multicast support
+
+Used for: DNS, video streaming, VoIP, gaming, NTP
+  → Where speed matters more than reliability
+  → Lost frame in video? Show next one. Don't wait.
+```
+
+## TCP — Transmission Control Protocol
+
+```
+TCP Header (20+ bytes):
+┌──────────┬──────────┐
+│ Src Port │ Dst Port │
+├──────────┴──────────┤
+│ Sequence Number      │
+├──────────────────────┤
+│ Acknowledgment Number│
+├──────┬───────────────┤
+│Flags │ Window Size   │  SYN, ACK, FIN, RST, PSH
+├──────┴───────────────┤
+│ Checksum │ Urg Ptr   │
+└──────────────────────┘
+```
+
+### Three-Way Handshake
+
+```
+Client              Server
+  │── SYN (seq=100) ──→│   "I want to connect"
+  │←─ SYN-ACK ────────│   "OK, here's my seq too"
+  │   (seq=300,ack=101)│
+  │── ACK (ack=301) ──→│   "Got it, connection open"
+  
+Connection established. Both sides know initial sequence numbers.
+
+Closing: FIN → ACK, FIN → ACK (four-way)
+```
+
+### Reliable Delivery
+
+```
+Sequence numbers track every byte sent:
+  Segment 1: seq=100, 500 bytes → covers bytes 100-599
+  Segment 2: seq=600, 500 bytes → covers bytes 600-1099
+
+Receiver ACKs: "I've received up to byte 1100" (cumulative ACK)
+
+Lost segment? Receiver ACKs last received byte.
+  3 duplicate ACKs → sender retransmits (Fast Retransmit).
+  Timeout → sender retransmits.
+
+Selective ACK (SACK): "I have bytes 100-599 and 1100-1599,
+  missing 600-1099." Only retransmit missing segment.
+```
+
+### Flow Control
+
+```
+Receiver advertises window size in ACK:
+  "I have 16KB of buffer space free"
+
+Sender limits unacknowledged data to window size.
+  → Prevents fast sender from overwhelming slow receiver.
+
+Window = 0 → Sender stops. Periodically sends probe.
+  When receiver has space → window > 0 → resume.
+```
+
+## Why It Matters
+
+- TCP vs UDP is a core networking decision that affects every networked application.
+- Understanding TCP explains why web pages load reliably and why video calls sometimes stutter.
+- Flow control and congestion control prevent the internet from collapsing under load.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="networks/transport-layer"
+  questions={[
+    {q: "Why does video streaming often use UDP instead of TCP?", options: ["UDP is newer", "TCP retransmits lost packets, adding delay — for real-time video, a retransmitted frame arriving late is useless (the moment has passed). UDP's lower latency and lack of retransmission lets the application skip lost frames and show the next one, maintaining smooth playback", "UDP has better quality", "TCP can't handle video"], answer: 1, explanation: "Live video at 30fps: each frame is ~33ms. If a packet is lost, TCP retransmits: minimum 1 RTT delay (~50-200ms). By then, 2-6 frames have passed — the retransmitted data is stale. UDP: application drops the lost frame, shows the next one. Viewer sees a brief glitch instead of a freeze. Modern streaming (Netflix) actually uses TCP — but for buffered content, not live. They can buffer ahead. Live streaming (Zoom, Twitch) uses UDP (via WebRTC/QUIC) where latency matters more than perfection."},
+    {q: "What problem does the three-way handshake solve?", options: ["It's for encryption", "The three-way handshake synchronizes sequence numbers between client and server and confirms that both sides can send and receive — without it, one side might start sending data before the other is ready, or use mismatched sequence numbers", "It's faster than two-way", "It prevents packet loss"], answer: 1, explanation: "SYN: client proposes initial sequence number (ISN=100). SYN-ACK: server acknowledges (ack=101) AND proposes its own ISN (seq=300). ACK: client acknowledges server's ISN (ack=301). Both sides now know each other's sequence numbers AND have confirmed two-way communication works. Why not two-way? With only SYN→SYN-ACK, the server doesn't know if the client received the SYN-ACK — it might start sending data the client isn't ready for. The third ACK confirms the client is ready."},
+    {q: "How does TCP flow control prevent data loss?", options: ["It uses bigger packets", "The receiver advertises its available buffer space (window size) in every ACK — the sender limits its unacknowledged data to this amount, preventing buffer overflow at the receiver even when the sender is much faster", "It slows down the network", "It duplicates packets"], answer: 1, explanation: "Without flow control: fast server sends 1 GB to slow client. Client's 64KB buffer fills → subsequent packets dropped → retransmissions → more drops → collapse. With flow control: client says 'window=16KB' → server sends max 16KB before waiting for ACK. As client processes data, it increases window ('window=32KB'). If overwhelmed: 'window=0' → server pauses entirely. This is end-to-end (receiver controls sender). Separate from congestion control (which prevents overwhelming the NETWORK, not the receiver)."}
+  ]}
+/>
+
+## What's Next
+
+TCP prevents overwhelming the receiver, but what about overwhelming the network? Next: <ConceptLink to="networks/flow-congestion" label="Flow & Congestion Control" />.

@@ -1,0 +1,140 @@
+{/* Lesson 1.6 — Minimization (Karnaugh Maps) */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/boolean-algebra", "digital-logic/logic-gates"]} />
+
+## Hook
+
+Imagine you're packing for a trip and your suitcase is overflowing. You realize you packed three different jackets for rain, wind, and cold — but one all-weather jacket covers all three cases. By finding the overlap, you reduced three items to one without losing any function.
+
+In computing, this is called **Boolean minimization** — simplifying a <ConceptLink to="digital-logic/boolean-algebra" label="Boolean expression" /> to use fewer <ConceptLink to="digital-logic/logic-gates" label="logic gates" />, making circuits cheaper, faster, and lower-power.
+
+## What Is It?
+
+**Minimization** is the process of finding the simplest Boolean expression that produces the exact same outputs as a more complex one. The most popular manual technique is the **Karnaugh map** (K-map), invented by Maurice Karnaugh in 1953.
+
+A K-map is a grid that rearranges a truth table so that adjacent cells differ by exactly one input variable. This makes it easy to visually spot groups of 1s that can be combined into simpler terms.
+
+## See It Work
+
+Let's minimize a 2-variable function. Suppose the truth table is:
+
+```
+A | B | Output
+--|---|-------
+0 | 0 |   1
+0 | 1 |   1
+1 | 0 |   0
+1 | 1 |   1
+```
+
+The long-form Boolean expression (sum of minterms):
+`F = (NOT A AND NOT B) OR (NOT A AND B) OR (A AND B)`
+
+Now draw the K-map:
+
+```
+        B=0   B=1
+A=0  |  1  |  1  |
+A=1  |  0  |  1  |
+```
+
+**Step 1**: Group adjacent 1s in powers of 2 (groups of 1, 2, 4, 8...).
+- The top row (A=0): both cells are 1 → group them. This eliminates B → gives us `NOT A`.
+- The right column (B=1): both cells are 1 → group them. This eliminates A → gives us `B`.
+
+**Step 2**: Combine the groups with OR.
+`F = (NOT A) OR B`
+
+That's much simpler than our original three-term expression! And it uses fewer gates.
+
+## How It Actually Works
+
+### 3-Variable K-Map
+
+For three variables (A, B, C), the K-map is a 2×4 grid. Columns use **Gray code** order (00, 01, 11, 10) so adjacent cells always differ by exactly one bit:
+
+```
+          BC=00  BC=01  BC=11  BC=10
+A=0    |   1  |   0  |   1  |   1  |
+A=1    |   0  |   0  |   1  |   0  |
+```
+
+Groups wrap around edges! The leftmost and rightmost columns are considered adjacent.
+
+**Grouping rules:**
+1. Groups must be rectangular (including squares).
+2. Group sizes must be powers of 2: 1, 2, 4, 8.
+3. Every 1 must be in at least one group.
+4. Make groups as large as possible.
+5. Fewer groups = simpler expression.
+
+### 4-Variable K-Map
+
+Four variables produce a 4×4 grid. Both rows and columns use Gray code. The map wraps both horizontally and vertically — imagine it drawn on a donut (torus).
+
+```
+            CD=00  CD=01  CD=11  CD=10
+AB=00    |       |       |       |       |
+AB=01    |       |       |       |       |
+AB=11    |       |       |       |       |
+AB=10    |       |       |       |       |
+```
+
+### Don't-Care Conditions
+
+Sometimes certain input combinations can never happen (e.g., BCD codes 1010-1111 are invalid for a decimal digit). You can mark these as "X" (don't-care) in the K-map and include them in groups if it helps make larger groups — further simplifying the circuit.
+
+## Why It Matters
+
+Minimization directly impacts hardware:
+
+- **Fewer gates** = less silicon area = cheaper chips.
+- **Fewer gates** = shorter signal paths = faster circuits.
+- **Fewer gates** = less power consumption = longer battery life.
+
+For circuits with more than 4-5 variables, automated tools (like the Quine-McCluskey algorithm or Espresso heuristic) replace hand-drawn K-maps, but the principle is the same: find the simplest expression that matches the truth table.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/minimization"
+  questions={[
+    {
+      q: "Why do K-map columns use Gray code order instead of standard binary?",
+      options: [
+        "Gray code is faster to compute",
+        "It makes the map look nicer",
+        "So adjacent cells differ by exactly one variable, enabling grouping",
+        "Gray code uses fewer bits"
+      ],
+      answer: 2,
+      explanation: "Gray code ensures each adjacent cell (including wrap-around) differs by exactly one bit. This adjacency property is what makes visual grouping of 1s possible."
+    },
+    {
+      q: "What must be true about group sizes in a K-map?",
+      options: [
+        "Groups must contain exactly 3 cells",
+        "Groups must be powers of 2 (1, 2, 4, 8…)",
+        "Groups can be any size",
+        "Groups must contain an odd number of cells"
+      ],
+      answer: 1,
+      explanation: "K-map groups must be rectangular and have sizes that are powers of 2. This ensures each group corresponds to a valid simplified Boolean term."
+    },
+    {
+      q: "What is a 'don't-care' condition in a K-map?",
+      options: [
+        "An error in the circuit",
+        "An output that is always 0",
+        "An input combination that can never occur, so its output can be 0 or 1",
+        "A gate that has been removed from the circuit"
+      ],
+      answer: 2,
+      explanation: "Don't-care conditions represent input combinations that will never happen in practice. You can treat them as 0 or 1 — whichever creates larger groups and a simpler expression."
+    }
+  ]}
+/>
+
+## What's Next
+
+You can now simplify circuits, but all our examples used abstract 1s and 0s. How do computers actually represent *numbers* — not just single bits, but real quantities? Next up: <ConceptLink to="digital-logic/number-systems" label="Number Systems" /> — binary, hexadecimal, and two's complement.

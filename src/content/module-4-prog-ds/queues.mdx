@@ -1,0 +1,148 @@
+{/* Lesson 3.7 — Queues */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/stacks"]} />
+
+## Hook — First Come, First Served
+
+When you wait in line at a coffee shop, the first person in line gets served first. That's a **queue** — a **First-In, First-Out (FIFO)** data structure. Queues are everywhere in computing: print job scheduling, web server request handling, breadth-first search, and message passing between systems.
+
+## What Is a Queue?
+
+A **queue** supports two primary operations:
+
+- **enqueue(item)**: Add an item to the back (rear).
+- **dequeue()**: Remove and return the item from the front.
+- **peek()** / **front()**: Look at the front item without removing it.
+- **isEmpty()**: Check if the queue is empty.
+
+```
+enqueue(10)  enqueue(20)  enqueue(30)  dequeue()  dequeue()
+
+ Front→ │10│   │10│20│   │10│20│30│   │20│30│    │30│
+         ←Rear                          → 10      → 20
+```
+
+**All operations are O(1).**
+
+## See It Work — Implementing a Queue
+
+### Circular Array Queue
+
+A simple array queue wastes space as the front moves forward. A **circular array** wraps around:
+
+```c
+#define MAX_SIZE 100
+
+typedef struct {
+    int data[MAX_SIZE];
+    int front, rear, size;
+} Queue;
+
+void init(Queue *q) { q->front = 0; q->rear = -1; q->size = 0; }
+int isEmpty(Queue *q) { return q->size == 0; }
+int isFull(Queue *q) { return q->size == MAX_SIZE; }
+
+void enqueue(Queue *q, int value) {
+    if (isFull(q)) { printf("Queue full!\n"); return; }
+    q->rear = (q->rear + 1) % MAX_SIZE;  // wrap around!
+    q->data[q->rear] = value;
+    q->size++;
+}
+
+int dequeue(Queue *q) {
+    if (isEmpty(q)) { printf("Queue empty!\n"); return -1; }
+    int value = q->data[q->front];
+    q->front = (q->front + 1) % MAX_SIZE;  // wrap around!
+    q->size--;
+    return value;
+}
+```
+
+```
+Circular array visualization (capacity 5):
+                     front
+                       ↓
+          [30][40][ ][ ][20]
+                 ↑
+                rear
+
+After enqueue(50): front=4, rear=2
+          [30][40][50][ ][20]
+```
+
+### Queue Variants
+
+**Double-Ended Queue (Deque)**: Insert and remove from BOTH ends.
+
+```
+addFront() ←  [10][20][30]  → addRear()
+removeFront() ←             → removeRear()
+```
+
+**Priority Queue**: Elements have priorities; highest priority is dequeued first (regardless of insertion order). Usually implemented with a heap.
+
+```
+enqueue(task_A, priority=3)
+enqueue(task_B, priority=1)
+enqueue(task_C, priority=5)
+dequeue() → task_C (priority 5, highest)
+dequeue() → task_A (priority 3)
+dequeue() → task_B (priority 1)
+```
+
+## How It Actually Works — BFS with a Queue
+
+**Breadth-First Search** uses a queue to explore level by level:
+
+```
+Graph:  A → B, C
+        B → D
+        C → E
+
+BFS with queue:
+  Enqueue A         Queue: [A]
+  Dequeue A, visit   Queue: []  Enqueue neighbors B, C
+  Dequeue B, visit   Queue: [C]  Enqueue neighbor D
+  Dequeue C, visit   Queue: [D]  Enqueue neighbor E
+  Dequeue D, visit   Queue: [E]  No unvisited neighbors
+  Dequeue E, visit   Queue: []
+  
+  Visit order: A, B, C, D, E (breadth-first — level by level!)
+```
+
+Compare with DFS (stack): A, B, D, C, E — depth first.
+
+### Real-World Queue Applications
+
+```
+Application              What's Queued          Why FIFO
+──────────               ─────────              ────────
+Print spooler            Print jobs             Fair: first submitted prints first
+Web server               HTTP requests          Fair: first request served first
+CPU scheduling           Processes              Round-robin time sharing
+Message queues           Messages (Kafka, RabbitMQ) Ordered delivery
+Key buffer               Keystrokes             Type order preserved
+Network router           Packets                First-come first-forwarded
+```
+
+## Why It Matters
+
+- Queues ensure **fairness** — first come, first served.
+- BFS requires a queue and finds **shortest paths** in unweighted graphs.
+- Operating systems use queues for process scheduling, I/O request ordering, and inter-process communication.
+- Message queues (Kafka, RabbitMQ, SQS) are fundamental to modern distributed systems.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="prog-ds/queues"
+  questions={[
+    {q: "What problem does a circular array solve for queue implementation?", options: ["It makes the queue faster", "It prevents wasted space at the front of the array by wrapping the rear pointer back to the beginning when it reaches the end", "It allows infinite storage", "It sorts the elements"], answer: 1, explanation: "In a linear array queue, dequeue moves the front forward, leaving unused space at the beginning. Eventually the rear reaches the end even if the front is far from index 0. A circular array uses modular arithmetic (rear = (rear + 1) % capacity) to wrap around and reuse that space at the beginning."},
+    {q: "What is the key difference between BFS and DFS in terms of data structures?", options: ["BFS is faster", "BFS uses a queue (FIFO) to explore level by level; DFS uses a stack (LIFO) to explore as deep as possible first", "DFS uses a queue", "They use the same structure"], answer: 1, explanation: "BFS enqueues all neighbors before processing any of them, ensuring level-by-level exploration (nearest first). DFS pushes neighbors onto a stack and immediately dives into the most recently added one, going as deep as possible before backtracking. The data structure choice (queue vs. stack) determines the exploration order."},
+    {q: "Why are message queues important in distributed systems?", options: ["They're faster than direct communication", "They decouple producers from consumers, ensure ordered delivery, handle traffic spikes by buffering, and enable asynchronous processing", "They encrypt messages", "They compress data"], answer: 1, explanation: "Message queues (Kafka, RabbitMQ, SQS) let producers send messages without waiting for consumers. If the consumer is slow or down, messages buffer in the queue. This decoupling means components can scale independently, handle bursts gracefully, and be deployed/updated separately. FIFO ordering ensures messages are processed in the correct sequence."}
+  ]}
+/>
+
+## What's Next
+
+Stacks and queues organize data by insertion order. But what about data with hierarchical relationships — like file systems, HTML documents, or organizational charts? That requires **trees**. Next: <ConceptLink to="prog-ds/linked-lists" label="Linked Lists" />.

@@ -1,0 +1,95 @@
+{/* Lesson 5.1 — What Can Machines Compute? */}
+
+<PrerequisiteBadge prerequisites={["algorithms/hashing"]} />
+
+## Hook — The Limits of Computing
+
+Can a computer solve any problem? Surprisingly, **no**. There are problems that no computer, no matter how powerful, can ever solve. Theory of computation tells us exactly what is and isn't computable — and it was worked out in the 1930s, before computers even existed. Understanding these limits protects you from trying to solve the unsolvable.
+
+## The Big Picture — Chomsky Hierarchy
+
+All computational problems fall into a hierarchy:
+
+```
+┌─────────────────────────────────────────────┐
+│         Recursively Enumerable              │
+│   ┌─────────────────────────────────────┐   │
+│   │         Decidable (Recursive)       │   │
+│   │   ┌─────────────────────────────┐   │   │
+│   │   │     Context-Free            │   │   │
+│   │   │   ┌─────────────────────┐   │   │   │
+│   │   │   │     Regular         │   │   │   │
+│   │   │   └─────────────────────┘   │   │   │
+│   │   └─────────────────────────────┘   │   │
+│   └─────────────────────────────────────┘   │
+└─────────────────────────────────────────────┘
+           UNDECIDABLE (outside all)
+```
+
+Each level has more computational power:
+- **Regular**: Finite automata (pattern matching)
+- **Context-Free**: Pushdown automata (parsing programming languages)
+- **Decidable**: Turing machines that always halt (most practical problems)
+- **Recursively Enumerable**: Turing machines that may not halt
+- **Undecidable**: No machine can solve these at all
+
+## See It Work — Problems at Each Level
+
+```
+Level                Machine              Example
+─────                ───────              ───────
+Regular              Finite automaton     "Does this string match a@b.c?"
+Context-Free         Pushdown automaton   "Are parentheses balanced?"
+Decidable            Turing machine       "Is this number prime?"
+Undecidable          None!                "Does this program halt?"
+```
+
+## How It Actually Works — Key Concepts
+
+### Alphabets, Strings, and Languages
+
+```
+Alphabet Σ: A finite set of symbols. E.g., Σ = \{0, 1\}
+String: A finite sequence over Σ. E.g., "010", "111", ""
+Language: A set of strings. E.g., L = \{"0", "01", "001"\}
+
+A computational problem is a language:
+  "Is n prime?" = \{strings representing prime numbers\}
+  "Does program P halt?" = \{programs that terminate\}
+
+A machine "decides" a language L if:
+  Input w ∈ L → machine accepts
+  Input w ∉ L → machine rejects
+  Machine always halts!
+```
+
+### Computation as Recognition
+
+Instead of "computing outputs," theory focuses on **recognizing languages** — accepting or rejecting strings. This captures all computational problems:
+
+```
+Decision problem: "Is x in language L?"
+  Function problem f(x) → y can be converted to decision:
+  "Is (x, y) in the language \{(x,f(x)) | x in domain\}?"
+```
+
+## Why It Matters
+
+- Knowing the hierarchy tells you what tools you need (regex vs. parser vs. general algorithm).
+- Undecidability means some problems are **provably impossible** — no amount of hardware helps.
+- This theory is the mathematical foundation of all of computer science.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="theory/what-can-machines-compute"
+  questions={[
+    {q: "What does it mean for a problem to be undecidable?", options: ["It's very hard", "No algorithm (Turing machine) can correctly decide the answer for ALL inputs — it's provably impossible to solve in general", "It takes too long", "We haven't found a solution yet"], answer: 1, explanation: "Undecidable doesn't mean 'hard' — it means impossible. No matter how much time, memory, or cleverness you apply, no algorithm can correctly answer for every possible input. The halting problem is the most famous example: no program can correctly predict whether every other program halts."},
+    {q: "Why does theory focus on 'languages' instead of 'programs'?", options: ["Languages are simpler", "Every computational problem can be expressed as a language (set of strings), making it a universal framework for studying what is computable", "Programs are too complex", "Languages are faster"], answer: 1, explanation: "A language is just a set of strings. Any yes/no question can be phrased as 'is this string in the language of valid inputs?' For example, PRIMES = set of binary strings representing prime numbers. Deciding membership = solving the problem. This abstraction lets us compare vastly different problems using the same framework."},
+    {q: "What is the relationship between regular and context-free languages?", options: ["They're the same", "Every regular language is context-free (regular ⊂ context-free), but not vice versa — context-free languages like balanced parentheses cannot be recognized by finite automata", "Context-free is a subset of regular", "They're unrelated"], answer: 1, explanation: "Regular languages are recognized by finite automata (no memory). Context-free languages are recognized by pushdown automata (stack memory). A finite automaton is a pushdown automaton that never uses its stack, so every regular language is context-free. But balanced parentheses (context-free) require counting depth — impossible with finite memory alone."}
+  ]}
+/>
+
+## What's Next
+
+Let's start at the simplest level: **regular languages**, which can be described by regex and recognized by finite automata. Next: <ConceptLink to="theory/regex-finite-automata" label="Regular Expressions & Finite Automata" />.

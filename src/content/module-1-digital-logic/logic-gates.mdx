@@ -1,0 +1,211 @@
+{/* Lesson 1.3 — Logic Gates */}
+
+<PrerequisiteBadge prerequisites={["digital-logic/boolean-algebra"]} />
+
+## Hook — From Math to Metal
+
+You know what AND, OR, and NOT mean mathematically. But how does a chunk of silicon actually *compute* "A AND B"? The answer is the **transistor** — a tiny electronic switch that forms the basis of every logic gate, every chip, and every computer ever built. A modern CPU has over 10 billion of them.
+
+## What Is a Logic Gate?
+
+A **logic gate** is an electronic circuit that implements a Boolean function. It takes one or more binary inputs and produces a single binary output based on a specific logical rule.
+
+Logic gates are the physical building blocks of digital circuits. Everything — from a simple calculator to a supercomputer — is built by connecting logic gates together.
+
+### How Transistors Become Gates
+
+A **transistor** is like an electrically-controlled switch:
+
+```
+MOSFET Transistor:
+                    ┌─── Drain
+                    │
+Gate ───────┤       │    When Gate = HIGH: switch CLOSES (current flows)
+                    │    When Gate = LOW:  switch OPENS  (no current)
+                    └─── Source
+```
+
+By wiring transistors together cleverly, we create logic gates:
+
+- **NOT gate**: 1 transistor — inverts the input signal
+- **NAND gate**: 2 transistors in series, output inverted
+- **NOR gate**: 2 transistors in parallel, output inverted
+- **AND gate**: NAND + NOT (3 transistors)
+- **OR gate**: NOR + NOT (3 transistors)
+
+### The Seven Fundamental Gates
+
+Here are all the standard logic gates with their truth tables:
+
+**NOT Gate (Inverter)**
+```
+Input → [▷○] → Output
+
+A | OUT
+--|----
+0 |  1
+1 |  0
+```
+
+**AND Gate**
+```
+A ──┐
+    ├──D──── OUT
+B ──┘
+
+A | B | OUT
+--|---|----
+0 | 0 |  0
+0 | 1 |  0
+1 | 0 |  0
+1 | 1 |  1
+```
+
+**OR Gate**
+```
+A ──┐
+    ├──)──── OUT
+B ──┘
+
+A | B | OUT
+--|---|----
+0 | 0 |  0
+0 | 1 |  1
+1 | 0 |  1
+1 | 1 |  1
+```
+
+**NAND Gate (NOT-AND)** — outputs 0 only when both inputs are 1
+```
+A | B | OUT
+--|---|----
+0 | 0 |  1
+0 | 1 |  1
+1 | 0 |  1
+1 | 1 |  0
+```
+
+**NOR Gate (NOT-OR)** — outputs 1 only when both inputs are 0
+```
+A | B | OUT
+--|---|----
+0 | 0 |  1
+0 | 1 |  0
+1 | 0 |  0
+1 | 1 |  0
+```
+
+**XOR Gate (Exclusive OR)** — outputs 1 when inputs differ
+```
+A | B | OUT
+--|---|----
+0 | 0 |  0
+0 | 1 |  1
+1 | 0 |  1
+1 | 1 |  0
+```
+
+**XNOR Gate (Exclusive NOR)** — outputs 1 when inputs are the same
+```
+A | B | OUT
+--|---|----
+0 | 0 |  1
+0 | 1 |  0
+1 | 0 |  0
+1 | 1 |  1
+```
+
+## See It Work — Gates in Action
+
+### Building XOR from Basic Gates
+
+XOR isn't always available directly, but we can build it:
+
+```
+A XOR B = (A · B̅) + (A̅ · B)
+
+Circuit:
+A ──┬──── [NOT] ── A̅ ─┐
+    │                  ├── [AND] ── (A̅·B) ─┐
+B ──┼──────────────────┘                    ├── [OR] ── Output
+    │                  ┌── [AND] ── (A·B̅) ─┘
+    └──────────────────┤
+B ──── [NOT] ── B̅ ─────┘
+
+Total: 2 NOT + 2 AND + 1 OR = 5 gates
+```
+
+### Real-World Example: Light Switch
+
+Two-way light switches (like at the top and bottom of stairs) implement XOR:
+
+```
+Switch A | Switch B | Light
+---------|----------|------
+  Down   |   Down   |  OFF    (0 XOR 0 = 0)
+  Down   |   Up     |  ON     (0 XOR 1 = 1)
+  Up     |   Down   |  ON     (1 XOR 0 = 1)
+  Up     |   Up     |  OFF    (1 XOR 1 = 0)
+```
+
+Either switch can toggle the light, regardless of the other switch's position.
+
+## How It Actually Works — Universal Gates and CMOS
+
+### NAND and NOR Are Universal
+
+A remarkable fact: **you can build ANY logic function using only NAND gates** (or only NOR gates). This makes NAND the "universal gate."
+
+```
+NOT from NAND:   A NAND A = NOT A
+AND from NAND:   (A NAND B) NAND (A NAND B) = A AND B
+OR from NAND:    (A NAND A) NAND (B NAND B) = A OR B
+```
+
+Why does this matter? In chip manufacturing, it's simpler and cheaper to mass-produce one type of gate. Real CPUs are built primarily from NAND (or NOR) gates.
+
+### CMOS Technology
+
+Modern chips use **CMOS** (Complementary Metal-Oxide-Semiconductor) technology. Every gate is built from two types of transistors:
+
+- **NMOS** (N-type): conducts when gate voltage is HIGH
+- **PMOS** (P-type): conducts when gate voltage is LOW
+
+Together, they ensure that exactly one path is active at any time — either pulling the output to VDD (logic 1) or to GND (logic 0). This means CMOS circuits consume almost no power when they're not switching — a crucial property for mobile devices and laptops.
+
+### Gate Delay and Propagation
+
+No gate is instantaneous. Each gate has a **propagation delay** — typically a few picoseconds in modern chips. When gates are connected in series, delays add up:
+
+```
+If one gate delay = 10 picoseconds:
+  3 gates in series = 30 ps
+  10 gates in series = 100 ps
+  
+At 5 GHz clock speed, one clock cycle = 200 ps
+So a signal can pass through about 20 gate levels per clock cycle.
+```
+
+This is why circuit designers work hard to minimize the **critical path** — the longest chain of gates from input to output.
+
+## Why It Matters
+
+- Logic gates are the **physical realization** of Boolean algebra.
+- Every CPU, GPU, memory chip, and SSD is built from billions of gates.
+- Understanding gates helps you understand why certain operations are fast (simple gate paths) and others are slow (long gate chains).
+- The universality of NAND means any computation can be built from a single gate type.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/logic-gates"
+  questions={[
+    {q: "Why is NAND called a 'universal gate'?", options: ["It's the most common gate", "Any other logic gate (NOT, AND, OR, XOR) can be built using only NAND gates", "It's the fastest gate", "It uses the least power"], answer: 1, explanation: "NAND is universal because NOT, AND, OR, and every other Boolean function can be constructed using only NAND gates. This is mathematically proven and practically useful — chip manufacturers can use a single gate type for all logic."},
+    {q: "What is the output of XOR when both inputs are 1?", options: ["1", "0", "Undefined", "Depends on the circuit"], answer: 1, explanation: "XOR (exclusive OR) outputs 1 when inputs differ and 0 when inputs are the same. Both inputs being 1 means they're the same, so XOR outputs 0. This differs from regular OR, which would output 1."},
+    {q: "Why do modern chips use CMOS technology?", options: ["It's the cheapest to manufacture", "CMOS gates consume almost no static power because exactly one transistor network is always off", "It was invented first", "It only needs one type of transistor"], answer: 1, explanation: "CMOS uses complementary NMOS and PMOS transistors arranged so that either the pull-up or pull-down network is active, never both. This means current only flows during transitions (switching), resulting in extremely low static power consumption."}
+  ]}
+/>
+
+## What's Next
+
+Individual gates are useful, but the real power comes from combining them into larger circuits that do useful work — like adding numbers or selecting data. Next: <ConceptLink to="digital-logic/combinational-circuits" label="Combinational Circuits" />.

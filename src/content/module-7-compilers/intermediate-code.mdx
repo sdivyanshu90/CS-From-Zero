@@ -1,0 +1,146 @@
+{/* Lesson 6.5 — Intermediate Code Generation */}
+
+<PrerequisiteBadge prerequisites={["compilers/syntax-directed"]} />
+
+## Hook — The Universal Language of Compilers
+
+The AST represents source code structure. Machine code is CPU-specific. Between them sits **intermediate code (IR)** — a platform-independent representation that enables optimization without worrying about target hardware. LLVM IR, Java bytecode, and .NET CIL are all intermediate representations.
+
+## Three-Address Code (TAC)
+
+The most common IR form. Each instruction has at most three operands:
+
+```
+Source: a = b + c * d - e
+
+Three-Address Code:
+  t1 = c * d
+  t2 = b + t1
+  t3 = t2 - e
+  a = t3
+
+Each instruction: result = operand1 op operand2
+Unlimited temporary variables (t1, t2, ...)
+```
+
+### TAC for Control Flow
+
+```c
+// Source:
+if (x > y) {
+    z = x;
+} else {
+    z = y;
+}
+
+// Three-Address Code:
+    if x > y goto L1
+    goto L2
+L1: z = x
+    goto L3
+L2: z = y
+L3: ...
+```
+
+```c
+// Source:
+while (i < n) {
+    sum = sum + a[i];
+    i = i + 1;
+}
+
+// Three-Address Code:
+L1: if i >= n goto L2
+    t1 = i * 4        // array offset (4 bytes per int)
+    t2 = a[t1]         // array access
+    sum = sum + t2
+    i = i + 1
+    goto L1
+L2: ...
+```
+
+## See It Work — Static Single Assignment (SSA)
+
+Modern compilers use **SSA form** where each variable is assigned exactly once:
+
+```
+Original:          SSA form:
+x = 1              x₁ = 1
+x = x + 1          x₂ = x₁ + 1
+y = x + 2          y₁ = x₂ + 2
+
+At control flow joins, use φ (phi) functions:
+if (cond) x = 1;   x₁ = 1      (true branch)
+else x = 2;        x₂ = 2      (false branch)
+y = x;             x₃ = φ(x₁, x₂)  (merge point)
+                    y₁ = x₃
+```
+
+SSA simplifies optimization: each value has exactly one definition point, making data flow analysis trivial.
+
+## How It Actually Works — Real IR Examples
+
+### LLVM IR
+
+```llvm
+define i32 @add(i32 %a, i32 %b) {
+  %result = add i32 %a, %b
+  ret i32 %result
+}
+```
+
+### Java Bytecode (Stack-Based)
+
+```
+// a + b * c
+iload b
+iload c
+imul          // stack: [b*c]
+iload a
+iadd          // stack: [a + b*c]
+istore result
+```
+
+### Control Flow Graphs
+
+```
+IR is organized into basic blocks connected by control flow:
+
+  ┌──────────┐
+  │ Block B1  │ ← entry
+  │ x = 1     │
+  │ if x > 0  │──→ ┌──────────┐
+  └──────────┘     │ Block B3  │
+       │           │ z = y     │
+       ↓           └──────────┘
+  ┌──────────┐         │
+  │ Block B2  │         │
+  │ z = x     │         │
+  └──────────┘         │
+       │               │
+       ↓               ↓
+  ┌──────────────────────┐
+  │ Block B4 (merge)     │
+  └──────────────────────┘
+```
+
+## Why It Matters
+
+- IR decouples the front end from the back end — enabling the M+N compiler architecture.
+- SSA form is used by GCC, LLVM, V8, and virtually all modern compilers.
+- Understanding IR helps you read compiler output (`clang -emit-llvm`, `javap -c`).
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="compilers/intermediate-code"
+  questions={[
+    {q: "Why use three-address code instead of directly generating machine code?", options: ["It's simpler to write", "TAC is machine-independent, enabling optimizations that apply across all target platforms. It provides a clean abstraction between language-specific front ends and platform-specific back ends", "Machine code is harder to read", "TAC runs faster"], answer: 1, explanation: "Generating machine code directly ties optimizations to a specific CPU. TAC abstractions (unlimited temps, simple operations) make optimizations like constant propagation, dead code elimination, and loop unrolling straightforward. The same optimized TAC can then be translated to x86, ARM, RISC-V, etc. This separation is why LLVM can support dozens of languages and targets."},
+    {q: "What is SSA form and why is it useful?", options: ["A coding style", "Each variable is assigned exactly once (with φ-functions at join points), making data flow analysis trivial — the definition of every value is unique, simplifying optimizations like constant propagation, dead code elimination, and register allocation", "A type system", "A memory layout"], answer: 1, explanation: "In non-SSA code, x = 1; x = x + 1; x = x * 2 makes it hard to track which 'x' is which. In SSA: x₁=1; x₂=x₁+1; x₃=x₂*2 — each version is unique. To find where a value comes from, just look at its (single) definition. Phi functions handle control flow merges. This property makes dozens of optimizations dramatically simpler to implement and prove correct."},
+    {q: "What is a basic block in a control flow graph?", options: ["Any block of code", "A maximal sequence of instructions with one entry point and one exit point — if the first instruction executes, all of them do in order, with no branches in or out except at the start/end", "A function", "A loop body"], answer: 1, explanation: "Basic blocks are the nodes of the control flow graph. Within a block, execution is sequential — no jumps in or out. This means data flow within a block is trivial to analyze. Edges between blocks represent branches, jumps, and fall-through. Optimizations often work at the block level (local) or across blocks (global). Identifying basic blocks is the first step of most IR optimizations."}
+  ]}
+/>
+
+## What's Next
+
+We have platform-independent IR. Now we make it faster with **compiler optimizations**. Next: <ConceptLink to="compilers/optimization" label="Code Optimization" />.

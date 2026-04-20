@@ -1,0 +1,115 @@
+{/* Lesson 2.5 — Pipelining */}
+
+<PrerequisiteBadge prerequisites={["architecture/alu-datapath"]} />
+
+## Hook — The Assembly Line Insight
+
+Imagine a laundry with one washer, one dryer, and one folding table. If you wash, dry, then fold each load sequentially, you waste time — the dryer sits idle while you wash, and the folder sits idle while you dry. But if you start washing load 2 while drying load 1, and start drying load 2 while folding load 1 — everything stays busy. That's **pipelining**: overlapping the execution stages of multiple instructions to increase throughput.
+
+## What Is Pipelining?
+
+**Pipelining** divides instruction execution into stages, with each stage handled by dedicated hardware. Multiple instructions flow through the pipeline simultaneously, each at a different stage:
+
+### The Classic 5-Stage Pipeline
+
+```
+Stage 1: IF  (Instruction Fetch)   — Read instruction from memory
+Stage 2: ID  (Instruction Decode)  — Decode instruction, read registers
+Stage 3: EX  (Execute)             — ALU operation or address calculation
+Stage 4: MEM (Memory Access)       — Read/write data memory (if needed)
+Stage 5: WB  (Write Back)          — Write result to register file
+```
+
+### How It Works — Time Diagram
+
+Without pipelining (single-cycle), each instruction takes 5 clock cycles:
+
+```
+Time:    1  2  3  4  5  6  7  8  9  10 11 12 13 14 15
+Inst 1: IF ID EX MEM WB
+Inst 2:                IF ID EX MEM WB
+Inst 3:                               IF ID EX MEM WB
+→ 3 instructions in 15 cycles
+```
+
+With pipelining, we start a new instruction every cycle:
+
+```
+Time:    1  2  3  4  5  6  7
+Inst 1: IF ID EX MEM WB
+Inst 2:    IF ID EX  MEM WB
+Inst 3:       IF ID  EX  MEM WB
+→ 3 instructions in 7 cycles (and every additional instruction adds only 1 cycle!)
+```
+
+### Throughput vs. Latency
+
+- **Latency** (time for ONE instruction): Still 5 cycles — pipelining doesn't make individual instructions faster.
+- **Throughput** (instructions per second): Approaches 1 instruction per cycle — up to 5× improvement!
+
+```
+Without pipeline: Throughput = 1 instruction / 5 cycles
+With pipeline:    Throughput ≈ 1 instruction / 1 cycle (in ideal conditions)
+Speedup:          Up to 5× (number of pipeline stages)
+```
+
+## See It Work — Pipeline Registers
+
+Between each stage, **pipeline registers** hold the instruction's data so it can move to the next stage:
+
+```
+┌────┐  ┌────────┐  ┌────┐  ┌────────┐  ┌────┐  ┌────────┐  ┌─────┐  ┌────────┐  ┌────┐
+│ IF │──│IF/ID   │──│ ID │──│ID/EX   │──│ EX │──│EX/MEM  │──│ MEM │──│MEM/WB  │──│ WB │
+│    │  │Register│  │    │  │Register│  │    │  │Register│  │     │  │Register│  │    │
+└────┘  └────────┘  └────┘  └────────┘  └────┘  └────────┘  └─────┘  └────────┘  └────┘
+
+Each pipeline register captures all data needed by the next stage:
+- IF/ID: holds fetched instruction
+- ID/EX: holds decoded fields, register values, control signals
+- EX/MEM: holds ALU result, branch decision, store data
+- MEM/WB: holds memory data or ALU result for writeback
+```
+
+At each clock edge, data moves one stage forward. Five different instructions can be in five different stages simultaneously.
+
+## How It Actually Works — Deeper Pipelines
+
+Modern CPUs have much deeper pipelines:
+
+```
+Processor           Pipeline Depth    Year
+─────────           ──────────────    ────
+Classic MIPS        5 stages          1985
+Intel Pentium       5 stages          1993
+Intel Pentium 4     20 stages         2000
+Intel Pentium 4 HT  31 stages         2004
+Apple M1            ~16 stages        2020
+Intel Alder Lake    ~19-21 stages     2021
+```
+
+**Deeper pipeline → higher clock speed** (each stage does less work, so it completes faster). But deeper pipelines also create bigger problems when things go wrong — which leads us to pipeline hazards (next lesson).
+
+### Why Deeper Isn't Always Better
+
+The Pentium 4's 31-stage pipeline allowed very high clock speeds (up to 3.8 GHz) but had terrible performance on pipeline stalls. Intel abandoned this approach. Modern designs use 15-21 stages as a balance.
+
+## Why It Matters
+
+- Pipelining is the **single most important technique** for CPU performance. Without it, modern CPUs would be 5-20× slower.
+- Every CPU you've ever used — phone, laptop, server — uses pipelining.
+- Understanding pipelining helps you understand why branch-heavy code is slower, why the CPU has a "pipeline stall," and why compiler optimizations matter.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="architecture/pipelining"
+  questions={[
+    {q: "Does pipelining make individual instructions execute faster?", options: ["Yes, much faster", "No — each instruction still takes the same number of cycles (latency is unchanged), but throughput increases because multiple instructions overlap", "It depends on the instruction", "Only for arithmetic instructions"], answer: 1, explanation: "Pipelining improves throughput (instructions completed per unit time) but not latency (time for one instruction). Each instruction still passes through all 5 stages. The speedup comes from overlapping: while instruction 1 is in the EX stage, instruction 2 is in ID, and instruction 3 is in IF — all simultaneously."},
+    {q: "What is the theoretical maximum speedup of a 5-stage pipeline?", options: ["2×", "3×", "5× (equal to the number of stages)", "10×"], answer: 2, explanation: "In the ideal case with no stalls, a k-stage pipeline achieves k× speedup. With 5 stages, throughput improves from 1 instruction per 5 cycles to 1 instruction per 1 cycle — a 5× improvement. In practice, hazards reduce this, but the theoretical maximum is equal to the pipeline depth."},
+    {q: "What do pipeline registers do?", options: ["Store the program", "Hold intermediate results between pipeline stages so each stage can work on a different instruction simultaneously", "Speed up the clock", "Reduce power consumption"], answer: 1, explanation: "Pipeline registers are latches between stages that capture all the data an instruction needs for the next stage. At each clock edge, data moves forward through the pipeline registers. This allows each stage to work independently on a different instruction, enabling the overlap that makes pipelining work."}
+  ]}
+/>
+
+## What's Next
+
+Pipelining sounds perfect, but there are situations where the pipeline can't keep flowing smoothly. These are called **pipeline hazards**, and handling them is one of the biggest challenges in CPU design. Next: <ConceptLink to="architecture/pipeline-hazards" label="Pipeline Hazards" />.

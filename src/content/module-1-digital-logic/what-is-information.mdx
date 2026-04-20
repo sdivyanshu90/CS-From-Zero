@@ -1,0 +1,168 @@
+{/* Lesson 1.1 — What Is Information? */}
+
+<PrerequisiteBadge prerequisites={[]} />
+
+## Hook — Why This Matters to You
+
+Right now, as you read this sentence, your computer is juggling billions of electrical signals every second. Each signal is absurdly simple — it's either **on** or **off**. Yet somehow, these on/off switches combine to display this text, play music, run video games, and connect you to people across the world. How does "on or off" become *everything*?
+
+That's the question at the heart of computer science, and answering it starts with understanding **information** — what it is, how we represent it, and how machines encode it.
+
+## What Is Information?
+
+In everyday life, "information" means facts, knowledge, or news. In computer science, we need a more precise definition:
+
+> **Information is a reduction of uncertainty.**
+
+If someone flips a coin behind a screen and you have no idea what the result is, you're uncertain. When they tell you "it's heads," that message carries **one bit** of information — it cut your uncertainty in half (from two possibilities down to one).
+
+This insight was formalized by **Claude Shannon** in 1948 in his groundbreaking paper *A Mathematical Theory of Communication*. Shannon showed that information can be **measured, transmitted, and processed** mathematically — and that the fundamental unit of information is the **bit**.
+
+### The Bit — The Atom of Computing
+
+A **bit** (short for *binary digit*) is the smallest unit of information. It has exactly two possible values:
+
+- `0` (off, false, low voltage)
+- `1` (on, true, high voltage)
+
+One bit isn't very useful on its own. But combine bits together, and you can represent anything:
+
+| Number of Bits | Possible Combinations | What You Can Represent |
+|---|---|---|
+| 1 | 2 | Yes/No, True/False |
+| 2 | 4 | Four directions (N, S, E, W) |
+| 3 | 8 | Days of the week (with one extra) |
+| 8 | 256 | A single character (letter, digit, symbol) |
+| 16 | 65,536 | A Unicode character (most world scripts) |
+| 32 | ~4.3 billion | An IPv4 address, a 32-bit integer |
+| 64 | ~18.4 quintillion | Modern memory addresses, large integers |
+
+**Key insight**: With **n** bits, you can represent **2ⁿ** distinct things. This exponential growth is why even a small number of bits can encode enormous amounts of information.
+
+### Why Binary? Why Not Decimal?
+
+You might wonder: why don't computers use the decimal system (0-9) that humans are comfortable with? There are three compelling reasons:
+
+1. **Engineering simplicity**: It's easy to build electronic circuits that distinguish between two states (high voltage vs. low voltage). Distinguishing between ten different voltage levels would require extremely precise, expensive, and error-prone hardware.
+
+2. **Noise resistance**: Electrical signals are noisy — interference, heat, and manufacturing imperfections introduce errors. With only two states, a circuit just needs to determine "is the voltage above or below a threshold?" With ten states, tiny fluctuations could be misread.
+
+3. **Mathematical elegance**: Binary arithmetic maps perfectly to Boolean logic (AND, OR, NOT), which we'll explore in the next lesson. This makes it possible to build computing circuits using simple logic gates.
+
+## See It Work — Encoding Real Things in Bits
+
+Let's see how different types of information get encoded in binary.
+
+### Encoding Text (ASCII and Unicode)
+
+Computers represent each character as a number, and that number is stored in binary:
+
+```
+Character: A     →  ASCII code: 65    →  Binary: 01000001
+Character: a     →  ASCII code: 97    →  Binary: 01100001
+Character: 0     →  ASCII code: 48    →  Binary: 00110000
+Character: !     →  ASCII code: 33    →  Binary: 00100001
+```
+
+**ASCII** uses 7 bits (128 characters — enough for English). **Unicode** extends this to represent every character in every language (emoji too! 😊 is U+1F60A).
+
+The word "Hello" in binary:
+```
+H        e        l        l        o
+01001000 01100101 01101100 01101100 01101111
+```
+
+That's 40 bits (5 bytes) to store five characters.
+
+### Encoding Colors (RGB)
+
+Every pixel on your screen is a mix of Red, Green, and Blue, each with an intensity from 0-255 (8 bits each):
+
+```
+Pure Red:    (255, 0, 0)     →  11111111 00000000 00000000
+Pure Green:  (0, 255, 0)     →  00000000 11111111 00000000
+Pure Blue:   (0, 0, 255)     →  00000000 00000000 11111111
+White:       (255, 255, 255) →  11111111 11111111 11111111
+Black:       (0, 0, 0)       →  00000000 00000000 00000000
+```
+
+Each pixel uses 24 bits (3 bytes). A 1920×1080 image has 2,073,600 pixels, requiring about 6 MB of raw data — which is why image compression (JPEG, PNG) exists.
+
+### Encoding Sound
+
+Sound is a continuous wave of air pressure changes. To digitize it:
+
+1. **Sample** the wave at regular intervals (e.g., 44,100 times per second for CD-quality audio).
+2. **Quantize** each sample to the nearest value representable in bits (e.g., 16-bit = 65,536 levels).
+3. Store the sequence of quantized samples.
+
+A 3-minute stereo CD-quality song: 44,100 samples/sec × 16 bits × 2 channels × 180 sec = ~30 MB uncompressed. That's why MP3 compression was revolutionary.
+
+## How It Actually Works — Information Theory Fundamentals
+
+### Shannon's Information Content
+
+The information content of an event is inversely related to its probability:
+
+```
+Information(event) = -log₂(probability)
+
+Coin flip (p = 0.5):     -log₂(0.5) = 1 bit
+Die roll (p = 1/6):      -log₂(1/6) ≈ 2.58 bits
+Rare event (p = 1/256):  -log₂(1/256) = 8 bits
+```
+
+Rare events carry more information. "The sun rose today" (near-certain) carries almost no information. "An asteroid will hit Earth tomorrow" (extremely rare) carries enormous information.
+
+### Entropy — The Average Information
+
+**Entropy** measures the average information per symbol in a message:
+
+```
+English text: ~4.7 bits per character (letters aren't equally likely)
+Random bytes: 8 bits per byte (maximum entropy — can't be compressed)
+All A's:      ~0 bits per character (completely predictable — compresses to nothing)
+```
+
+This is exactly why data compression works: real data has lower entropy than random data, so we can represent it more compactly.
+
+### Data vs. Information
+
+An important distinction:
+
+- **Data** is the raw encoding (the bits).
+- **Information** is the meaning we extract from data through **interpretation** (the encoding scheme).
+
+The bits `01001000 01101001` could mean:
+- The text "Hi" (if interpreted as ASCII)
+- The number 18,537 (if interpreted as a 16-bit integer)
+- A dark blue-green pixel (if interpreted as RGB)
+
+The same data, interpreted differently, gives completely different information. The encoding scheme — the agreement between sender and receiver about how to interpret bits — is essential.
+
+## Why It Matters
+
+Everything in computing rests on this foundation:
+
+- **Storage**: Files are sequences of bits. A 1 TB hard drive holds ~8 trillion bits.
+- **Transmission**: Internet data moves as bits. Your connection speed (e.g., 100 Mbps) measures bits per second.
+- **Processing**: CPUs manipulate bits using logic operations. A 3 GHz processor performs ~3 billion operations per second on those bits.
+- **Compression**: Understanding information theory tells us the theoretical limits of how much we can compress data.
+- **Encryption**: Secure communication transforms bits so that only authorized parties can extract the information.
+
+The bit is the universal building block. Every image you see, every song you hear, every message you send — it's all bits, all the way down.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="digital-logic/what-is-information"
+  questions={[
+    {q: "How many distinct values can 8 bits represent?", options: ["8", "16", "128", "256"], answer: 3, explanation: "With n bits, you can represent 2ⁿ values. 2⁸ = 256. This is why a byte (8 bits) can represent numbers from 0 to 255, or 256 different characters in ASCII extended."},
+    {q: "Why do computers use binary (base-2) instead of decimal (base-10)?", options: ["Binary is faster to compute", "It's easier to build reliable circuits that distinguish between two voltage levels than ten", "Humans prefer binary", "Binary uses less electricity"], answer: 1, explanation: "The primary reason is engineering reliability. A circuit only needs to distinguish 'high' vs. 'low' voltage. With ten levels, tiny electrical noise could cause misreadings. Binary is robust against noise."},
+    {q: "What did Claude Shannon prove in 1948?", options: ["That computers need binary", "That information can be measured in bits and there are mathematical limits on data transmission", "That ASCII is the best encoding", "That all data can be compressed to 1 bit"], answer: 1, explanation: "Shannon's Information Theory showed that information is measurable (in bits), that communication channels have a maximum capacity (channel capacity), and that data can be reliably transmitted over noisy channels using error-correcting codes — up to that capacity limit."}
+  ]}
+/>
+
+## What's Next
+
+Now that we understand what information is and how it's encoded in bits, we need a way to *manipulate* those bits — to make decisions, compute results, and transform data. That requires a mathematical framework called **Boolean Algebra**. Next: <ConceptLink to="digital-logic/boolean-algebra" label="Boolean Algebra" />.

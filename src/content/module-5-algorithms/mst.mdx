@@ -1,0 +1,112 @@
+{/* Lesson 4.10 — Minimum Spanning Trees */}
+
+<PrerequisiteBadge prerequisites={["algorithms/shortest-paths"]} />
+
+## Hook — Connect Everything at Minimum Cost
+
+Suppose you need to connect 10 cities with roads, minimizing total road length. You need a tree (connected, no cycles) that spans all cities with minimum total edge weight. That's a **Minimum Spanning Tree (MST)** — used in network design, clustering, and circuit layout.
+
+## What Is an MST?
+
+A **spanning tree** of graph G is a subgraph that:
+- Includes all vertices
+- Is a tree (connected, no cycles)
+- Has exactly V-1 edges
+
+The **minimum** spanning tree has the smallest total edge weight.
+
+```
+Graph:                    MST (total weight = 10):
+A --3-- B                 A --3-- B
+|     / |                         |
+4   2   5                    2    
+|  /    |                   /     
+C --1-- D                 C --1-- D
+                          |
+                          4 ← wait, this doesn't work!
+                          Actually: A-B(3), B-C(2), C-D(1) = 6
+```
+
+## See It Work — Two Classic Algorithms
+
+### Kruskal's Algorithm — O(E log E)
+
+Greedy: Sort edges by weight, add cheapest edge that doesn't create a cycle.
+
+```
+Edges sorted: (C,D,1) (B,C,2) (A,B,3) (A,C,4) (B,D,5)
+
+Add (C,D,1): No cycle ✓  MST: {C-D}
+Add (B,C,2): No cycle ✓  MST: {C-D, B-C}
+Add (A,B,3): No cycle ✓  MST: {C-D, B-C, A-B}
+3 edges = V-1 → done! Total weight = 6
+
+Skip (A,C,4): Creates cycle A-B-C-A
+Skip (B,D,5): Creates cycle B-C-D-B
+```
+
+Uses **Union-Find** (disjoint set) to efficiently detect cycles:
+```c
+// Nearly O(1) amortized operations with path compression + union by rank
+int find(int parent[], int x) {
+    if (parent[x] != x) parent[x] = find(parent, parent[x]);
+    return parent[x];
+}
+void unite(int parent[], int rank[], int x, int y) {
+    int px = find(parent, x), py = find(parent, y);
+    if (rank[px] < rank[py]) parent[px] = py;
+    else if (rank[px] > rank[py]) parent[py] = px;
+    else { parent[py] = px; rank[px]++; }
+}
+```
+
+### Prim's Algorithm — O((V + E) log V)
+
+Greedy: Start from any vertex, always add the cheapest edge connecting the tree to a non-tree vertex.
+
+```
+Start at A:
+  Cheapest edge from {A}: A-B(3). Add B.
+  Cheapest edge from {A,B}: B-C(2). Add C.
+  Cheapest edge from {A,B,C}: C-D(1). Add D.
+  
+MST: {A-B(3), B-C(2), C-D(1)} = 6. Same result!
+```
+
+Uses a priority queue, similar to Dijkstra's algorithm.
+
+## How It Actually Works — Comparison
+
+```
+Algorithm   Time              Best for         Cycle detection
+─────────   ────              ────────         ───────────────
+Kruskal's   O(E log E)        Sparse graphs    Union-Find
+Prim's      O((V+E) log V)    Dense graphs     Priority queue
+```
+
+Both produce the same MST (if edge weights are unique). If weights aren't unique, multiple valid MSTs may exist.
+
+### Cut Property
+
+The **cut property** proves both algorithms correct: for any cut (partition of vertices into two groups), the lightest edge crossing the cut must be in the MST.
+
+## Why It Matters
+
+- Network design: connecting computers, cities, or circuits at minimum cost.
+- Clustering: removing the most expensive MST edges creates clusters.
+- Approximation algorithms for NP-hard problems (e.g., traveling salesman).
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/mst"
+  questions={[
+    {q: "What is the key difference between Kruskal's and Prim's algorithms?", options: ["They produce different trees", "Kruskal's processes edges globally (sorted by weight, uses Union-Find); Prim's grows the tree from a vertex (uses priority queue, like Dijkstra)", "Kruskal's is faster", "Prim's handles negative weights"], answer: 1, explanation: "Kruskal's is edge-centric: sort all edges, greedily add cheapest non-cycle-forming edge. Prim's is vertex-centric: start at one vertex, always add the cheapest edge connecting to a new vertex. Kruskal's is better for sparse graphs (fewer edges to sort), Prim's for dense graphs (priority queue is efficient). Both give the same optimal MST."},
+    {q: "How does Kruskal's algorithm detect whether adding an edge creates a cycle?", options: ["It checks all paths", "Union-Find data structure: each connected component has a representative. If both endpoints of an edge have the same representative, adding it creates a cycle", "It counts edges", "It uses DFS"], answer: 1, explanation: "Union-Find maintains disjoint sets of connected components. Find(x) returns x's set representative. If Find(u) = Find(v), then u and v are already connected — adding edge (u,v) creates a cycle. Union(u,v) merges two sets when an edge is added. With path compression and union by rank, both operations are nearly O(1) amortized."},
+    {q: "What is the cut property and why does it matter?", options: ["It's about removing edges", "For any partition of vertices into two groups, the minimum-weight edge crossing the partition must be in the MST — this property proves both Kruskal's and Prim's correct", "It limits tree size", "It defines tree depth"], answer: 1, explanation: "Proof by contradiction: if the min-weight crossing edge e isn't in MST T, then T has some other crossing edge e' (weight ≥ e). Replace e' with e in T: still a spanning tree (connects both sides) with equal or less total weight. Contradicts T being minimum. Both algorithms always select the minimum-weight crossing edge for some cut, so they're guaranteed optimal."}
+  ]}
+/>
+
+## What's Next
+
+We've also seen hashing in data structures. Let's explore **hashing algorithms** more deeply — universal hashing, perfect hashing, and hash-based algorithms. Next: <ConceptLink to="algorithms/hashing" label="Hashing Algorithms" />.

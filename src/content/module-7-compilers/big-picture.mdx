@@ -1,0 +1,120 @@
+{/* Lesson 6.1 — The Big Picture of Compilation */}
+
+<PrerequisiteBadge prerequisites={["theory/complexity-classes"]} />
+
+## Hook — From Text to Machine Code
+
+You type `printf("Hello")` and the CPU executes binary instructions. How? A **compiler** is a program that translates source code (human-readable) into machine code (CPU-executable). It's one of the most sophisticated programs ever built — and understanding it makes you a dramatically better programmer.
+
+## What Is a Compiler?
+
+```
+Source Code → [COMPILER] → Machine Code
+  (C, Java)                  (x86, ARM)
+
+Phases:
+┌────────────────────────────────────────────────┐
+│              Front End                          │
+│  ┌──────────┐  ┌─────────┐  ┌───────────────┐ │
+│  │ Lexical  │→│ Syntax  │→│  Semantic      │ │
+│  │ Analysis │  │ Analysis│  │  Analysis      │ │
+│  └──────────┘  └─────────┘  └───────────────┘ │
+├────────────────────────────────────────────────┤
+│              Middle                             │
+│  ┌───────────────────┐  ┌──────────────────┐  │
+│  │ Intermediate Code │→│  Optimization    │  │
+│  └───────────────────┘  └──────────────────┘  │
+├────────────────────────────────────────────────┤
+│              Back End                           │
+│  ┌───────────────────┐  ┌──────────────────┐  │
+│  │ Code Generation   │→│  Machine Code    │  │
+│  └───────────────────┘  └──────────────────┘  │
+└────────────────────────────────────────────────┘
+```
+
+## See It Work — Compiling `x = a + b * c`
+
+```
+1. Lexical Analysis (Lexer):
+   "x = a + b * c" → [ID:x] [ASSIGN] [ID:a] [PLUS] [ID:b] [STAR] [ID:c]
+
+2. Syntax Analysis (Parser):
+   Builds parse tree:
+         =
+        / \
+       x   +
+          / \
+         a   *
+            / \
+           b   c
+
+3. Semantic Analysis:
+   Type checking: are a, b, c compatible types?
+   Symbol table: are all variables declared?
+
+4. Intermediate Code:
+   t1 = b * c
+   t2 = a + t1
+   x = t2
+
+5. Optimization:
+   (Maybe constant folding, dead code elimination)
+
+6. Code Generation:
+   MOV R1, b      ; load b
+   MUL R1, c      ; R1 = b * c
+   ADD R1, a      ; R1 = a + b*c
+   MOV x, R1      ; store result
+```
+
+## How It Actually Works — Compiler vs. Interpreter
+
+```
+Compiler:
+  Source → Machine code → Execute (later)
+  C, C++, Rust, Go
+  + Fast execution
+  - Compile time, platform-specific
+
+Interpreter:
+  Source → Execute (line by line, immediately)
+  Python, Ruby, JavaScript (initially)
+  + Immediate feedback, portable
+  - Slower execution
+
+Hybrid (JIT):
+  Source → Bytecode → JIT compile hot paths → Execute
+  Java (JVM), C# (.NET), JavaScript (V8)
+  + Portable + fast for hot code
+  - Warm-up time
+```
+
+### Other Translation Tools
+
+```
+Preprocessor:  Source → Modified Source    (#include, #define in C)
+Assembler:     Assembly → Machine Code    (1-to-1 translation)
+Linker:        Object files → Executable  (resolves external refs)
+Transpiler:    Source → Source             (TypeScript → JavaScript)
+```
+
+## Why It Matters
+
+- Understanding compilation helps you write faster code, debug better, and understand error messages.
+- Compiler techniques appear everywhere: IDEs (syntax highlighting), linters, query engines, DSLs.
+- The front-end/middle/back-end separation allows compiling M languages to N architectures with M+N components instead of M×N.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="compilers/big-picture"
+  questions={[
+    {q: "Why is compilation split into multiple phases?", options: ["To be slower", "Each phase solves one specific problem (tokenizing, parsing, type checking, optimization, code generation) — this modularity makes compilers manageable to build, test, and maintain, and allows reuse across languages/targets", "It's historical convention", "To use more memory"], answer: 1, explanation: "A compiler is enormously complex. Breaking it into phases means each phase has a clear input and output. The lexer doesn't worry about types; the parser doesn't worry about optimization. This separation also enables reuse: GCC's front ends (C, C++, Fortran) share the same optimizer and code generators. LLVM takes this further — any language can target LLVM IR and get optimizations for free."},
+    {q: "What is the key advantage of JIT compilation over pure interpretation?", options: ["Simpler implementation", "JIT identifies frequently executed code ('hot paths') and compiles them to optimized machine code at runtime, achieving near-native speed while maintaining the portability of interpreted bytecode", "Less memory usage", "Faster startup"], answer: 1, explanation: "Pure interpreters execute each instruction by dispatching through a loop — overhead per instruction. JIT compilers watch for hot loops/functions, then compile them to native machine code with optimizations. V8 (JavaScript) and HotSpot (Java) can approach C-level performance for hot code. The tradeoff: JIT has warm-up time (first run is interpreted) and uses more memory (storing both bytecode and compiled code)."},
+    {q: "Why does the M+N architecture matter?", options: ["It's faster", "Without it, supporting M languages on N platforms requires M×N separate compilers. With a shared intermediate representation, you need M front-ends + N back-ends = M+N components — dramatically reducing engineering effort", "It uses less memory", "It simplifies parsing"], answer: 1, explanation: "GCC supports ~10 languages on ~30 architectures. Without shared IR, that's 300 compilers. With shared IR (GIMPLE/RTL), it's ~40 components. LLVM does the same with LLVM IR. Each new language only needs a front-end; each new CPU only needs a back-end. All existing optimizations apply automatically. This is why LLVM has become so popular — Swift, Rust, and Julia all leverage its backend."}
+  ]}
+/>
+
+## What's Next
+
+The first phase of compilation breaks source code into tokens. Next: <ConceptLink to="compilers/lexical-analysis" label="Lexical Analysis" />.

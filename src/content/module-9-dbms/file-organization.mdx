@@ -1,0 +1,113 @@
+{/* Lesson 8.7 — File Organization */}
+
+<PrerequisiteBadge prerequisites={["dbms/b-plus-indexes"]} />
+
+## Hook — How Data Lives on Disk
+
+A database table isn't a spreadsheet in memory — it's blocks of bytes on a spinning disk or SSD. How those bytes are organized determines whether your query takes 1 millisecond or 10 minutes. **File organization** is the physical foundation beneath SQL's logical abstraction.
+
+## Records and Blocks
+
+```
+Disk → divided into blocks (pages), typically 4-8 KB
+Each block holds multiple records (rows).
+
+Block (4KB):
+┌──────────────────────────────────────┐
+│ Header (free space pointer, count)    │
+│ Record 1: [id=1, name="Alice", ...]  │
+│ Record 2: [id=2, name="Bob", ...]    │
+│ Record 3: [id=3, name="Carol", ...]  │
+│ ... free space ...                    │
+└──────────────────────────────────────┘
+
+Fixed-length records: Easy to locate (record i at offset i × size)
+Variable-length records: Need slot directory (pointers to each record)
+```
+
+## See It Work — Organization Methods
+
+### Heap File (Unordered)
+
+```
+Records stored in insertion order. No sorting.
+
+Insert: O(1) — append to end.
+Search: O(n) — must scan entire file.
+Delete: Mark as deleted, periodically compact.
+
+Good for: Bulk loading, tables always scanned fully.
+Bad for: Point queries without an index.
+```
+
+### Sorted File (Sequential)
+
+```
+Records sorted by a key (e.g., id).
+
+Search: O(log n) — binary search on blocks.
+Insert: O(n) — must shift records to maintain order!
+Range query: Excellent — sequential read of contiguous blocks.
+
+Good for: Range queries on sort key.
+Bad for: Frequent inserts (shifting is expensive).
+```
+
+### Hash File
+
+```
+Hash function maps key to bucket (block number).
+bucket = hash(key) mod num_buckets
+
+Search: O(1) — one disk read (if no overflow).
+Insert: O(1) — hash and append to bucket.
+Range query: Terrible — hashing destroys order.
+
+Overflow handling:
+  Chaining: Overflow bucket linked to main bucket.
+  Extendible hashing: Directory doubles when needed.
+  Linear hashing: Buckets split incrementally.
+```
+
+## How It Actually Works — Buffer Pool
+
+```
+Disk is slow. RAM is fast. The buffer pool bridges the gap.
+
+        ┌─────────────────────────┐
+  SQL → │ Buffer Pool (RAM)       │
+        │ ┌─────┐┌─────┐┌─────┐  │
+        │ │Page1││Page5││Page9│  │ ← cached pages
+        │ └─────┘└─────┘└─────┘  │
+        └────────────┬────────────┘
+                     │ page fault → read from disk
+        ┌────────────┴────────────┐
+        │ Disk (data files)        │
+        │ Page1 Page2 ... PageN    │
+        └─────────────────────────┘
+
+Replacement policy: LRU, Clock, or database-specific.
+Dirty pages: Modified in RAM, not yet written to disk.
+  → Write-Ahead Log ensures durability before flush.
+```
+
+## Why It Matters
+
+- File organization choice directly impacts query performance — heap for writes, sorted for ranges, hash for lookups.
+- Understanding the buffer pool explains why "more RAM = faster database" and why repeated queries are fast (cached).
+- Real databases combine all methods: heap files + B+ tree indexes + buffer pool.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="dbms/file-organization"
+  questions={[
+    {q: "Why don't databases just keep everything sorted?", options: ["It's too complex", "Maintaining sort order on every insert requires shifting records in O(n) time — for a table with millions of rows and frequent inserts, this overhead is unacceptable. Instead, databases use heap files for fast inserts and B+ tree indexes for fast lookups", "Sorted files use more space", "SQL doesn't support it"], answer: 1, explanation: "Inserting into the middle of a sorted file on disk means physically moving all subsequent records — potentially millions of block writes. A heap file appends in O(1). The B+ tree index provides O(log n) search without requiring the data file to be sorted. This separation of concerns (fast inserts in heap + fast search via index) is the foundation of modern database storage. Some databases (InnoDB) use a clustered index that keeps data sorted by PK, but use a B+ tree structure (not a flat sorted file) to handle inserts via page splits."},
+    {q: "Why is the buffer pool essential for database performance?", options: ["It compresses data", "The buffer pool caches frequently accessed disk pages in RAM, avoiding repeated disk I/O — since disk access is ~100,000x slower than RAM, even a small cache hit rate dramatically improves query performance", "It prevents crashes", "It's required by SQL"], answer: 1, explanation: "A typical query accesses the same index pages repeatedly (root and internal nodes of B+ trees). Without buffering: every access = disk I/O. With a buffer pool: first access reads from disk, subsequent accesses hit RAM (~100ns vs ~10ms). A database with a 16GB buffer pool on a 100GB dataset might have a 95% cache hit rate — only 5% of accesses touch disk. This is why adding RAM to a database server is often the best performance optimization. The buffer pool is also why databases manage their own cache rather than relying on the OS page cache."},
+    {q: "When would you choose hash file organization over a B+ tree index?", options: ["Always", "When you only need exact-match lookups (WHERE id = 42) and never range queries — hash provides O(1) lookups vs O(log n) for B+ trees, but completely fails at range scans, sorting, and prefix matching", "Never", "For text data"], answer: 1, explanation: "Hash: hash(42) → bucket 7 → one disk read → found. B+ tree: root → internal → leaf → 3 reads. Hash wins for exact match. But: 'WHERE id BETWEEN 10 AND 50' with hash → must probe 41 different buckets. With B+ tree → find leaf for 10, scan linked list to 50 (sequential I/O). Most databases default to B+ tree because queries usually mix exact match and range. Hash indexes are used for specific scenarios: hash joins (in-memory during query execution), hash partitioning, and memory-optimized tables."}
+  ]}
+/>
+
+## What's Next
+
+Multiple users accessing data simultaneously need protection. Next: <ConceptLink to="dbms/transactions" label="Transactions" />.

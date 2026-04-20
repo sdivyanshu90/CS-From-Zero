@@ -1,0 +1,111 @@
+{/* Lesson 6.4 — Syntax-Directed Translation */}
+
+<PrerequisiteBadge prerequisites={["compilers/parsing"]} />
+
+## Hook — Attaching Meaning to Structure
+
+A parse tree tells us the structure of `3 + 4 * 5`. But what does it **mean**? Is the answer 23 or 35? **Syntax-Directed Translation (SDT)** attaches **semantic rules** to grammar productions, computing values, types, or code as the parser builds the tree.
+
+## Syntax-Directed Definitions (SDD)
+
+An SDD associates **attributes** with grammar symbols and **semantic rules** with productions:
+
+```
+Production          Semantic Rule
+──────────          ─────────────
+E → E₁ + T          E.val = E₁.val + T.val
+E → T               E.val = T.val
+T → T₁ * F          T.val = T₁.val * F.val
+T → F               T.val = F.val
+F → ( E )           F.val = E.val
+F → num              F.val = num.lexval
+
+Computing "3 + 4 * 5":
+  F.val = 5 → T.val = 4 * 5 = 20 → E.val = 3 + 20 = 23
+```
+
+### Synthesized vs. Inherited Attributes
+
+```
+Synthesized: Value flows UP the tree (child → parent)
+  Example: E.val computed from children's .val
+  Can be evaluated bottom-up (during LR parsing)
+
+Inherited: Value flows DOWN the tree (parent → child)
+  Example: Type information passed from declaration to uses
+  Requires multiple passes or special evaluation order
+```
+
+## See It Work — Type Checking
+
+```
+Declaration: int x;
+Expression:  x + 3.14
+
+SDD for type checking:
+  E → E₁ + E₂
+    E.type = if (E₁.type == E₂.type) then E₁.type
+             else if compatible(E₁.type, E₂.type)
+             then coerce(E₁.type, E₂.type)  // int → float
+             else TYPE_ERROR
+
+  x + 3.14: int + float → coerce to float → result is float
+```
+
+### Symbol Tables
+
+```
+int x = 5;        → symbol_table["x"] = {type: int, offset: 0}
+float y = 3.14;   → symbol_table["y"] = {type: float, offset: 4}
+x + y;             → lookup both, check type compatibility
+
+Scoping: nested symbol tables (stack of hash tables)
+  {                         ← push new scope
+    int x = 10;             ← shadows outer x
+    {                       ← push another scope
+      float x = 3.14;      ← shadows again
+    }                       ← pop scope
+  }                         ← pop scope
+```
+
+## How It Actually Works — Translation Schemes
+
+**Translation schemes** embed semantic actions directly in the grammar:
+
+```
+E → E₁ + T   { emit("ADD"); }
+E → T
+T → T₁ * F   { emit("MUL"); }
+T → F
+F → num       { emit("PUSH " + num.val); }
+
+Parsing "3 + 4 * 5":
+  PUSH 3
+  PUSH 4
+  PUSH 5
+  MUL
+  ADD
+
+This generates stack-machine code during parsing!
+```
+
+## Why It Matters
+
+- SDT is how compilers give meaning to syntax — type checking, constant folding, and code generation all use it.
+- Symbol tables track every variable, function, and type in your program.
+- Understanding SDT explains why certain code patterns produce type errors.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="compilers/syntax-directed"
+  questions={[
+    {q: "What is the difference between synthesized and inherited attributes?", options: ["Synthesized are faster", "Synthesized attributes flow bottom-up (computed from children), while inherited attributes flow top-down (passed from parent or siblings) — synthesized can be computed during a single bottom-up parse, inherited may require additional passes", "Inherited are optional", "They produce different results"], answer: 1, explanation: "Synthesized: a node's value depends on its children. Example: E.val = E1.val + T.val (computed after children are processed). Inherited: a node's value depends on its parent or siblings. Example: a variable's type comes from its declaration context (parent). S-attributed SDDs (only synthesized) are simplest — computable in one bottom-up pass. L-attributed SDDs (synthesized + left-to-right inherited) need one left-to-right pass."},
+    {q: "Why do compilers need symbol tables?", options: ["For faster parsing", "Symbol tables map identifiers to their attributes (type, scope, memory location) — enabling type checking, scope resolution, and code generation for every variable, function, and type reference in the program", "To store the source code", "For syntax highlighting"], answer: 1, explanation: "When the compiler sees 'x + y', it needs to know: Are x and y declared? What types are they? Where in memory are they? The symbol table answers all these questions. It's built during semantic analysis and used by every subsequent phase. Scoping is handled by nesting tables — entering a block pushes a new table, leaving pops it, implementing lexical scoping rules."},
+    {q: "How does type coercion work in syntax-directed translation?", options: ["It's automatic", "When operands have different but compatible types, semantic rules insert implicit conversion operations (like int→float) to make the types match — this is why 3 + 3.14 gives a float result", "It rejects the program", "It ignores types"], answer: 1, explanation: "The semantic rule for E → E1 + E2 checks types. If E1 is int and E2 is float, the rule inserts an implicit int-to-float conversion for E1, then computes float + float → float. This is type coercion (implicit casting). The compiler generates conversion instructions (e.g., CVTSI2SD in x86 for int→double). Languages differ in coercion rules: C is permissive, Rust requires explicit casts."}
+  ]}
+/>
+
+## What's Next
+
+The front end produces an AST with type information. Now we need to generate **intermediate code** — a machine-independent representation suitable for optimization. Next: <ConceptLink to="compilers/intermediate-code" label="Intermediate Code Generation" />.

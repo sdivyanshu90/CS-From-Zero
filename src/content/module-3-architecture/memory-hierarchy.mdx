@@ -1,0 +1,200 @@
+{/* Lesson 2.7 — Memory Hierarchy */}
+
+<PrerequisiteBadge prerequisites={["architecture/pipeline-hazards"]} />
+
+## Hook — The Speed vs. Size Tradeoff
+
+Your CPU can perform an operation in about 0.3 nanoseconds. Reading from RAM takes ~100 nanoseconds. That's like a chef who can cook a dish in 1 second but has to wait 5 minutes for ingredients from the pantry. The solution? Keep frequently used ingredients on the counter. CPUs do the same thing with **caches** — small, fast memories that store recently accessed data.
+
+## What Is the Memory Hierarchy?
+
+The **memory hierarchy** is a layered arrangement of storage, from the fastest/smallest/most expensive at the top to the slowest/largest/cheapest at the bottom:
+
+```
+         ┌──────────┐
+         │Registers │  ~1 cycle, ~1 KB, on-chip
+         ├──────────┤
+         │ L1 Cache │  ~4 cycles, 32-64 KB per core, on-chip
+         ├──────────┤
+         │ L2 Cache │  ~12 cycles, 256 KB-1 MB per core, on-chip
+         ├──────────┤
+         │ L3 Cache │  ~40 cycles, 4-64 MB shared, on-chip
+         ├──────────┤
+         │  RAM     │  ~100-200 cycles, 8-128 GB, off-chip
+         ├──────────┤
+         │  SSD     │  ~10,000-100,000 cycles, 256 GB-4 TB
+         ├──────────┤
+         │  HDD     │  ~10,000,000 cycles, 1-20 TB
+         └──────────┘
+```
+
+**The key insight**: Programs exhibit **locality of reference** — they tend to access the same data (temporal locality) and nearby data (spatial locality) repeatedly. Caches exploit this by automatically keeping recently/frequently accessed data close to the CPU.
+
+### Temporal Locality
+
+If you access address X, you'll probably access X again soon:
+
+```c
+// Loop variable 'i' is accessed every iteration — temporal locality
+for (int i = 0; i < 1000; i++) {
+    sum += arr[i];  // 'sum' also has temporal locality
+}
+```
+
+### Spatial Locality
+
+If you access address X, you'll probably access X+1, X+2, etc. soon:
+
+```c
+// arr[0], arr[1], arr[2]... are adjacent in memory — spatial locality
+for (int i = 0; i < 1000; i++) {
+    sum += arr[i];
+}
+```
+
+Caches load entire **cache lines** (typically 64 bytes) at once, so loading `arr[0]` automatically brings in `arr[1]` through `arr[15]` (for 4-byte integers).
+
+## See It Work — How Caches Work
+
+### Cache Organization
+
+A cache stores data in **cache lines** (blocks). Each line has:
+
+```
+┌───────┬──────────┬──────────────────────┐
+│ Valid  │   Tag    │      Data Block      │
+│ 1 bit │ n bits   │   64 bytes (typical)  │
+└───────┴──────────┴──────────────────────┘
+
+Valid: Is this cache line currently holding real data?
+Tag:   Which memory address does this data come from?
+Data:  The actual cached data (one cache line = 64 bytes)
+```
+
+### Cache Lookup Process
+
+```
+Memory address breakdown (for a direct-mapped cache):
+┌──────────┬─────────┬────────────┐
+│   Tag    │  Index  │  Offset    │
+│          │         │ (6 bits    │
+│          │         │ for 64B    │
+│          │         │ line)      │
+└──────────┴─────────┴────────────┘
+
+1. Use INDEX to select the cache line
+2. Compare TAG with stored tag
+3. If tags match AND valid=1 → CACHE HIT! Read data at OFFSET
+4. If no match → CACHE MISS → fetch from next level, replace this line
+```
+
+### Cache Hit vs. Miss
+
+```
+                    ┌────── Hit! Return data (fast)
+CPU request ──►  Cache ──┤
+                    └────── Miss! Fetch from RAM (slow)
+                           ├── Load into cache (replace old line)
+                           └── Return data to CPU
+
+Hit Rate:  Percentage of accesses found in cache (typically 95-99% for L1)
+Miss Rate: 1 - Hit Rate
+Miss Penalty: Time to fetch from next level (L2: ~12 cycles, RAM: ~100 cycles)
+
+Effective Access Time = Hit Rate × Hit Time + Miss Rate × Miss Penalty
+Example: 0.95 × 4 + 0.05 × 100 = 3.8 + 5 = 8.8 cycles average
+(vs. 100 cycles without cache — 11× faster!)
+```
+
+### Cache Mapping Strategies
+
+**Direct-Mapped**: Each memory address maps to exactly one cache line.
+```
+Pros: Simple, fast lookup.
+Cons: Conflict misses — two addresses mapping to the same line evict each other.
+```
+
+**Fully Associative**: Any memory address can go in any cache line.
+```
+Pros: No conflict misses.
+Cons: Expensive — must compare tag against ALL lines in parallel.
+```
+
+**Set-Associative (N-way)**: N lines per set. Address maps to a set, then can go in any line within the set.
+```
+2-way: Each address has 2 possible locations (good balance)
+4-way: Each address has 4 possible locations
+8-way: Common in modern L1 caches
+
+Balances conflict misses (lower than direct-mapped) with
+hardware complexity (less than fully associative).
+```
+
+## How It Actually Works — Write Policies and Replacement
+
+### Write Policies
+
+When the CPU writes data, should the cache update RAM immediately?
+
+**Write-Through**: Every write updates both cache AND RAM.
+```
+Pros: RAM always has latest data. Simple.
+Cons: Slow — every write waits for RAM. Partially solved with write buffers.
+```
+
+**Write-Back**: Write only to cache. Mark line as "dirty." Write to RAM only when evicted.
+```
+Pros: Much faster — most writes stay in cache. Reduces memory bus traffic.
+Cons: RAM may have stale data. Must track dirty bits. More complex on eviction.
+```
+
+Most modern CPUs use **write-back** caches for performance.
+
+### Replacement Policies
+
+When a cache miss occurs and the set is full, which line do we evict?
+
+```
+LRU (Least Recently Used):  Evict the line accessed longest ago.
+                             Good performance, complex hardware for many ways.
+
+PLRU (Pseudo-LRU):          Approximation of LRU. Simpler hardware.
+                             Used in most modern CPUs.
+
+Random:                     Evict a random line.
+                             Surprisingly competitive! Simple hardware.
+```
+
+## Why It Matters
+
+- Cache-friendly code can be **10-100× faster** than cache-unfriendly code.
+- Traversing arrays sequentially (spatial locality) is fast; random access is slow.
+- Row-major vs. column-major array traversal can cause 10× performance differences.
+- Understanding caches helps you optimize data structures (arrays vs. linked lists), loop nesting order, and data layout.
+
+```c
+// Cache-friendly: sequential access
+for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++)
+        sum += matrix[i][j];  // row-major traversal
+
+// Cache-unfriendly: strided access
+for (int j = 0; j < N; j++)
+    for (int i = 0; i < N; i++)
+        sum += matrix[i][j];  // column-major on row-major layout — cache miss every access!
+```
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="architecture/memory-hierarchy"
+  questions={[
+    {q: "Why do caches load entire cache lines (e.g., 64 bytes) instead of single bytes?", options: ["To simplify hardware", "To exploit spatial locality — when you access one byte, nearby bytes will likely be accessed soon", "To waste memory", "Because bytes are too small"], answer: 1, explanation: "Programs exhibit spatial locality: accessing arr[0] usually means arr[1], arr[2], etc. will be accessed soon. Loading a 64-byte cache line brings in 16 adjacent 4-byte integers at once, so only the first access is a cache miss — the next 15 are hits. This dramatically improves hit rates."},
+    {q: "What is the difference between write-through and write-back cache policies?", options: ["Write-through is faster", "Write-through updates RAM on every write; write-back only writes to cache and updates RAM when the cache line is evicted", "Write-back updates RAM immediately", "There is no difference"], answer: 1, explanation: "Write-through immediately propagates every write to RAM (simple but slow). Write-back only updates the cache and marks the line as 'dirty'; RAM is updated only when that cache line is evicted to make room for new data. Write-back is much faster because most writes never need to go to RAM (the data is overwritten again before eviction)."},
+    {q: "Why is 8-way set-associative cache preferred over direct-mapped in modern CPUs?", options: ["It's cheaper", "It dramatically reduces conflict misses by giving each address 8 possible cache locations instead of just 1, at reasonable hardware cost", "It uses less power", "It's simpler to build"], answer: 1, explanation: "In a direct-mapped cache, two frequently-used addresses that map to the same line will constantly evict each other (conflict miss), even if the cache has plenty of empty lines. 8-way associativity gives each address 8 possible locations, making conflicts rare. The hardware cost (8 tag comparators per set) is manageable with modern transistor budgets."}
+  ]}
+/>
+
+## What's Next
+
+The CPU needs to communicate with the outside world — keyboards, displays, disks, networks. How does it handle devices that demand attention at unpredictable times? Through **I/O and interrupts**. Next: <ConceptLink to="architecture/io-interrupts" label="I/O & Interrupts" />.

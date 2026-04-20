@@ -1,0 +1,137 @@
+{/* Lesson 4.1 — What Is an Algorithm? */}
+
+<PrerequisiteBadge prerequisites={["prog-ds/b-trees"]} />
+
+## Hook — A Recipe for Problem Solving
+
+Every Google search, every GPS route, every social media feed uses **algorithms** — step-by-step procedures that transform inputs into outputs. An algorithm isn't code — it's a precise idea for solving a problem. Code is just one way to express it. Understanding algorithms is what separates programmers who write code from engineers who solve problems efficiently.
+
+## What Is an Algorithm?
+
+An **algorithm** is a finite sequence of well-defined instructions that:
+1. Takes an **input** (possibly empty)
+2. Produces an **output**
+3. Is **definite** — each step is precisely specified
+4. Is **finite** — terminates after a finite number of steps
+5. Is **effective** — each step is basic enough to be carried out
+
+### Example: Finding the Maximum
+
+```
+Input: A list of numbers [3, 7, 2, 9, 4]
+Output: The largest number (9)
+
+Algorithm:
+1. Set max = first element (3)
+2. For each remaining element:
+     If element > max, set max = element
+3. Return max
+
+Trace:
+  max = 3
+  7 > 3 → max = 7
+  2 > 7 → no change
+  9 > 7 → max = 9
+  4 > 9 → no change
+  Return 9 ✓
+```
+
+### Algorithm vs. Program
+
+```
+Algorithm                    Program
+─────────                    ───────
+Abstract idea                Concrete code
+Language-independent         Written in a specific language
+Focused on correctness       Deals with syntax, I/O, errors
+  and efficiency
+Can be expressed in          Must follow language rules
+  pseudocode or English
+```
+
+## See It Work — Analyzing Algorithms
+
+Not all algorithms are equal. Two algorithms solving the same problem can differ enormously in speed:
+
+### Linear Search vs. Binary Search
+
+```
+Find 950 in sorted list of 1000 numbers:
+
+Linear search: Check 1, 2, 3, ... 950 → 950 comparisons
+Binary search: Check 500, 750, 875, 938, 969, 953, 947, 950 → 10 comparisons
+
+1000 numbers: 950 vs. 10 comparisons
+1,000,000 numbers: ~1,000,000 vs. ~20 comparisons!
+```
+
+### How Do We Measure "Speed"?
+
+We can't just time it — that depends on hardware, language, and other programs running. Instead, we count **operations as a function of input size n**:
+
+```
+Linear search:  up to n comparisons → grows linearly with n
+Binary search:  up to log₂(n) comparisons → grows logarithmically
+
+For n = 1,000,000:
+  Linear: 1,000,000 operations
+  Binary: 20 operations
+```
+
+This leads us to **Big-O notation** — the standard way to describe algorithm efficiency.
+
+## How It Actually Works — Properties of Good Algorithms
+
+**Correctness**: Does it always produce the right answer? For every possible input?
+
+**Efficiency**: How many resources (time, memory) does it use as input grows?
+
+**Simplicity**: Can others understand and maintain it?
+
+### Proving Correctness — Loop Invariants
+
+A **loop invariant** is a property that's true before and after every loop iteration:
+
+```
+Algorithm: Find maximum
+Invariant: "max is the largest element in arr[0..i-1]"
+
+Before loop: max = arr[0]. Largest of arr[0..0]. ✓
+After each iteration: if arr[i] > max, we update max. ✓
+After loop (i = n): max is largest of arr[0..n-1]. ✓
+
+This proves the algorithm is correct for ALL inputs.
+```
+
+### Deterministic vs. Randomized
+
+```
+Deterministic: Same input always gives same output and same steps.
+  Example: Binary search
+
+Randomized: Uses random choices — may give different steps each run.
+  Example: Randomized quicksort (random pivot selection)
+  Advantage: Often avoids worst-case behavior on average.
+```
+
+## Why It Matters
+
+- The choice of algorithm is usually **far more impactful** than the choice of programming language or hardware.
+- An O(n²) algorithm on a supercomputer will be beaten by an O(n log n) algorithm on a laptop for large inputs.
+- Algorithm design is the core skill tested in technical interviews.
+- Understanding algorithms helps you recognize when a problem has been solved before.
+
+## Check Your Understanding
+
+<Quiz
+  lessonId="algorithms/what-is-algorithm"
+  questions={[
+    {q: "Why do we count operations instead of measuring wall-clock time?", options: ["It's easier", "Wall-clock time depends on hardware, language, and system load — counting operations as a function of input size gives a machine-independent measure of efficiency", "Operations are faster", "We can't measure time"], answer: 1, explanation: "The same algorithm might take 1 second on a fast machine and 10 seconds on a slow one. Counting operations (comparisons, swaps, etc.) as a function of input size n gives us a measure that's independent of hardware. This is what Big-O notation formalizes: how the operation count grows as n increases."},
+    {q: "What are the five required properties of an algorithm?", options: ["Speed, memory, correctness, code, testing", "Input, output, definiteness (precise steps), finiteness (terminates), effectiveness (each step is doable)", "Start, loop, condition, return, end", "Variables, functions, classes, objects, methods"], answer: 1, explanation: "An algorithm must: (1) accept input, (2) produce output, (3) have definite (unambiguous) steps, (4) terminate in finite time, (5) have effective (mechanically executable) steps. A procedure that loops forever violates finiteness. A step like 'do something clever' violates definiteness. These properties distinguish algorithms from vague problem descriptions."},
+    {q: "What is a loop invariant?", options: ["A variable that doesn't change", "A property that remains true before and after every iteration of a loop, used to formally prove that the algorithm is correct", "A loop that never ends", "An optimized loop"], answer: 1, explanation: "A loop invariant is a logical statement about the program's state that holds at the start of every iteration. You prove three things: (1) it's true before the first iteration (initialization), (2) if it's true before an iteration, it's true after (maintenance), (3) when the loop ends, the invariant plus the exit condition imply the algorithm is correct (termination). This is the standard technique for proving algorithm correctness."}
+  ]}
+/>
+
+## What's Next
+
+Now we need a precise language for describing how algorithms scale. That's **Big-O notation** — the foundation of algorithm analysis. Next: <ConceptLink to="algorithms/big-o" label="Big-O & Complexity Analysis" />.
