@@ -24,7 +24,7 @@ CS-From-Zero is an interactive learning platform designed for students and profe
 
 ### Key Characteristics
 
-- 📚 **10 Comprehensive Modules** covering all CS fundamentals
+- 📚 **9 Comprehensive Modules** covering all CS fundamentals
 - 🎯 **Structured Curriculum** with prerequisites tracking
 - 🚀 **Interactive Learning** with visual components and quizzes
 - 📱 **Responsive Design** built with Tailwind CSS
@@ -290,7 +290,7 @@ graph TB
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/CS-From-Zero.git
+   git clone https://github.com/sdivyanshu90/CS-From-Zero.git
    cd CS-From-Zero
    ```
 
@@ -558,14 +558,14 @@ graph LR
 | Module | Focus             | Topics                             | Lessons    |
 | ------ | ----------------- | ---------------------------------- | ---------- |
 | **1**  | Digital Logic     | Gates, circuits, number systems    | 10 lessons |
-| **3**  | Architecture      | CPU design, memory, pipelining     | 8 lessons  |
-| **4**  | Programming & DS  | Data structures, algorithms basics | 14 lessons |
-| **5**  | Algorithms        | Complexity, design paradigms       | 11 lessons |
-| **6**  | Theory            | Automata, complexity, decidability | 7 lessons  |
-| **7**  | Compilers         | Parsing, code generation           | 7 lessons  |
-| **8**  | Operating Systems | Processes, memory management       | TBD        |
-| **9**  | Databases         | Design, normalization, SQL         | TBD        |
-| **10** | Networks          | Protocols, TCP/IP, layers          | 9 lessons  |
+| **2**  | Architecture      | CPU design, memory, pipelining     | 8 lessons  |
+| **3**  | Programming & DS  | Data structures, algorithms basics | 14 lessons |
+| **4**  | Algorithms        | Complexity, design paradigms       | 11 lessons |
+| **5**  | Theory            | Automata, complexity, decidability | 7 lessons  |
+| **6**  | Compilers         | Parsing, code generation           | 7 lessons  |
+| **7**  | Operating Systems | Processes, memory management       | 10 lessons |
+| **8**  | Databases         | Design, normalization, SQL         | 9 lessons  |
+| **9** | Networks          | Protocols, TCP/IP, layers          | 9 lessons  |
 
 ### Learning Path Visualization
 
@@ -669,31 +669,9 @@ graph TB
 
 ---
 
-## Roadmap
-
-- [ ] Module 2: (Currently skipped in numbering)
-- [ ] Complete Module 8: Operating Systems
-- [ ] Complete Module 9: Databases
-- [ ] Add interactive coding exercises
-- [ ] Implement user accounts and cloud sync
-- [ ] Add AI-powered Q&A
-- [ ] Mobile app version
-- [ ] Multilingual support
-
----
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
-
----
-
-## Support & Contact
-
-- 📧 Email: support@example.com
-- 💬 Discord: [Join our community](#)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/CS-From-Zero/issues)
-- 💡 Discussions: [GitHub Discussions](https://github.com/yourusername/CS-From-Zero/discussions)
 
 ---
 
