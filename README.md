@@ -23,6 +23,7 @@ A comprehensive, interactive educational platform for learning **Computer Scienc
 CS-From-Zero is an interactive learning platform designed for students and professionals who want to understand computer science fundamentals. The curriculum progresses logically from basic digital logic through to advanced topics like databases and networking.
 
 ### Key Characteristics
+
 - 📚 **10 Comprehensive Modules** covering all CS fundamentals
 - 🎯 **Structured Curriculum** with prerequisites tracking
 - 🚀 **Interactive Learning** with visual components and quizzes
@@ -35,6 +36,7 @@ CS-From-Zero is an interactive learning platform designed for students and profe
 ## Features
 
 ✨ **Core Features:**
+
 - Interactive lessons with multiple topics per module
 - Progress tracking for students
 - Prerequisite management system
@@ -58,14 +60,14 @@ graph TB
     Layout["Lesson Layout<br/>Component"]
     MDX["MDX Content<br/>Renderer"]
     Components["UI Components<br/>Quiz, Sidebar,<br/>Progress Bar"]
-    
+
     Client -->|Request Lesson| Router
     Router -->|Navigate| Layout
     Store -->|Read/Write Progress| Layout
     Layout -->|Render| Components
     Layout -->|Load Content| MDX
     MDX -->|Display| Components
-    
+
     style Client fill:#ff6b6b
     style Router fill:#4ecdc4
     style Store fill:#45b7d1
@@ -84,7 +86,7 @@ graph LR
     E["Syllabus JSON"] -->|Provide Metadata| F["Lesson Layout"]
     F -->|Track Prerequisites| G["Progress Store"]
     G -->|Update| D
-    
+
     style A fill:#ffe5e5
     style B fill:#fff3cd
     style C fill:#d1ecf1
@@ -107,33 +109,33 @@ graph TB
         TS["📘 TypeScript 5.6"]
         Router["🔀 React Router 7.14"]
     end
-    
+
     subgraph Build["Build & Dev"]
         Vite["⚡ Vite 5.4"]
         ESLint["🔍 ESLint 9.13"]
     end
-    
+
     subgraph Content["Content Processing"]
         MDX["📝 @mdx-js 3.1"]
         Remark["💬 Remark GFM"]
         Rehype["🎨 Rehype Highlight"]
     end
-    
+
     subgraph Styling["Styling"]
         Tailwind["🎨 Tailwind CSS 3.4"]
         PostCSS["🔧 PostCSS 8.5"]
         AutoPrefix["📦 Autoprefixer"]
     end
-    
+
     subgraph State["State Management"]
         Zustand["🏪 Zustand 5.0"]
     end
-    
+
     Build -.-> Core
     Core -.-> Content
     Core -.-> Styling
     Core -.-> State
-    
+
     style React fill:#61dafb
     style TS fill:#3178c6
     style Vite fill:#646cff
@@ -149,7 +151,7 @@ graph TB
 
 ```mermaid
 graph TB
-    M1["📊 Module 1<br/>Digital Logic<br/>Gates & Circuits"] 
+    M1["📊 Module 1<br/>Digital Logic<br/>Gates & Circuits"]
     M3["🏛️ Module 3<br/>Computer Architecture<br/>CPU & Memory"]
     M4["💾 Module 4<br/>Programming & DS<br/>Data Structures"]
     M5["⚙️ Module 5<br/>Algorithms<br/>Complexity & Design"]
@@ -158,7 +160,7 @@ graph TB
     M8["🖥️ Module 8<br/>Operating Systems<br/>Processes & Memory"]
     M9["💾 Module 9<br/>Databases<br/>Design & SQL"]
     M10["🌐 Module 10<br/>Networks<br/>Protocols & Communication"]
-    
+
     M1 --> M3
     M3 --> M4
     M4 --> M5
@@ -169,7 +171,7 @@ graph TB
     M5 -.->|Theory| M6
     M1 -.->|Foundation| M3
     M4 -.->|Foundation| M8
-    
+
     style M1 fill:#ff6b6b,color:#fff
     style M3 fill:#ee5a6f,color:#fff
     style M4 fill:#f39c12,color:#fff
@@ -190,14 +192,14 @@ graph TD
     LG --> CC["Combinational Circuits"]
     CC --> SC["Sequential Circuits<br/>& Memory Elements"]
     SC --> End["End of Module 1"]
-    
+
     BA -.->|Also uses| Min["Minimization<br/>Karnaugh Maps"]
     LG -.->|Also uses| Min
     Min -.-> CC
-    
+
     Start -.->|Also covers| NS["Number Systems<br/>Binary, Hex, Two's Complement"]
     NS -.->|Leads to| FP["Fixed & Floating Point<br/>IEEE 754"]
-    
+
     style Start fill:#d4edda
     style End fill:#f8d7da
     style BA fill:#cfe2ff
@@ -213,7 +215,7 @@ graph TD
 
 ```mermaid
 graph TD
-    Start["Module 3:<br/>Computer Architecture"] 
+    Start["Module 3:<br/>Computer Architecture"]
     Start --> G2C["From Gates to a CPU"]
     G2C --> ISA["Instruction Set<br/>Architecture"]
     ISA --> AM["Addressing Modes"]
@@ -223,7 +225,7 @@ graph TD
     MH --> PL["Pipeline Hazards"]
     PL --> Pipe["Pipelining"]
     Pipe --> End["Complete Module"]
-    
+
     style Start fill:#d4edda
     style End fill:#f8d7da
     style G2C fill:#cfe2ff
@@ -243,7 +245,7 @@ graph TB
     FP --> VT["Variables & Types"]
     VT --> P["Pointers"]
     P --> REC["Recursion"]
-    
+
     Start --> AR["Arrays"]
     AR --> LL["Linked Lists"]
     LL --> ST["Stacks"]
@@ -251,12 +253,12 @@ graph TB
     Q --> TR["Trees"]
     TR --> BST["Binary Search Trees"]
     BST --> BT["B-Trees"]
-    
+
     Start --> HT["Hash Tables"]
     HT --> H["Heaps"]
-    
+
     Start --> G["Graphs"]
-    
+
     style Start fill:#d4edda
     style FP fill:#d1f2eb
     style VT fill:#d1f2eb
@@ -286,17 +288,20 @@ graph TB
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/CS-From-Zero.git
    cd CS-From-Zero
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Start the development server**
+
    ```bash
    npm run dev
    ```
@@ -314,12 +319,12 @@ npm run preview
 
 ### Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development server with HMR |
-| `npm run build` | Build for production (TypeScript + Vite) |
-| `npm run lint` | Run ESLint checks |
-| `npm run preview` | Preview production build locally |
+| Command           | Description                              |
+| ----------------- | ---------------------------------------- |
+| `npm run dev`     | Start development server with HMR        |
+| `npm run build`   | Build for production (TypeScript + Vite) |
+| `npm run lint`    | Run ESLint checks                        |
+| `npm run preview` | Preview production build locally         |
 
 ---
 
@@ -390,14 +395,14 @@ graph LR
     Syllabus["data/syllabus.json<br/>Metadata"]
     Components["components/<br/>UI Elements"]
     Store["store/progressStore<br/>State"]
-    
+
     Main -->|Initialize| Router
     Router -->|Load Dynamically| Content
     Syllabus -->|Provides Metadata| Router
     Components -->|Render| Main
     Store -->|Track Progress| Main
     Content -->|Use| Components
-    
+
     style Main fill:#ffeaa7
     style Router fill:#74b9ff
     style Content fill:#a29bfe
@@ -421,12 +426,12 @@ graph LR
     Loader["Dynamic Loader<br/>Function"]
     Component["React Component<br/>Lazy"]
     UI["Browser UI"]
-    
+
     File -->|Discovered by| Glob
     Glob -->|Creates| Loader
     Loader -->|Creates| Component
     Component -->|Renders to| UI
-    
+
     style File fill:#fab1a0
     style Glob fill:#a29bfe
     style Loader fill:#74b9ff
@@ -444,7 +449,7 @@ sequenceDiagram
     participant ProgressStore
     participant MDXContent
     participant Components
-    
+
     User->>Router: Click lesson link
     Router->>LessonLayout: Render with params
     LessonLayout->>ProgressStore: Fetch lesson progress
@@ -461,11 +466,13 @@ sequenceDiagram
 ### Adding New Content
 
 1. **Create MDX file** in appropriate module folder
+
    ```bash
    src/content/module-1-digital-logic/new-topic.mdx
    ```
 
 2. **Update syllabus.json** with lesson metadata
+
    ```json
    {
      "id": "digital-logic/new-topic",
@@ -491,13 +498,13 @@ graph TB
         SB["Sidebar<br/>Navigation"]
         PB["ProgressBar<br/>Course Progress"]
     end
-    
+
     subgraph Content["📚 Content Components"]
         Q["Quiz<br/>Interactive Tests"]
         CL["ConceptLink<br/>Cross References"]
         PRB["PrerequisiteBadge<br/>Prerequisites"]
     end
-    
+
     subgraph Composition["🔧 Composition"]
         LL -->|Contains| SB
         LL -->|Contains| PB
@@ -506,7 +513,7 @@ graph TB
         CL -.->|Integrated in| LL
         PRB -.->|Integrated in| LL
     end
-    
+
     style LL fill:#74b9ff
     style SB fill:#0984e3
     style PB fill:#0984e3
@@ -521,20 +528,20 @@ graph TB
 graph LR
     TS["TypeScript Files<br/>.ts, .tsx"]
     MDX["MDX Content<br/>.mdx"]
-    
+
     TSC["TypeScript<br/>Compiler"] -->|Check Types| TypeCheck["✓ Type Check"]
     TS -->|Input to| TSC
-    
+
     Vite["Vite Build<br/>Process"]
     TSC -->|Feed to| Vite
     MDX -->|Process via Plugin| Vite
-    
+
     Vite -->|Create| ES["ES Modules"]
     Vite -->|Create| CSS["CSS Bundles"]
     Vite -->|Copy| Assets["Static Assets"]
-    
+
     ES & CSS & Assets -->|Output| Dist["📦 dist/<br/>Production Build"]
-    
+
     style TS fill:#fab1a0
     style MDX fill:#fab1a0
     style TSC fill:#74b9ff
@@ -548,17 +555,17 @@ graph LR
 
 ### Module Overview Table
 
-| Module | Focus | Topics | Lessons |
-|--------|-------|--------|---------|
-| **1** | Digital Logic | Gates, circuits, number systems | 10 lessons |
-| **3** | Architecture | CPU design, memory, pipelining | 8 lessons |
-| **4** | Programming & DS | Data structures, algorithms basics | 14 lessons |
-| **5** | Algorithms | Complexity, design paradigms | 11 lessons |
-| **6** | Theory | Automata, complexity, decidability | 7 lessons |
-| **7** | Compilers | Parsing, code generation | 7 lessons |
-| **8** | Operating Systems | Processes, memory management | TBD |
-| **9** | Databases | Design, normalization, SQL | TBD |
-| **10** | Networks | Protocols, TCP/IP, layers | 9 lessons |
+| Module | Focus             | Topics                             | Lessons    |
+| ------ | ----------------- | ---------------------------------- | ---------- |
+| **1**  | Digital Logic     | Gates, circuits, number systems    | 10 lessons |
+| **3**  | Architecture      | CPU design, memory, pipelining     | 8 lessons  |
+| **4**  | Programming & DS  | Data structures, algorithms basics | 14 lessons |
+| **5**  | Algorithms        | Complexity, design paradigms       | 11 lessons |
+| **6**  | Theory            | Automata, complexity, decidability | 7 lessons  |
+| **7**  | Compilers         | Parsing, code generation           | 7 lessons  |
+| **8**  | Operating Systems | Processes, memory management       | TBD        |
+| **9**  | Databases         | Design, normalization, SQL         | TBD        |
+| **10** | Networks          | Protocols, TCP/IP, layers          | 9 lessons  |
 
 ### Learning Path Visualization
 
@@ -573,11 +580,11 @@ graph TD
     E --> H["🔬 Module 6:<br/>Theory"]
     G --> I["💾 Module 9:<br/>Databases"]
     G --> J["🌐 Module 10:<br/>Networks"]
-    
+
     I --> K["✅ Complete:<br/>CS Fundamentals"]
     J --> K
     H --> K
-    
+
     style A fill:#d4edda,color:#155724
     style K fill:#ffeaa7,color:#856404
     style B fill:#cfe2ff,color:#084298
@@ -604,6 +611,7 @@ We welcome contributions! Please follow these guidelines:
 5. **Open a Pull Request**
 
 ### Contribution Types
+
 - 📝 **New Lessons**: Add MDX content to appropriate module
 - 🐛 **Bug Fixes**: Fix issues in components or build process
 - 🎨 **UI/UX**: Improve visual design and user experience
@@ -615,16 +623,19 @@ We welcome contributions! Please follow these guidelines:
 ## Architecture Decision Records
 
 ### Why Vite?
+
 - ⚡ Fast development server with HMR
 - 📦 Optimized production build
 - 🔌 Excellent plugin ecosystem
 
 ### Why MDX?
+
 - 📝 Write content in Markdown with React components
 - 🎨 Rich interactive lessons without backend
 - 🚀 Static site generation friendly
 
 ### Why Zustand?
+
 - 🪶 Lightweight state management
 - 🎯 Simple API for progress tracking
 - 💾 Easy persistence to localStorage
@@ -641,15 +652,15 @@ graph TB
         CSS["CSS Optimization<br/>Tailwind purging"]
         Images["Image Optimization<br/>Assets minimization"]
     end
-    
+
     subgraph Monitoring["📊 Metrics"]
         BundleSize["Bundle Size<br/>Monitor"]
         LoadTime["Load Time<br/>< 2s target"]
         TTFB["Time to First Byte<br/>< 100ms target"]
     end
-    
+
     Optimizations -->|Achieve| Monitoring
-    
+
     style LazyLoad fill:#55efc4
     style TreeShake fill:#55efc4
     style CSS fill:#55efc4
